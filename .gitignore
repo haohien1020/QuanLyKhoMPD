@@ -1,0 +1,76 @@
+# =========================
+# Java / NetBeans Project
+# =========================
+
+# Build output
+/build/
+/dist/
+/target/
+/out/
+
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Except libraries if your project manually uses WEB-INF/lib
+!web/WEB-INF/lib/*.jar
+
+# =========================
+# NetBeans
+# =========================
+
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+*.orig
+
+# =========================
+# IDE files
+# =========================
+
+.idea/
+*.iml
+.vscode/
+
+# =========================
+# OS files
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Logs
+# =========================
+
+*.log
+logs/
+
+# =========================
+# Tomcat runtime/cache
+# =========================
+
+work/
+temp/
+*.pid
+
+# =========================
+# Environment / config secrets
+# =========================
+
+.env
+.env.*
+application.properties
+config.properties
+database.properties
+
+
+!application-example.properties
+!config-example.properties
+!database-example.properties
