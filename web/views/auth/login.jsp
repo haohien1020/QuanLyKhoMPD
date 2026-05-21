@@ -259,12 +259,14 @@
                                     <!-- Username -->
                                     <div class="input-group-custom">
                                         <i class="fas fa-user"></i>
-                                        <input type="text" 
-                                               name="username" 
-                                               class="form-control" 
-                                               placeholder="Tên đăng nhập"
-                                               required 
-                                               autofocus>
+                                    <input type="text" 
+                                           name="username" 
+                                           class="form-control" 
+                                           placeholder="Tên đăng nhập"
+                                           value="${inputUsername}"
+                                           required 
+                                           autofocus>
+                                    
                                     </div>
 
                                     <!-- Password -->
@@ -279,10 +281,11 @@
 
                                     <!-- Remember Me -->
                                     <div class="custom-control custom-checkbox custom-checkbox">
-                                        <input type="checkbox" 
-                                               class="custom-control-input" 
-                                               id="rememberMe"
-                                               name="rememberMe">
+                                    <input type="checkbox" 
+                                           class="custom-control-input" 
+                                           id="rememberMe"
+                                           name="rememberMe"
+                                           ${rememberMeChecked ? "checked" : ""}>
                                         <label class="custom-control-label" for="rememberMe">
                                             Ghi nhớ đăng nhập
                                         </label>

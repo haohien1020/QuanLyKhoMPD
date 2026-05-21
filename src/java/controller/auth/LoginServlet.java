@@ -1,125 +1,112 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package controller.auth;
 
-//import dao.UserDAO;
+import dao.UserDAO;
 import java.io.IOException;
-import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-//import model.User;
+import javax.servlet.http.HttpSession;
+import model.User;
 
-/**
- *
- * @author Quang Anh
- */
-@WebServlet(name="LoginServlet", urlPatterns={"/auth/login"})
+@WebServlet(name = "LoginServlet", urlPatterns = {"/auth/login"})
 public class LoginServlet extends HttpServlet {
-    //private UserDAO userDAO = new UserDAO();
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet LoginServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet LoginServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+    private final UserDAO userDAO = new UserDAO();
+        //Login JSP
+        //→ POST /auth/login
+        //→ LoginServlet
+        //→ UserDAO.authenticate(username, password)
+        //→ Query bảng users + roles
+        //→ Nếu đúng: lưu currentUser vào session
+        //→ Redirect theo role
+        //→ Nếu sai: quay lại login.jsp và hiện error
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-    throws ServletException, IOException {
-        req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
-    } 
+            throws ServletException, IOException {
 
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+        HttpSession session = req.getSession(false);
+        if (session != null && session.getAttribute("currentUser") != null) {
+            resp.sendRedirect(req.getContextPath() + "/dashboard");
+            return;
+        }
+
+        req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
+    }
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
+
+        req.setCharacterEncoding("UTF-8");
+
         String username = req.getParameter("username");
         String password = req.getParameter("password");
+        String rememberMe = req.getParameter("rememberMe");
+
+        if (username == null || username.trim().isEmpty()
+                || password == null || password.trim().isEmpty()) {
+                keepLoginInput(req, username, rememberMe);
+            req.setAttribute("error", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+            req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
+            return;
+        }
 
         try {
-               resp.sendRedirect(req.getContextPath() + "/views/asset/asset-list.jsp");
-//            User user = userDAO.authenticate(username, password);
-//            if (user == null) {
-//                req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
-//                req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
-//                return;
-//            }
-//            
-//            if (!user.isActive()) {
-//                req.setAttribute("error", "Tài khoản của bạn đã bị khóa, hãy liên hệ admin để được hỗ trợ");
-//                req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
-//                return;
-//            }
-//
-//            // Lưu vào session
-//            HttpSession session = req.getSession(true);
-//            session.setAttribute("currentUser", user);
-//            session.setMaxInactiveInterval(30*60); // 30 phút
-//
-//            // Chuyển hướng tuỳ vai trò (ví dụ)
-//            if (user.getRoles() != null && user.getRoles().contains("ADMIN")) {
-//                resp.sendRedirect(req.getContextPath() + "/admin/dashboard");
-//            } else if (user.getRoles().contains("ASSET_STAFF")) {
-//                resp.sendRedirect(req.getContextPath() + "/assets");
-//            } else if (user.getRoles().contains("TEACHER")) {
-//                resp.sendRedirect(req.getContextPath() + "/teacher/request-list");
-//            } else {
-//                resp.sendRedirect(req.getContextPath() + "/board/request-list");
-//            }
-//            
+            User user = userDAO.authenticate(username.trim(), password.trim());
+
+            if (user == null) {
+                req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
+                req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
+                return;
+            }
+
+         if (user == null) {
+                keepLoginInput(req, username, rememberMe);
+
+                req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
+                req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
+                return;
+            }
+
+            HttpSession session = req.getSession(true);
+            session.setAttribute("currentUser", user);
+
+            if (rememberMe != null) {
+                session.setMaxInactiveInterval(7 * 24 * 60 * 60);
+            } else {
+                session.setMaxInactiveInterval(30 * 60);
+            }
+
+            redirectByRole(req, resp, user);
+
         } catch (Exception e) {
             e.printStackTrace();
-            req.setAttribute("error", "Có lỗi hệ thống, thử lại.");
+            req.setAttribute("error", "Có lỗi hệ thống, vui lòng thử lại.");
             req.getRequestDispatcher("/views/auth/login.jsp").forward(req, resp);
         }
     }
-    
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
+    private void redirectByRole(HttpServletRequest req, HttpServletResponse resp, User user)
+            throws IOException {
 
+        String contextPath = req.getContextPath();
+
+        if (user.hasRole("ADMIN")) {
+            resp.sendRedirect(contextPath + "/admin/dashboard");
+        } else if (user.hasRole("MANAGER")) {
+            resp.sendRedirect(contextPath + "/dashboard");
+        } else if (user.hasRole("WAREHOUSE_MANAGER")) {
+            resp.sendRedirect(contextPath + "/views/asset/asset-list.jsp");
+        } else if (user.hasRole("STAFF")) {
+            resp.sendRedirect(contextPath + "/views/asset/asset-list.jsp");
+        } else {
+            resp.sendRedirect(contextPath + "/dashboard");
+        }
+    }
+    private void keepLoginInput(HttpServletRequest req, String username, String rememberMe) {
+    req.setAttribute("inputUsername", username);
+    req.setAttribute("rememberMeChecked", rememberMe != null);
+}
 }
