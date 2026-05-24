@@ -1,6 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="utf-8">
@@ -91,7 +91,7 @@
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.6);
+            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.5);
         }
 
         .back-link {
@@ -196,12 +196,13 @@
                                                name="email"
                                                class="form-control input-email"
                                                placeholder="📧 Nhập địa chỉ email của bạn..."
+                                               value="${inputEmail}"
                                                required
                                                autocomplete="email">
                                     </div>
 
                                     <button type="submit" class="btn btn-primary btn-submit btn-block">
-                                        <i class="fas fa-paper-plane"></i> Gửi Link Reset Password
+                                        <i class="fas fa-paper-plane"></i> Gửi Link Đặt lại mật khẩu
                                     </button>
                                 </form>
 

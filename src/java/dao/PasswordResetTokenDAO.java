@@ -70,6 +70,40 @@ public class PasswordResetTokenDAO extends BaseDAO {
         return 0;
     }
 
+    public PasswordResetToken findValidByToken(String token) throws Exception {
+        String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at "
+                + "FROM password_reset_tokens "
+                + "WHERE token = ? AND is_used = 0 AND expired_at > GETDATE()";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, token);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    public boolean markUsed(int tokenId) throws Exception {
+        String sql = "UPDATE password_reset_tokens SET is_used = 1 WHERE token_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, tokenId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public boolean markUserTokensUsed(int userId) throws Exception {
+        String sql = "UPDATE password_reset_tokens SET is_used = 1 WHERE user_id = ? AND is_used = 0";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() >= 0;
+        }
+    }
+
     public boolean update(PasswordResetToken item) throws Exception {
         String sql = "UPDATE password_reset_tokens SET user_id = ?, token = ?, expired_at = ?, is_used = ? WHERE token_id = ?";
         try (Connection conn = DBUtil.getConnection();

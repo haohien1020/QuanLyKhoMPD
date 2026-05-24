@@ -92,7 +92,7 @@
 
         .btn-reset:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.6);
+            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.5);
         }
 
         .password-strength {
@@ -166,7 +166,7 @@
                                 <div class="reset-password-icon">
                                     <i class="fas fa-lock-open"></i>
                                 </div>
-                                <h2>Tạo Mật Khẩu Mới</h2>
+                                <h2>Tạo Mật Khẩu New</h2>
                                 <p>
                                     Bạn đang ở bước cuối cùng! Hãy tạo một mật khẩu mạnh 
                                     để bảo vệ tài khoản của mình.
@@ -205,8 +205,14 @@
                                     </div>
                                 <% } %>
 
+                                <%
+                                    Boolean canReset = (Boolean) request.getAttribute("canReset");
+                                    String token = (String) request.getAttribute("token");
+                                    boolean showResetForm = Boolean.TRUE.equals(canReset) && token != null;
+                                %>
+                                <% if (showResetForm) { %>
                                 <form method="post" action="${pageContext.request.contextPath}/reset-password" id="resetForm">
-                                    <input type="hidden" name="token" value="<%= request.getAttribute("token") %>">
+                                    <input type="hidden" name="token" value="<%= token %>">
 
                                     <div class="form-group">
                                         <input type="password"
@@ -248,6 +254,7 @@
                                         <i class="fas fa-check-circle"></i> Đặt Lại Mật Khẩu
                                     </button>
                                 </form>
+                                <% } %>
 
                                 <div class="text-center mt-4">
                                     <a class="back-link" href="${pageContext.request.contextPath}/auth/login">
