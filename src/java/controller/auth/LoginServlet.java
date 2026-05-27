@@ -87,7 +87,7 @@ public class LoginServlet extends HttpServlet {
         String contextPath = req.getContextPath();
 
         if (user.hasRole("ADMIN")) {
-            resp.sendRedirect(contextPath + "/admin/dashboard");
+            resp.sendRedirect(contextPath + "/admin/users");
         } else if (user.hasRole("MANAGER")) {
             resp.sendRedirect(contextPath + "/manager/home");
         } else if (user.hasRole("WAREHOUSE_MANAGER")) {
