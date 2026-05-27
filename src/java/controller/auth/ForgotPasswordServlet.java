@@ -17,7 +17,7 @@ import util.EmailUtil;
 @WebServlet(name = "ForgotPasswordServlet", urlPatterns = {"/forgot-password"})
 public class ForgotPasswordServlet extends HttpServlet {
 
-    private static final long TOKEN_EXPIRY_MILLIS = 60 * 60 * 1000;
+    private static final long TOKEN_EXPIRY_MILLIS = 60 * 60 * 1000; // 1h dong ho
     private final UserDAO userDAO = new UserDAO();
     private final PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
 

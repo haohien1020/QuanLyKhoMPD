@@ -11,6 +11,47 @@ import java.util.List;
 
 public class PasswordResetTokenDAO extends BaseDAO {
 
+    public PasswordResetTokenDAO() {
+        try {
+            initTableStructure();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void initTableStructure() throws Exception {
+        String checkSql = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'password_reset_tokens'";
+        boolean tableExists = false;
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    tableExists = true;
+                }
+            }
+        }
+
+        if (!tableExists) {
+            createTable();
+        }
+    }
+
+    private void createTable() throws Exception {
+        String sql = "CREATE TABLE password_reset_tokens ("
+                + "token_id INT AUTO_INCREMENT PRIMARY KEY, "
+                + "user_id INT NOT NULL, "
+                + "token VARCHAR(255) NOT NULL UNIQUE, "
+                + "expired_at DATETIME NOT NULL, "
+                + "is_used BIT NOT NULL DEFAULT 0, "
+                + "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+                + "FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE"
+                + ")";
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
     private PasswordResetToken mapResultSet(ResultSet rs) throws Exception {
         PasswordResetToken item = new PasswordResetToken();
         item.setTokenId(rs.getInt("token_id"));
@@ -73,7 +114,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
     public PasswordResetToken findValidByToken(String token) throws Exception {
         String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at "
                 + "FROM password_reset_tokens "
-                + "WHERE token = ? AND is_used = 0 AND expired_at > GETDATE()";
+                + "WHERE token = ? AND is_used = 0 AND expired_at > UTC_TIMESTAMP()";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);
