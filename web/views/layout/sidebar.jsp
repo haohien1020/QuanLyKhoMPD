@@ -88,14 +88,6 @@
         document.querySelector('.sidebar-brand').setAttribute('href', '<%= sidebarHomeHref %>');
     </script>
 
-    <!-- Dashboard (ALL USERS) -->
-    <!-- <li class="nav-item active">
-        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
-            <i class="fas fa-fw fa-tachometer-alt"></i>
-            <span>Trang tổng quan</span>
-        </a>
-    </li> -->
-
     <hr class="sidebar-divider">
 
     <!-- ADMIN MENU -->
@@ -131,7 +123,7 @@
     </div>
 
     <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/warehouses">
+        <a class="nav-link" href="${pageContext.request.contextPath}/admin/warehouses">
             <i class="fas fa-warehouse"></i>
             <span>Quản lý kho</span>
         </a>
@@ -368,6 +360,17 @@
         </a>
     </li>
 
+    <div class="sidebar-heading">
+        Thuê & Trả máy
+    </div>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/warehouse/rentals">
+            <i class="fas fa-file-contract"></i>
+            <span>Yêu cầu thuê & Trả máy</span>
+        </a>
+    </li>
+
     <hr class="sidebar-divider">
 
     <% } %>
@@ -417,8 +420,6 @@
             <span>Nhập kho / Xuất kho</span>
         </a>
     </li>
-
-
 
     <hr class="sidebar-divider">
 
@@ -474,6 +475,13 @@
         <a class="nav-link" href="${pageContext.request.contextPath}/customer/generators">
             <i class="fas fa-bolt"></i>
             <span>Máy đang thuê</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/rental-request">
+            <i class="fas fa-plus-circle"></i>
+            <span>Yêu cầu thuê máy</span>
         </a>
     </li>
 

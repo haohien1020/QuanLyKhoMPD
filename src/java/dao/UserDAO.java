@@ -73,7 +73,7 @@ public class UserDAO {
         String sql = "SELECT " + USER_SELECT_COLUMNS
                 + "FROM users u "
                 + "INNER JOIN roles r ON u.role_id = r.role_id "
-                + "WHERE LOWER(u.email) = LOWER(?)"; // chuan hoa email de tim kiem
+                + "WHERE LOWER(u.email) = LOWER(?)";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -334,5 +334,24 @@ public class UserDAO {
         }
 
         return false;
+    }
+
+    public List<User> findUsersByRoleName(String roleName) throws Exception {
+        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.`password`, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry "
+                + "FROM users u "
+                + "INNER JOIN roles r ON u.role_id = r.role_id "
+                + "WHERE r.role_name = ? AND u.status = 'ACTIVE' "
+                + "ORDER BY u.full_name ASC";
+        List<User> list = new ArrayList<User>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
     }
 }
