@@ -10,6 +10,9 @@ public class Warehouse {
     private Integer managerId;
     private String status;
     private Timestamp createdAt;
+    private String managerName;
+    private Integer warehouseManagerId;
+    private String warehouseManagerName;
 
     public Warehouse() {
     }
@@ -69,5 +72,76 @@ public class Warehouse {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getManagerName() {
+        return managerName;
+    }
+
+    public void setManagerName(String managerName) {
+        this.managerName = managerName;
+    }
+
+    public Integer getWarehouseManagerId() {
+        return warehouseManagerId;
+    }
+
+    public void setWarehouseManagerId(Integer warehouseManagerId) {
+        this.warehouseManagerId = warehouseManagerId;
+    }
+
+    public String getWarehouseManagerName() {
+        return warehouseManagerName;
+    }
+
+    public void setWarehouseManagerName(String warehouseManagerName) {
+        this.warehouseManagerName = warehouseManagerName;
+    }
+
+    private String warehouseManagerEmail;
+    private String warehouseManagerPhone;
+
+    public String getWarehouseManagerEmail() {
+        return warehouseManagerEmail;
+    }
+
+    public void setWarehouseManagerEmail(String warehouseManagerEmail) {
+        this.warehouseManagerEmail = warehouseManagerEmail;
+    }
+
+    public String getWarehouseManagerPhone() {
+        return warehouseManagerPhone;
+    }
+
+    public void setWarehouseManagerPhone(String warehouseManagerPhone) {
+        this.warehouseManagerPhone = warehouseManagerPhone;
+    }
+
+    private int totalGenerators;
+    private int totalParts;
+    private int lowStockParts;
+
+    public int getTotalGenerators() {
+        return totalGenerators;
+    }
+
+    public void setTotalGenerators(int totalGenerators) {
+        this.totalGenerators = totalGenerators;
+    }
+
+    public int getTotalParts() {
+        return totalParts;
+    }
+
+    public void setTotalParts(int totalParts) {
+        this.totalParts = totalParts;
+    }
+
+    public int getLowStockParts() {
+        return lowStockParts;
+    }
+
+    public void setLowStockParts(int lowStockParts) {
+        this.lowStockParts = lowStockParts;
     }
 }

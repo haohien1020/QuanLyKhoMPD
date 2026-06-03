@@ -68,15 +68,25 @@
     <% 
         model.User sidebarUser = (model.User) session.getAttribute("currentUser");
         java.util.List<String> sidebarRoles = (sidebarUser != null) ? sidebarUser.getRoles() : null;
+        String sidebarHomeHref = request.getContextPath() + "/profile";
+        if (sidebarRoles != null && sidebarRoles.contains("ADMIN")) {
+            sidebarHomeHref = request.getContextPath() + "/admin/users";
+        } else if (sidebarRoles != null && sidebarRoles.contains("MANAGER")) {
+            sidebarHomeHref = request.getContextPath() + "/manager/home";
+        } else if (sidebarRoles != null && sidebarRoles.contains("WAREHOUSE_MANAGER")) {
+            sidebarHomeHref = request.getContextPath() + "/warehouse/dashboard";
+        } else if (sidebarRoles != null && sidebarRoles.contains("STAFF")) {
+            sidebarHomeHref = request.getContextPath() + "/staff/home";
+        } else if (sidebarRoles != null && sidebarRoles.contains("SUPPLIER")) {
+            sidebarHomeHref = request.getContextPath() + "/supplier/home";
+        } else if (sidebarRoles != null && sidebarRoles.contains("CUSTOMER")) {
+            sidebarHomeHref = request.getContextPath() + "/customer/home";
+        }
     %>
 
-    <!-- Dashboard (ALL USERS) -->
-    <li class="nav-item active">
-        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
-            <i class="fas fa-fw fa-tachometer-alt"></i>
-            <span>Trang tổng quan</span>
-        </a>
-    </li>
+    <script>
+        document.querySelector('.sidebar-brand').setAttribute('href', '<%= sidebarHomeHref %>');
+    </script>
 
     <hr class="sidebar-divider">
 
@@ -113,7 +123,7 @@
     </div>
 
     <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/warehouses">
+        <a class="nav-link" href="${pageContext.request.contextPath}/admin/warehouses">
             <i class="fas fa-warehouse"></i>
             <span>Quản lý kho</span>
         </a>
@@ -123,6 +133,13 @@
         <a class="nav-link" href="${pageContext.request.contextPath}/suppliers">
             <i class="fas fa-truck"></i>
             <span>Quản lý nhà cung cấp</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customers">
+            <i class="fas fa-address-book"></i>
+            <span>Danh sách khách hàng</span>
         </a>
     </li>
 
@@ -212,6 +229,13 @@
         <a class="nav-link" href="${pageContext.request.contextPath}/suppliers">
             <i class="fas fa-truck"></i>
             <span>Quản lý nhà cung cấp</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customers">
+            <i class="fas fa-address-book"></i>
+            <span>Danh sách khách hàng</span>
         </a>
     </li>
 
@@ -329,6 +353,24 @@
         </a>
     </li>
 
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customers">
+            <i class="fas fa-address-book"></i>
+            <span>Danh sách khách hàng</span>
+        </a>
+    </li>
+
+    <div class="sidebar-heading">
+        Thuê & Trả máy
+    </div>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/warehouse/rentals">
+            <i class="fas fa-file-contract"></i>
+            <span>Yêu cầu thuê & Trả máy</span>
+        </a>
+    </li>
+
     <hr class="sidebar-divider">
 
     <% } %>
@@ -379,28 +421,74 @@
         </a>
     </li>
 
+    <hr class="sidebar-divider">
+
+    <% } %>
+
+    <!-- SUPPLIER MENU -->
+    <% if (sidebarRoles != null && sidebarRoles.contains("SUPPLIER") && !sidebarRoles.contains("ADMIN")) { %>
+
     <div class="sidebar-heading">
-        Sửa chữa
+        Cổng nhà cung cấp
     </div>
 
     <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/staff/repair-request/create">
-            <i class="fas fa-wrench"></i>
-            <span>Yêu cầu sửa chữa</span>
+        <a class="nav-link" href="${pageContext.request.contextPath}/supplier/home">
+            <i class="fas fa-fw fa-home"></i>
+            <span>Trang chủ Cung cấp</span>
         </a>
     </li>
 
     <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/staff/repair-tasks">
-            <i class="fas fa-tasks"></i>
-            <span>Nhiệm vụ sửa chữa của tôi</span>
+        <a class="nav-link" href="${pageContext.request.contextPath}/supplier/orders">
+            <i class="fas fa-fw fa-file-invoice"></i>
+            <span>Đơn đặt hàng của tôi</span>
+        </a>
+    </li>
+
+    <hr class="sidebar-divider">
+
+    <% } %>
+
+    <!-- CUSTOMER MENU -->
+    <% if (sidebarRoles != null && sidebarRoles.contains("CUSTOMER") && !sidebarRoles.contains("ADMIN")) { %>
+
+    <div class="sidebar-heading">
+        Cổng khách hàng
+    </div>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/home">
+            <i class="fas fa-fw fa-home"></i>
+            <span>Tổng quan</span>
         </a>
     </li>
 
     <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/staff/repair-progress">
-            <i class="fas fa-spinner"></i>
-            <span>Tiến độ sửa chữa</span>
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/contracts">
+            <i class="fas fa-file-contract"></i>
+            <span>Hợp đồng thuê của tôi</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/generators">
+            <i class="fas fa-bolt"></i>
+            <span>Máy đang thuê</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/rental-request">
+            <i class="fas fa-plus-circle"></i>
+            <span>Yêu cầu thuê máy</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customer/notifications">
+            <i class="fas fa-bell"></i>
+            <span>Thông báo của tôi</span>
         </a>
     </li>
 
