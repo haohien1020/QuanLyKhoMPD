@@ -27,6 +27,7 @@ public class WarehouseManagementServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Xac minh thong tin co phai la admin truy cap page nay hay ko , neu dung thi cho phep vao pager
         User currentUser = requireAdmin(request, response);
         if (currentUser == null) {
             return;
@@ -107,7 +108,7 @@ public class WarehouseManagementServlet extends HttpServlet {
         if (status == null || status.isEmpty()) {
             status = "ACTIVE";
         }
-
+         /// tien hanh validate du lieu nguoi dung nhap vao
         if (warehouseName == null || warehouseName.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=name_empty");
             return;

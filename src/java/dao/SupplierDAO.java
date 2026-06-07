@@ -94,4 +94,72 @@ public class SupplierDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<Supplier> findSuppliers(String keyword, String statusFilter) throws Exception {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT supplier_id, supplier_name, phone, email, address, status, created_at ")
+           .append("FROM suppliers WHERE 1 = 1 ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (LOWER(supplier_name) LIKE ? OR LOWER(email) LIKE ? OR phone LIKE ? OR LOWER(address) LIKE ?) ");
+            String search = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(search);
+            params.add(search);
+            params.add("%" + keyword.trim() + "%");
+            params.add(search);
+        }
+
+        if (statusFilter != null && !statusFilter.trim().isEmpty()) {
+            sql.append("AND status = ? ");
+            params.add(statusFilter.trim());
+        }
+
+        sql.append("ORDER BY supplier_id DESC");
+
+        List<Supplier> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean updateStatus(int supplierId, String status) throws Exception {
+        String sql = "UPDATE suppliers SET status = ? WHERE supplier_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, supplierId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public boolean isEmailUsedByAnotherSupplier(String email, int supplierId) throws Exception {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+
+        String sql = "SELECT COUNT(*) FROM suppliers WHERE LOWER(email) = LOWER(?) AND supplier_id <> ?";
+
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email.trim());
+            ps.setInt(2, supplierId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 }

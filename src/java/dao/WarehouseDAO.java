@@ -74,6 +74,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
                 + "WHERE 1 = 1 "
         );
+        // lấy từ bảng nào ? có join thì join với bảng nào, và vì sao phải join, tiếp đến nếu có where thì where như thế n ào và vì sao phải có điều kiện này, sau đó mới nói tiếp cần select những field gì 
         List<Object> params = new ArrayList<Object>();
         
         if (keyword != null && !keyword.trim().isEmpty()) {
