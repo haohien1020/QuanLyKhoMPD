@@ -16,7 +16,8 @@
     boolean canManageCustomers = currentUser != null
             && (currentUser.hasRole("ADMIN")
             || currentUser.hasRole("MANAGER")
-            || currentUser.hasRole("WAREHOUSE_MANAGER"));
+            || currentUser.hasRole("WAREHOUSE_MANAGER")
+            || currentUser.hasRole("SELLER"));
 %>
 
 <!DOCTYPE html>
@@ -92,7 +93,17 @@
                 </div>
                 <% } else if ("missing_required".equals(errorParam)) { %>
                 <div class="alert alert-warning alert-dismissible fade show">
-                    <i class="fas fa-exclamation-triangle"></i> Vui lòng nhập tên khách hàng.
+                    <i class="fas fa-exclamation-triangle"></i> Vui lòng điền đầy đủ các thông tin bắt buộc (Tên khách hàng và Email).
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("invalid_email".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Email không đúng định dạng.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("invalid_phone".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if (errorParam != null && !errorParam.isEmpty()) { %>
@@ -241,10 +252,12 @@
                         <div class="form-group col-md-6">
                             <label for="customerName">Tên khách hàng <span class="text-danger">*</span></label>
                             <input type="text" id="customerName" name="customerName" class="form-control" required maxlength="100">
+                            <div class="invalid-feedback" id="customerNameFeedback"></div>
                         </div>
                         <div class="form-group col-md-6">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" class="form-control" maxlength="100">
+                            <label for="email">Email <span class="text-danger">*</span></label>
+                            <input type="email" id="email" name="email" class="form-control" required maxlength="100">
+                            <div class="invalid-feedback" id="emailFeedback"></div>
                         </div>
                     </div>
 
@@ -252,6 +265,7 @@
                         <div class="form-group col-md-6">
                             <label for="phone">Số điện thoại</label>
                             <input type="text" id="phone" name="phone" class="form-control" maxlength="20">
+                            <div class="invalid-feedback" id="phoneFeedback"></div>
                         </div>
                         <div class="form-group col-md-6">
                             <label for="statusInput">Trạng thái</label>
@@ -303,10 +317,22 @@
                 infoEmpty: 'Không có dữ liệu hiển thị'
             }
         });
+
+        // Open modal if URL has ?action=create
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'create') {
+            <% if (canManageCustomers) { %>
+            openCreateModal();
+            <% } %>
+        }
     });
 
     <% if (canManageCustomers) { %>
     function openCreateModal() {
+        // Clear previous validations
+        $('.form-control').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+
         $('#customerModalTitle').text('Thêm khách hàng');
         $('#customerForm').attr('action', '${pageContext.request.contextPath}/customers/create');
         $('#customerId').val('');
@@ -319,6 +345,10 @@
     }
 
     function openEditModal(customerId, customerName, phone, email, address, status) {
+        // Clear previous validations
+        $('.form-control').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+
         $('#customerModalTitle').text('Cập nhật khách hàng');
         $('#customerForm').attr('action', '${pageContext.request.contextPath}/customers/update');
         $('#customerId').val(customerId);
@@ -329,6 +359,60 @@
         $('#statusInput').val(status || 'ACTIVE');
         $('#customerModal').modal('show');
     }
+
+    $(document).ready(function() {
+        $('#customerForm').on('submit', function (e) {
+            let isValid = true;
+            
+            // Reset validation
+            $('.form-control').removeClass('is-invalid');
+            $('.invalid-feedback').text('');
+
+            // Validate Customer Name
+            const nameVal = $('#customerName').val().trim();
+            if (nameVal === '') {
+                $('#customerName').addClass('is-invalid');
+                $('#customerNameFeedback').text('Tên khách hàng không được để trống.');
+                isValid = false;
+            } else if (nameVal.length > 100) {
+                $('#customerName').addClass('is-invalid');
+                $('#customerNameFeedback').text('Tên khách hàng không được vượt quá 100 ký tự.');
+                isValid = false;
+            }
+
+            // Validate Email
+            const emailVal = $('#email').val().trim();
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+            if (emailVal === '') {
+                $('#email').addClass('is-invalid');
+                $('#emailFeedback').text('Email không được để trống.');
+                isValid = false;
+            } else if (!emailRegex.test(emailVal)) {
+                $('#email').addClass('is-invalid');
+                $('#emailFeedback').text('Email không đúng định dạng (VD: example@domain.com).');
+                isValid = false;
+            } else if (emailVal.length > 100) {
+                $('#email').addClass('is-invalid');
+                $('#emailFeedback').text('Email không được vượt quá 100 ký tự.');
+                isValid = false;
+            }
+
+            // Validate Phone (optional)
+            const phoneVal = $('#phone').val().trim();
+            if (phoneVal !== '') {
+                const phoneRegex = /^(\+84\s?\d{9}|84\d{9}|0\d{9})$/;
+                if (!phoneRegex.test(phoneVal)) {
+                    $('#phone').addClass('is-invalid');
+                    $('#phoneFeedback').text('Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).');
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+    });
     <% } %>
 </script>
 

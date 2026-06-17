@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GeneratorDAO extends BaseDAO {
-// Data Access Object
+
     private Generator mapResultSet(ResultSet rs) throws Exception {
         Generator item = new Generator();
         item.setGeneratorId(rs.getInt("generator_id"));

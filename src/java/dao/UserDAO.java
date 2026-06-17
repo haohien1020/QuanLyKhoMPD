@@ -25,10 +25,11 @@ public class UserDAO {
             + "u.created_at, "
             + "u.updated_at, "
             + "u.ResetToken, "
-            + "u.ResetTokenExpiry ";
+            + "u.ResetTokenExpiry, "
+            + "u.warehouse_id ";
 
     private User mapResultSet(ResultSet rs) throws Exception {
-        return new User(
+        User u = new User(
                 rs.getInt("user_id"),
                 rs.getInt("role_id"),
                 rs.getString("role_name"),
@@ -45,6 +46,11 @@ public class UserDAO {
                 rs.getString("ResetToken"),
                 rs.getTimestamp("ResetTokenExpiry")
         );
+        int whId = rs.getInt("warehouse_id");
+        if (!rs.wasNull()) {
+            u.setWarehouseId(whId);
+        }
+        return u;
     }
 
     public User authenticate(String username, String password) throws Exception {
@@ -158,8 +164,13 @@ public class UserDAO {
 
     public int insertUser(int roleId, String fullName, String email, String username,
             String password, String phone, String status) throws Exception {
-        String sql = "INSERT INTO users (role_id, full_name, email, username, `password`, phone, status) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        return insertUser(roleId, fullName, email, username, password, phone, status, null);
+    }
+
+    public int insertUser(int roleId, String fullName, String email, String username,
+            String password, String phone, String status, Integer warehouseId) throws Exception {
+        String sql = "INSERT INTO users (role_id, full_name, email, username, `password`, phone, status, warehouse_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -171,6 +182,11 @@ public class UserDAO {
             ps.setString(5, password);
             ps.setString(6, phone);
             ps.setString(7, status);
+            if (warehouseId != null) {
+                ps.setInt(8, warehouseId);
+            } else {
+                ps.setNull(8, java.sql.Types.INTEGER);
+            }
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
@@ -337,7 +353,7 @@ public class UserDAO {
     }
 
     public List<User> findUsersByRoleName(String roleName) throws Exception {
-        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.`password`, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry "
+        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.`password`, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry, u.warehouse_id "
                 + "FROM users u "
                 + "INNER JOIN roles r ON u.role_id = r.role_id "
                 + "WHERE r.role_name = ? AND u.status = 'ACTIVE' "
@@ -346,6 +362,25 @@ public class UserDAO {
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roleName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<User> findSellersByWarehouse(int warehouseId) throws Exception {
+        String sql = "SELECT " + USER_SELECT_COLUMNS
+                + "FROM users u "
+                + "INNER JOIN roles r ON u.role_id = r.role_id "
+                + "WHERE r.role_name = 'SELLER' AND u.warehouse_id = ? "
+                + "ORDER BY u.user_id DESC";
+        List<User> list = new ArrayList<User>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, warehouseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSet(rs));

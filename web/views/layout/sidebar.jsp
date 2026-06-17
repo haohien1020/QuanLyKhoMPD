@@ -111,13 +111,6 @@
         </a>
     </li>
 
-    <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/admin/permissions">
-            <i class="fas fa-lock"></i>
-            <span>Phân quyền truy cập</span>
-        </a>
-    </li>
-
     <div class="sidebar-heading">
         Quản lý kho
     </div>
@@ -143,7 +136,7 @@
         </a>
     </li>
 
-    <div class="sidebar-heading">
+<!--    <div class="sidebar-heading">
         Báo cáo & Nhật ký
     </div>
 
@@ -159,7 +152,7 @@
             <i class="fas fa-history"></i>
             <span>Nhật ký hoạt động</span>
         </a>
-    </li>
+    </li>-->
 
     <li class="nav-item">
         <a class="nav-link" href="${pageContext.request.contextPath}/settings">
@@ -279,6 +272,13 @@
         <a class="nav-link" href="${pageContext.request.contextPath}/warehouse/dashboard">
             <i class="fas fa-warehouse"></i>
             <span>Quản lý kho</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/warehouse/sellers">
+            <i class="fas fa-users-cog"></i>
+            <span>Quản lý nhân viên kinh doanh</span>
         </a>
     </li>
 
@@ -418,6 +418,53 @@
         <a class="nav-link" href="${pageContext.request.contextPath}/inventory-transactions">
             <i class="fas fa-dolly-flatbed"></i>
             <span>Nhập kho / Xuất kho</span>
+        </a>
+    </li>
+
+    <hr class="sidebar-divider">
+
+    <% } %>
+
+    <!-- SELLER MENU -->
+    <% if (sidebarRoles != null && sidebarRoles.contains("SELLER") && !sidebarRoles.contains("ADMIN") && !sidebarRoles.contains("MANAGER") && !sidebarRoles.contains("WAREHOUSE_MANAGER")) { %>
+
+    <div class="sidebar-heading">
+        Nghiệp vụ SELLER
+    </div>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/seller/home">
+            <i class="fas fa-home"></i>
+            <span>Trang chủ SELLER</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link font-weight-bold" href="${pageContext.request.contextPath}/seller/contracts/create"
+           style="color:#fff !important;">
+            <i class="fas fa-plus-circle" style="color:#fff !important;"></i>
+            <span>Lập hợp đồng mới</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/seller/contracts">
+            <i class="fas fa-file-contract"></i>
+            <span>Quản lý Hợp đồng Thuê</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/customers">
+            <i class="fas fa-users"></i>
+            <span>Quản lý Khách hàng</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/generators">
+            <i class="fas fa-bolt"></i>
+            <span>Tra cứu máy khả dụng</span>
         </a>
     </li>
 

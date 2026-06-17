@@ -21,7 +21,7 @@ public class LoginServlet extends HttpServlet {
 
         HttpSession session = req.getSession(false);
         if (session != null && session.getAttribute("currentUser") != null) {
-            resp.sendRedirect(req.getContextPath() + "/dashboard");
+            redirectByRole(req, resp, (User) session.getAttribute("currentUser"));
             return;
         }
 
@@ -94,6 +94,12 @@ public class LoginServlet extends HttpServlet {
             resp.sendRedirect(contextPath + "/warehouse/dashboard");
         } else if (user.hasRole("STAFF")) {
             resp.sendRedirect(contextPath + "/staff/home");
+        } else if (user.hasRole("SUPPLIER")) {
+            resp.sendRedirect(contextPath + "/supplier/home");
+        } else if (user.hasRole("CUSTOMER")) {
+            resp.sendRedirect(contextPath + "/customer/home");
+        } else if (user.hasRole("SELLER")) {
+            resp.sendRedirect(contextPath + "/seller/home");
         } else {
             resp.sendRedirect(contextPath + "/dashboard");
         }
