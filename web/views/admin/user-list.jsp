@@ -21,7 +21,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý người dùng | School Asset Management</title>
+    <title>Quản lý người dùng | Generator Management System</title>
 
     <link href="${pageContext.request.contextPath}/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">

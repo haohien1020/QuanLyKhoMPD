@@ -18,7 +18,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chi tiết người dùng | School Asset Management</title>
+    <title>Chi tiết người dùng | Generator Management System</title>
 
     <link href="${pageContext.request.contextPath}/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/css/sb-admin-2.min.css" rel="stylesheet">

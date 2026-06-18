@@ -21,6 +21,7 @@ public class User {
     private Timestamp updatedAt;
     private String resetToken;
     private Timestamp resetTokenExpiry;
+    private Integer warehouseId;
 
     public User() {
     }
@@ -187,5 +188,13 @@ public class User {
 
     public void setResetTokenExpiry(Timestamp resetTokenExpiry) {
         this.resetTokenExpiry = resetTokenExpiry;
+    }
+
+    public Integer getWarehouseId() {
+        return warehouseId;
+    }
+
+    public void setWarehouseId(Integer warehouseId) {
+        this.warehouseId = warehouseId;
     }
 }
