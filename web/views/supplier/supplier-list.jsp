@@ -1,11 +1,11 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.util.List" %>
-<%@ page import="model.Customer" %>
+<%@ page import="model.Supplier" %>
 <%@ page import="model.User" %>
 
 <%
     @SuppressWarnings("unchecked")
-    List<Customer> customers = (List<Customer>) request.getAttribute("customers");
+    List<Supplier> suppliers = (List<Supplier>) request.getAttribute("suppliers");
 
     String q = (String) request.getAttribute("q");
     String statusFilter = (String) request.getAttribute("statusFilter");
@@ -13,18 +13,17 @@
     String errorParam = request.getParameter("error");
 
     User currentUser = (User) session.getAttribute("currentUser");
-    boolean canManageCustomers = currentUser != null
+    boolean canManageSuppliers = currentUser != null
             && (currentUser.hasRole("ADMIN")
             || currentUser.hasRole("MANAGER")
-            || currentUser.hasRole("WAREHOUSE_MANAGER")
-            || currentUser.hasRole("SELLER"));
+            || currentUser.hasRole("WAREHOUSE_MANAGER"));
 %>
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Danh sách khách hàng | Generator Management System</title>
+    <title>Quản lý nhà cung cấp | Generator Management System</title>
 
     <link href="${pageContext.request.contextPath}/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
@@ -38,7 +37,7 @@
         .table tbody td {
             vertical-align: middle !important;
         }
-        .customer-name-col {
+        .supplier-name-col {
             min-width: 190px;
             max-width: 280px;
         }
@@ -62,53 +61,43 @@
 
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
                     <h1 class="h3 mb-0 text-gray-800">
-                        <i class="fas fa-address-book text-primary"></i> Danh sách khách hàng
+                        <i class="fas fa-truck text-primary"></i> Quản lý nhà cung cấp
                     </h1>
-                    <% if (canManageCustomers) { %>
+                    <% if (canManageSuppliers) { %>
                     <button type="button" class="btn btn-primary btn-sm" onclick="openCreateModal()">
-                        <i class="fas fa-plus"></i> Thêm khách hàng
+                        <i class="fas fa-plus"></i> Thêm nhà cung cấp
                     </button>
                     <% } %>
                 </div>
 
                 <% if ("created".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Đã thêm khách hàng mới.
+                    <i class="fas fa-check-circle"></i> Đã thêm nhà cung cấp mới.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("updated".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Đã cập nhật thông tin khách hàng.
+                    <i class="fas fa-check-circle"></i> Đã cập nhật thông tin nhà cung cấp.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("status_updated".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Đã cập nhật trạng thái khách hàng.
+                    <i class="fas fa-check-circle"></i> Đã cập nhật trạng thái hoạt động nhà cung cấp.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("email_exists".equals(errorParam)) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle"></i> Email khách hàng đã tồn tại.
+                    <i class="fas fa-exclamation-circle"></i> Email nhà cung cấp đã tồn tại.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("missing_required".equals(errorParam)) { %>
                 <div class="alert alert-warning alert-dismissible fade show">
-                    <i class="fas fa-exclamation-triangle"></i> Vui lòng điền đầy đủ các thông tin bắt buộc (Tên khách hàng và Email).
-                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-                </div>
-                <% } else if ("invalid_email".equals(errorParam)) { %>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle"></i> Email không đúng định dạng.
-                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-                </div>
-                <% } else if ("invalid_phone".equals(errorParam)) { %>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle"></i> Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).
+                    <i class="fas fa-exclamation-triangle"></i> Vui lòng nhập tên nhà cung cấp.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if (errorParam != null && !errorParam.isEmpty()) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle"></i> Có lỗi xảy ra khi xử lý dữ liệu khách hàng.
+                    <i class="fas fa-exclamation-circle"></i> Có lỗi xảy ra khi xử lý dữ liệu nhà cung cấp.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } %>
@@ -120,7 +109,7 @@
                         </h6>
                     </div>
                     <div class="card-body">
-                        <form method="get" action="${pageContext.request.contextPath}/customers" class="row">
+                        <form method="get" action="${pageContext.request.contextPath}/suppliers" class="row">
                             <div class="form-group col-md-6">
                                 <label for="q">Tìm kiếm</label>
                                 <input type="text" id="q" name="q" class="form-control"
@@ -147,68 +136,68 @@
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-list"></i> Khách hàng
-                            <span class="badge badge-primary"><%= customers != null ? customers.size() : 0 %></span>
+                            <i class="fas fa-list"></i> Nhà cung cấp
+                            <span class="badge badge-primary"><%= suppliers != null ? suppliers.size() : 0 %></span>
                         </h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover" id="customerTable" width="100%" cellspacing="0">
+                            <table class="table table-bordered table-hover" id="supplierTable" width="100%" cellspacing="0">
                                 <thead class="thead-light">
                                 <tr>
                                     <th>ID</th>
-                                    <th class="customer-name-col text-left">Tên khách hàng</th>
+                                    <th class="supplier-name-col text-left">Tên nhà cung cấp</th>
                                     <th>Email</th>
                                     <th>Số điện thoại</th>
                                     <th>Địa chỉ</th>
                                     <th>Trạng thái</th>
-                                    <% if (canManageCustomers) { %>
+                                    <% if (canManageSuppliers) { %>
                                     <th style="width: 150px;">Hành động</th>
                                     <% } %>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <%
-                                    if (customers == null || customers.isEmpty()) {
+                                    if (suppliers == null || suppliers.isEmpty()) {
                                 %>
                                 <tr>
-                                    <td colspan="<%= canManageCustomers ? 7 : 6 %>" class="text-center text-muted py-4">
+                                    <td colspan="<%= canManageSuppliers ? 7 : 6 %>" class="text-center text-muted py-4">
                                         <i class="fas fa-inbox fa-3x mb-3 text-gray-300"></i>
-                                        <p class="m-0">Không tìm thấy khách hàng nào.</p>
+                                        <p class="m-0">Không tìm thấy nhà cung cấp nào.</p>
                                     </td>
                                 </tr>
                                 <%
                                     } else {
-                                        for (Customer c : customers) {
-                                            String status = c.getStatus() != null ? c.getStatus() : "ACTIVE";
+                                        for (Supplier s : suppliers) {
+                                            String status = s.getStatus() != null ? s.getStatus() : "ACTIVE";
                                             String badgeClass = "ACTIVE".equals(status) ? "badge-success" : "badge-secondary";
                                             String statusText = "ACTIVE".equals(status) ? "Đang hoạt động" : "Ngừng hoạt động";
 
-                                            String safeName = js(c.getCustomerName());
-                                            String safePhone = js(c.getPhone());
-                                            String safeEmail = js(c.getEmail());
-                                            String safeAddress = js(c.getAddress());
+                                            String safeName = js(s.getSupplierName());
+                                            String safePhone = js(s.getPhone());
+                                            String safeEmail = js(s.getEmail());
+                                            String safeAddress = js(s.getAddress());
                                 %>
                                 <tr>
-                                    <td class="text-center text-nowrap"><%= c.getCustomerId() %></td>
-                                    <td class="customer-name-col">
-                                        <span class="font-weight-bold text-gray-900"><%= html(c.getCustomerName()) %></span>
+                                    <td class="text-center text-nowrap"><%= s.getSupplierId() %></td>
+                                    <td class="supplier-name-col">
+                                        <span class="font-weight-bold text-gray-900"><%= html(s.getSupplierName()) %></span>
                                     </td>
-                                    <td class="text-nowrap"><%= c.getEmail() != null && !c.getEmail().isEmpty() ? html(c.getEmail()) : "-" %></td>
-                                    <td class="text-nowrap"><%= c.getPhone() != null && !c.getPhone().isEmpty() ? html(c.getPhone()) : "-" %></td>
-                                    <td><%= c.getAddress() != null && !c.getAddress().isEmpty() ? html(c.getAddress()) : "-" %></td>
+                                    <td class="text-nowrap"><%= s.getEmail() != null && !s.getEmail().isEmpty() ? html(s.getEmail()) : "-" %></td>
+                                    <td class="text-nowrap"><%= s.getPhone() != null && !s.getPhone().isEmpty() ? html(s.getPhone()) : "-" %></td>
+                                    <td><%= s.getAddress() != null && !s.getAddress().isEmpty() ? html(s.getAddress()) : "-" %></td>
                                     <td class="text-center text-nowrap">
                                         <span class="badge <%= badgeClass %> px-2 py-1"><%= statusText %></span>
                                     </td>
-                                    <% if (canManageCustomers) { %>
+                                    <% if (canManageSuppliers) { %>
                                     <td class="text-center text-nowrap">
                                         <button type="button" class="btn btn-sm btn-info"
-                                                onclick="openEditModal(<%= c.getCustomerId() %>, '<%= safeName %>', '<%= safePhone %>', '<%= safeEmail %>', '<%= safeAddress %>', '<%= status %>')"
+                                                onclick="openEditModal(<%= s.getSupplierId() %>, '<%= safeName %>', '<%= safePhone %>', '<%= safeEmail %>', '<%= safeAddress %>', '<%= status %>')"
                                                 title="Chỉnh sửa">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form method="post" action="${pageContext.request.contextPath}/customers/status" class="d-inline">
-                                            <input type="hidden" name="customerId" value="<%= c.getCustomerId() %>">
+                                        <form method="post" action="${pageContext.request.contextPath}/suppliers/status" class="d-inline">
+                                            <input type="hidden" name="supplierId" value="<%= s.getSupplierId() %>">
                                             <input type="hidden" name="status" value="<%= "ACTIVE".equals(status) ? "INACTIVE" : "ACTIVE" %>">
                                             <button type="submit"
                                                     class="btn btn-sm <%= "ACTIVE".equals(status) ? "btn-warning" : "btn-success" %>"
@@ -236,28 +225,26 @@
     </div>
 </div>
 
-<% if (canManageCustomers) { %>
-<div class="modal fade" id="customerModal" tabindex="-1" role="dialog">
+<% if (canManageSuppliers) { %>
+<div class="modal fade" id="supplierModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <form id="customerForm" method="post" action="${pageContext.request.contextPath}/customers/create">
+            <form id="supplierForm" method="post" action="${pageContext.request.contextPath}/suppliers/create">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="customerModalTitle">Thêm khách hàng</h5>
+                    <h5 class="modal-title" id="supplierModalTitle">Thêm nhà cung cấp</h5>
                     <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" id="customerId" name="customerId">
+                    <input type="hidden" id="supplierId" name="supplierId">
 
                     <div class="row">
                         <div class="form-group col-md-6">
-                            <label for="customerName">Tên khách hàng <span class="text-danger">*</span></label>
-                            <input type="text" id="customerName" name="customerName" class="form-control" required maxlength="100">
-                            <div class="invalid-feedback" id="customerNameFeedback"></div>
+                            <label for="supplierName">Tên nhà cung cấp <span class="text-danger">*</span></label>
+                            <input type="text" id="supplierName" name="supplierName" class="form-control" required maxlength="100">
                         </div>
                         <div class="form-group col-md-6">
-                            <label for="email">Email <span class="text-danger">*</span></label>
-                            <input type="email" id="email" name="email" class="form-control" required maxlength="100">
-                            <div class="invalid-feedback" id="emailFeedback"></div>
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" maxlength="100">
                         </div>
                     </div>
 
@@ -265,7 +252,6 @@
                         <div class="form-group col-md-6">
                             <label for="phone">Số điện thoại</label>
                             <input type="text" id="phone" name="phone" class="form-control" maxlength="20">
-                            <div class="invalid-feedback" id="phoneFeedback"></div>
                         </div>
                         <div class="form-group col-md-6">
                             <label for="statusInput">Trạng thái</label>
@@ -302,7 +288,7 @@
 
 <script>
     $(document).ready(function () {
-        $('#customerTable').DataTable({
+        $('#supplierTable').DataTable({
             pageLength: 10,
             ordering: false,
             searching: false,
@@ -317,102 +303,32 @@
                 infoEmpty: 'Không có dữ liệu hiển thị'
             }
         });
-
-        // Open modal if URL has ?action=create
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('action') === 'create') {
-            <% if (canManageCustomers) { %>
-            openCreateModal();
-            <% } %>
-        }
     });
 
-    <% if (canManageCustomers) { %>
+    <% if (canManageSuppliers) { %>
     function openCreateModal() {
-        // Clear previous validations
-        $('.form-control').removeClass('is-invalid');
-        $('.invalid-feedback').text('');
-
-        $('#customerModalTitle').text('Thêm khách hàng');
-        $('#customerForm').attr('action', '${pageContext.request.contextPath}/customers/create');
-        $('#customerId').val('');
-        $('#customerName').val('');
+        $('#supplierModalTitle').text('Thêm nhà cung cấp');
+        $('#supplierForm').attr('action', '${pageContext.request.contextPath}/suppliers/create');
+        $('#supplierId').val('');
+        $('#supplierName').val('');
         $('#phone').val('');
         $('#email').val('');
         $('#address').val('');
         $('#statusInput').val('ACTIVE');
-        $('#customerModal').modal('show');
+        $('#supplierModal').modal('show');
     }
 
-    function openEditModal(customerId, customerName, phone, email, address, status) {
-        // Clear previous validations
-        $('.form-control').removeClass('is-invalid');
-        $('.invalid-feedback').text('');
-
-        $('#customerModalTitle').text('Cập nhật khách hàng');
-        $('#customerForm').attr('action', '${pageContext.request.contextPath}/customers/update');
-        $('#customerId').val(customerId);
-        $('#customerName').val(customerName);
+    function openEditModal(supplierId, supplierName, phone, email, address, status) {
+        $('#supplierModalTitle').text('Cập nhật nhà cung cấp');
+        $('#supplierForm').attr('action', '${pageContext.request.contextPath}/suppliers/update');
+        $('#supplierId').val(supplierId);
+        $('#supplierName').val(supplierName);
         $('#phone').val(phone);
         $('#email').val(email);
         $('#address').val(address);
         $('#statusInput').val(status || 'ACTIVE');
-        $('#customerModal').modal('show');
+        $('#supplierModal').modal('show');
     }
-
-    $(document).ready(function() {
-        $('#customerForm').on('submit', function (e) {
-            let isValid = true;
-            
-            // Reset validation
-            $('.form-control').removeClass('is-invalid');
-            $('.invalid-feedback').text('');
-
-            // Validate Customer Name
-            const nameVal = $('#customerName').val().trim();
-            if (nameVal === '') {
-                $('#customerName').addClass('is-invalid');
-                $('#customerNameFeedback').text('Tên khách hàng không được để trống.');
-                isValid = false;
-            } else if (nameVal.length > 100) {
-                $('#customerName').addClass('is-invalid');
-                $('#customerNameFeedback').text('Tên khách hàng không được vượt quá 100 ký tự.');
-                isValid = false;
-            }
-
-            // Validate Email
-            const emailVal = $('#email').val().trim();
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-            if (emailVal === '') {
-                $('#email').addClass('is-invalid');
-                $('#emailFeedback').text('Email không được để trống.');
-                isValid = false;
-            } else if (!emailRegex.test(emailVal)) {
-                $('#email').addClass('is-invalid');
-                $('#emailFeedback').text('Email không đúng định dạng (VD: example@domain.com).');
-                isValid = false;
-            } else if (emailVal.length > 100) {
-                $('#email').addClass('is-invalid');
-                $('#emailFeedback').text('Email không được vượt quá 100 ký tự.');
-                isValid = false;
-            }
-
-            // Validate Phone (optional)
-            const phoneVal = $('#phone').val().trim();
-            if (phoneVal !== '') {
-                const phoneRegex = /^(\+84\s?\d{9}|84\d{9}|0\d{9})$/;
-                if (!phoneRegex.test(phoneVal)) {
-                    $('#phone').addClass('is-invalid');
-                    $('#phoneFeedback').text('Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).');
-                    isValid = false;
-                }
-            }
-
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
-    });
     <% } %>
 </script>
 

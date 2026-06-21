@@ -13,7 +13,9 @@ import model.User;
 @WebServlet(name = "RoleHomeServlet", urlPatterns = {
     "/manager/home",
     "/warehouse/dashboard",
-    "/staff/home"
+    "/staff/home",
+    "/supplier/home",
+    "/seller/home"
 })
 public class RoleHomeServlet extends HttpServlet {
 
@@ -43,6 +45,14 @@ public class RoleHomeServlet extends HttpServlet {
                 requireRole(currentUser, response, "STAFF");
                 loadStaffData(request, currentUser);
                 request.getRequestDispatcher("/views/home/staff-home.jsp").forward(request, response);
+            } else if ("/supplier/home".equals(path)) {
+                requireRole(currentUser, response, "SUPPLIER");
+                loadSupplierData(request, currentUser);
+                request.getRequestDispatcher("/views/home/supplier-home.jsp").forward(request, response);
+            } else if ("/seller/home".equals(path)) {
+                requireRole(currentUser, response, "SELLER");
+                loadSellerData(request, currentUser);
+                request.getRequestDispatcher("/views/home/seller-home.jsp").forward(request, response);
             } else {
                 response.sendRedirect(request.getContextPath() + "/dashboard");
             }
@@ -90,21 +100,72 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("myPartRequests", dashboardDAO.countWhereInt("part_requests", "requested_by = ?", userId));
         request.setAttribute("myPendingPartRequests",
                 dashboardDAO.countWhereInt("part_requests", "requested_by = ? AND status = 'PENDING'", userId));
-        request.setAttribute("myRepairReports",
-                dashboardDAO.countWhereInt("maintenance_repairs", "reported_by = ?", userId));
-        request.setAttribute("myRepairTasks",
-                dashboardDAO.countWhereInt("maintenance_repairs", "assigned_to = ?", userId));
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("unreadNotifications",
                 dashboardDAO.countWhereInt("notifications", "user_id = ? AND is_read = 0", userId));
     }
 
+    private void loadSupplierData(HttpServletRequest request, User currentUser) throws Exception {
+        dao.SupplierPortalDAO supplierPortalDAO = new dao.SupplierPortalDAO();
+        model.Supplier supplier = supplierPortalDAO.findSupplierByEmail(currentUser.getEmail());
+        if (supplier != null) {
+            request.setAttribute("supplierInfo", supplier);
+            java.util.List<model.PurchaseOrder> orders = supplierPortalDAO.findOrdersForSupplier(supplier.getSupplierId());
+            int totalOrders = orders.size();
+            int pendingOrders = 0;
+            int activeDeliveries = 0;
+            for (model.PurchaseOrder order : orders) {
+                String status = order.getStatus();
+                if ("PENDING".equalsIgnoreCase(status)) {
+                    pendingOrders++;
+                } else if ("DELIVERING".equalsIgnoreCase(status)) {
+                    activeDeliveries++;
+                }
+            }
+            request.setAttribute("totalOrders", totalOrders);
+            request.setAttribute("pendingOrders", pendingOrders);
+            request.setAttribute("activeDeliveries", activeDeliveries);
+        } else {
+            request.setAttribute("totalOrders", 0);
+            request.setAttribute("pendingOrders", 0);
+            request.setAttribute("activeDeliveries", 0);
+            request.setAttribute("supplierError", "Tài khoản của bạn chưa được liên kết với bất kỳ hồ sơ Nhà cung cấp nào trong hệ thống hoặc Nhà cung cấp không hoạt động. Vui lòng liên hệ Thủ kho.");
+        }
+    }
+
+    private void loadSellerData(HttpServletRequest request, User currentUser) throws Exception {
+        int userId = currentUser.getUserId();
+        Integer warehouseId = currentUser.getWarehouseId();
+        request.setAttribute("sellerWarehouseId", warehouseId);
+
+        // Count contracts created by this seller
+        request.setAttribute("myTotalContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId));
+        request.setAttribute("myPendingContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'PENDING'"));
+        request.setAttribute("myActiveContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'DELIVERED'"));
+
+        // Only count generators in seller's own warehouse
+        if (warehouseId != null) {
+            request.setAttribute("availableGenerators", dashboardDAO.countWhere("generators",
+                    "status = 'IN_STOCK' AND warehouse_id = " + warehouseId));
+            // Also get warehouse name for display
+            dao.WarehouseDAO warehouseDAO = new dao.WarehouseDAO();
+            model.Warehouse sellerWarehouse = warehouseDAO.findById(warehouseId);
+            request.setAttribute("sellerWarehouse", sellerWarehouse);
+        } else {
+            request.setAttribute("availableGenerators", 0);
+        }
+    }
+ 
     private void forwardFallback(String path, HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if ("/manager/home".equals(path)) {
             request.getRequestDispatcher("/views/home/manager-home.jsp").forward(request, response);
         } else if ("/warehouse/dashboard".equals(path)) {
             request.getRequestDispatcher("/views/home/warehouse-home.jsp").forward(request, response);
+        } else if ("/supplier/home".equals(path)) {
+            request.getRequestDispatcher("/views/home/supplier-home.jsp").forward(request, response);
+        } else if ("/seller/home".equals(path)) {
+            request.getRequestDispatcher("/views/home/seller-home.jsp").forward(request, response);
         } else {
             request.getRequestDispatcher("/views/home/staff-home.jsp").forward(request, response);
         }

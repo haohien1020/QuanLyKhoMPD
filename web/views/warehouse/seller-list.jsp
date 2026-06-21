@@ -1,27 +1,23 @@
-﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.util.List" %>
 <%@ page import="model.User" %>
+<%@ page import="model.Warehouse" %>
 
 <%
     @SuppressWarnings("unchecked")
-    List<User> users = (List<User>) request.getAttribute("users");
+    List<User> sellers = (List<User>) request.getAttribute("sellers");
+    Warehouse warehouse = (Warehouse) request.getAttribute("warehouse");
     String error = (String) request.getAttribute("error");
     String successParam = request.getParameter("success");
     String errorParam = request.getParameter("error");
-
-    @SuppressWarnings("unchecked")
-    List<String> allRoles = (List<String>) request.getAttribute("allRoles");
-    String statusFilter = (String) request.getAttribute("statusFilter");
-    String roleFilter = (String) request.getAttribute("roleFilter");
     User currentUser = (User) session.getAttribute("currentUser");
-    String q = (String) request.getAttribute("q");
 %>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý người dùng | Generator Management System</title>
+    <title>Nhân viên kinh doanh | Generator Management System</title>
 
     <link href="${pageContext.request.contextPath}/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
@@ -43,10 +39,10 @@
 
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
                     <h1 class="h3 mb-0 text-gray-800">
-                        <i class="fas fa-users text-primary"></i> Quản lý người dùng
+                        <i class="fas fa-users-cog text-primary"></i> Quản lý nhân viên kinh doanh
                     </h1>
-                    <a href="${pageContext.request.contextPath}/admin/user/create" class="btn btn-primary btn-sm">
-                        <i class="fas fa-user-plus"></i> Tạo tài khoản
+                    <a href="${pageContext.request.contextPath}/warehouse/sellers/create" class="btn btn-primary btn-sm">
+                        <i class="fas fa-user-plus"></i> Tạo tài khoản SELLER
                     </a>
                 </div>
 
@@ -59,7 +55,12 @@
 
                 <% if ("created".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Tạo tài khoản thành công.
+                    <i class="fas fa-check-circle"></i> Tạo tài khoản SELLER thành công.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("updated".equals(successParam)) { %>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> Cập nhật thông tin thành công.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("banned".equals(successParam)) { %>
@@ -72,9 +73,14 @@
                     <i class="fas fa-check-circle"></i> Đã mở khóa tài khoản thành công.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
-                <% } else if ("self_toggle".equals(errorParam)) { %>
+                <% } else if ("no_warehouse".equals(errorParam)) { %>
                 <div class="alert alert-warning alert-dismissible fade show">
-                    <i class="fas fa-exclamation-triangle"></i> Không thể khóa/mở khóa chính tài khoản của bạn.
+                    <i class="fas fa-exclamation-triangle"></i> Bạn chưa được phân công quản lý kho nào.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("invalid_user".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Tài khoản không hợp lệ hoặc không thuộc kho của bạn.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } %>
@@ -82,51 +88,14 @@
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-list"></i> Danh sách người dùng
-                            <span class="badge badge-primary"><%= (users != null) ? users.size() : 0 %></span>
+                            <i class="fas fa-list"></i> Danh sách SELLER tại kho: 
+                            <span class="text-dark font-weight-bold"><%= (warehouse != null) ? warehouse.getWarehouseName() : "N/A" %></span>
+                            <span class="badge badge-primary"><%= (sellers != null) ? sellers.size() : 0 %></span>
                         </h6>
-
-                        <form class="form-inline" method="get" action="${pageContext.request.contextPath}/admin/user">
-                            <div class="form-group mr-2 mb-2">
-                                <label for="q" class="mr-1">Tìm</label>
-                                <input id="q" name="q" class="form-control form-control-sm"
-                                       placeholder="Tài khoản / Họ tên"
-                                       value="<%= (q != null) ? q : "" %>">
-                            </div>
-                            <div class="form-group mr-2 mb-2">
-                                <label for="statusFilter" class="mr-1">Trạng thái</label>
-                                <select id="statusFilter" name="status" class="form-control form-control-sm">
-                                    <option value="" <%= (statusFilter == null || statusFilter.isEmpty()) ? "selected" : "" %>>Tất cả</option>
-                                    <option value="active" <%= "active".equalsIgnoreCase(statusFilter) ? "selected" : "" %>>Hoạt động</option>
-                                    <option value="banned" <%= "banned".equalsIgnoreCase(statusFilter) ? "selected" : "" %>>Đã khóa</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group mr-2 mb-2">
-                                <label for="roleFilter" class="mr-1">Vai trò</label>
-                                <select id="roleFilter" name="role" class="form-control form-control-sm">
-                                    <option value="" <%= (roleFilter == null || roleFilter.isEmpty()) ? "selected" : "" %>>Tất cả</option>
-                                    <%
-                                        if (allRoles != null) {
-                                            for (String rc : allRoles) {
-                                                boolean selected = roleFilter != null && roleFilter.equals(rc);
-                                    %>
-                                    <option value="<%= rc %>" <%= selected ? "selected" : "" %>><%= rc %></option>
-                                    <%
-                                            }
-                                        }
-                                    %>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-sm btn-outline-primary mb-2">
-                                <i class="fas fa-filter"></i> Lọc
-                            </button>
-                        </form>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover" id="userTable" width="100%" cellspacing="0">
+                            <table class="table table-bordered table-hover" id="sellerTable" width="100%" cellspacing="0">
                                 <thead class="thead-light">
                                 <tr>
                                     <th>ID</th>
@@ -134,53 +103,30 @@
                                     <th>Họ tên</th>
                                     <th>Email</th>
                                     <th>SĐT</th>
-                                    <th>Vai trò</th>
                                     <th>Trạng thái</th>
                                     <th>Thao tác</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <%
-                                    if (users == null || users.isEmpty()) {
+                                    if (sellers == null || sellers.isEmpty()) {
                                 %>
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted">
-                                        <i class="fas fa-inbox fa-3x mb-3 mt-3"></i>
-                                        <p>Chưa có người dùng nào</p>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="fas fa-user-friends fa-3x mb-3 text-gray-400"></i>
+                                        <p class="mb-0">Chưa có nhân viên kinh doanh nào tại kho này</p>
                                     </td>
                                 </tr>
                                 <%
                                     } else {
-                                        for (User u : users) {
-                                            String rolesStr = "-";
-                                            if (u.getRoles() != null && !u.getRoles().isEmpty()) {
-                                                rolesStr = String.join(", ", u.getRoles());
-                                            }
+                                        for (User u : sellers) {
                                 %>
                                 <tr>
                                     <td><%= u.getUserId() %></td>
-                                    <td><%= u.getUsername() %></td>
+                                    <td><strong><%= u.getUsername() %></strong></td>
                                     <td><%= u.getFullName() != null ? u.getFullName() : "-" %></td>
                                     <td><%= u.getEmail() != null ? u.getEmail() : "-" %></td>
                                     <td><%= u.getPhone() != null ? u.getPhone() : "-" %></td>
-                                    <td>
-                                        <%
-                                            if (u.getRoles() != null) {
-                                                for (String r : u.getRoles()) {
-                                                    String badgeClass = "badge-secondary";
-                                                    if ("ADMIN".equals(r)) badgeClass = "badge-danger";
-                                                    else if ("ASSET_STAFF".equals(r)) badgeClass = "badge-primary";
-                                                    else if ("TEACHER".equals(r)) badgeClass = "badge-info";
-                                                    else if ("BOARD".equals(r)) badgeClass = "badge-warning";
-                                        %>
-                                        <span class="badge <%= badgeClass %>"><%= r %></span>
-                                        <%
-                                                }
-                                            } else {
-                                        %>
-                                        <span class="text-muted">-</span>
-                                        <%  } %>
-                                    </td>
                                     <td class="text-center">
                                         <% if (u.isActive()) { %>
                                             <span class="badge badge-success">Hoạt động</span>
@@ -189,31 +135,22 @@
                                         <% } %>
                                     </td>
                                     <td class="text-center text-nowrap">
-                                        <a href="${pageContext.request.contextPath}/admin/user/detail?id=<%= u.getUserId() %>"
-                                           class="btn btn-sm btn-info" title="Xem chi tiết">
-                                            <i class="fas fa-eye"></i>
+                                        <a href="${pageContext.request.contextPath}/warehouse/sellers/update?id=<%= u.getUserId() %>"
+                                           class="btn btn-sm btn-info" title="Sửa thông tin">
+                                            <i class="fas fa-edit"></i>
                                         </a>
 
-                                        <%
-                                            boolean isSelf = currentUser != null && u.getUserId() == currentUser.getUserId();
-                                            if (!isSelf) {
-                                                if (u.isActive()) {
-                                        %>
-                                        <button type="button" class="btn btn-sm btn-danger" title="Ban"
+                                        <% if (u.isActive()) { %>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Khóa tài khoản"
                                                 onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', false)">
                                             <i class="fas fa-user-slash"></i>
                                         </button>
-                                        <%
-                                                } else {
-                                        %>
-                                        <button type="button" class="btn btn-sm btn-success" title="Mở ban"
+                                        <% } else { %>
+                                        <button type="button" class="btn btn-sm btn-success" title="Mở khóa tài khoản"
                                                 onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', true)">
                                             <i class="fas fa-user-check"></i>
                                         </button>
-                                        <%
-                                                }
-                                            }
-                                        %>
+                                        <% } %>
                                     </td>
                                 </tr>
                                 <%
@@ -235,7 +172,7 @@
     </div>
 </div>
 
-<!-- Modal xác nhận Ban / Mở ban -->
+<!-- Modal xác nhận khóa / mở khóa -->
 <div class="modal fade" id="toggleModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -248,7 +185,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                <form id="toggleForm" action="${pageContext.request.contextPath}/admin/user/toggle-active" method="post" class="d-inline">
+                <form id="toggleForm" action="${pageContext.request.contextPath}/warehouse/sellers/toggle-active" method="post" class="d-inline">
                     <input type="hidden" id="toggleId" name="id">
                     <input type="hidden" id="toggleActive" name="active">
                     <button type="submit" class="btn" id="toggleConfirmBtn">Xác nhận</button>
@@ -267,13 +204,13 @@
 
 <script>
     $(document).ready(function () {
-        $('#userTable').DataTable({
+        $('#sellerTable').DataTable({
             "language": {
-                "lengthMenu": "Hiển thị _MENU_ người dùng mỗi trang",
-                "zeroRecords": "Không tìm thấy người dùng nào",
+                "lengthMenu": "Hiển thị _MENU_ nhân viên mỗi trang",
+                "zeroRecords": "Không tìm thấy nhân viên nào",
                 "info": "Trang _PAGE_ / _PAGES_",
                 "infoEmpty": "Không có dữ liệu",
-                "infoFiltered": "(lọc từ _MAX_ người dùng)",
+                "infoFiltered": "(lọc từ _MAX_ nhân viên)",
                 "paginate": {
                     "first": "Đầu",
                     "last": "Cuối",
@@ -282,8 +219,8 @@
                 }
             },
             "pageLength": 10,
-            "ordering": false,
-            "searching": false
+            "ordering": true,
+            "searching": true
         });
     });
 
@@ -292,12 +229,12 @@
         $('#toggleActive').val(setActive);
         if (setActive) {
             $('#toggleModalTitle').text('Mở khóa tài khoản');
-            $('#toggleModalBody').html('Bạn có chắc muốn <strong>mở khóa</strong> tài khoản <strong>' + username + '</strong>?');
+            $('#toggleModalBody').html('Bạn có chắc muốn <strong>mở khóa</strong> tài khoản của <strong>' + username + '</strong>?');
             $('#toggleConfirmBtn').removeClass('btn-danger').addClass('btn-success').text('Mở khóa');
         } else {
             $('#toggleModalTitle').text('Khóa tài khoản');
-            $('#toggleModalBody').html('Bạn có chắc muốn <strong>khóa</strong> tài khoản <strong>' + username + '</strong>? Người dùng sẽ không thể đăng nhập.');
-            $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-danger').text('Ban');
+            $('#toggleModalBody').html('Bạn có chắc muốn <strong>khóa</strong> tài khoản của <strong>' + username + '</strong>? Người dùng này sẽ không thể đăng nhập.');
+            $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-danger').text('Khóa');
         }
         $('#toggleModal').modal('show');
     }

@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reset Password - School Asset Management</title>
+    <title>Reset Password - Generator Management System</title>
 
     <!-- Fonts -->
     <link href="${pageContext.request.contextPath}/assets/vendor/fontawesome-free/css/all.min.css"

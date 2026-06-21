@@ -82,8 +82,18 @@ public class CustomerServlet extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        if (customerName == null || customerName.isEmpty()) {
+        if (customerName == null || customerName.isEmpty() || email == null || email.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/customers?error=missing_required");
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            response.sendRedirect(request.getContextPath() + "/customers?error=invalid_email");
+            return;
+        }
+
+        if (phone != null && !phone.isEmpty() && !isValidPhone(phone)) {
+            response.sendRedirect(request.getContextPath() + "/customers?error=invalid_phone");
             return;
         }
 
@@ -116,8 +126,18 @@ public class CustomerServlet extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        if (customerId == null || customerName == null || customerName.isEmpty()) {
+        if (customerId == null || customerName == null || customerName.isEmpty() || email == null || email.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/customers?error=missing_required");
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            response.sendRedirect(request.getContextPath() + "/customers?error=invalid_email");
+            return;
+        }
+
+        if (phone != null && !phone.isEmpty() && !isValidPhone(phone)) {
+            response.sendRedirect(request.getContextPath() + "/customers?error=invalid_phone");
             return;
         }
 
@@ -176,7 +196,8 @@ public class CustomerServlet extends HttpServlet {
 
         if (!currentUser.hasRole("ADMIN")
                 && !currentUser.hasRole("MANAGER")
-                && !currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                && !currentUser.hasRole("WAREHOUSE_MANAGER")
+                && !currentUser.hasRole("SELLER")) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return null;
         }
@@ -194,5 +215,13 @@ public class CustomerServlet extends HttpServlet {
 
     private String trim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+    }
+
+    private boolean isValidPhone(String phone) {
+        return phone != null && phone.matches("^(\\+84\\s?\\d{9}|84\\d{9}|0\\d{9})$");
     }
 }
