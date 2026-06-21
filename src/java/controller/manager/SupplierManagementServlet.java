@@ -1,4 +1,4 @@
-package controller.manager;
+package controller;
 
 import dao.SupplierDAO;
 import javax.servlet.ServletException;

@@ -19,6 +19,7 @@ import model.Customer;
 import model.CustomerRentalContract;
 import model.CustomerRentedGenerator;
 import model.Generator;
+import model.GroupedGeneratorInventory;
 import model.User;
 import model.Warehouse;
 
@@ -113,13 +114,16 @@ public class SellerRentalServlet extends HttpServlet {
         }
 
         List<Generator> generators = new java.util.ArrayList<>();
+        List<GroupedGeneratorInventory> groupedInventories = new java.util.ArrayList<>();
         if (sellerWarehouseId != null) {
             generators = generatorDAO.findGenerators(null, sellerWarehouseId, "IN_STOCK");
+            groupedInventories = generatorDAO.findGroupedInventory(sellerWarehouseId);
         }
 
         request.setAttribute("customers", customers);
         request.setAttribute("warehouses", warehouses);
         request.setAttribute("generators", generators);
+        request.setAttribute("groupedInventories", groupedInventories);
         request.getRequestDispatcher("/views/rental/seller-contract-create.jsp").forward(request, response);
     }
 
@@ -147,6 +151,10 @@ public class SellerRentalServlet extends HttpServlet {
         }
 
         List<Generator> generators = generatorDAO.findGenerators(null, sellerWarehouseId, "IN_STOCK");
+        List<GroupedGeneratorInventory> groupedInventories = new java.util.ArrayList<>();
+        if (sellerWarehouseId != null) {
+            groupedInventories = generatorDAO.findGroupedInventory(sellerWarehouseId);
+        }
 
         // Include current generator in option list even if it is not IN_STOCK
         if (!currentGenerators.isEmpty()) {
@@ -172,6 +180,7 @@ public class SellerRentalServlet extends HttpServlet {
         request.setAttribute("customers", customers);
         request.setAttribute("warehouses", warehouses);
         request.setAttribute("generators", generators);
+        request.setAttribute("groupedInventories", groupedInventories);
         request.getRequestDispatcher("/views/rental/seller-contract-update.jsp").forward(request, response);
     }
 

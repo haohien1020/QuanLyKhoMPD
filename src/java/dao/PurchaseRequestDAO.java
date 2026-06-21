@@ -97,4 +97,19 @@ public class PurchaseRequestDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<PurchaseRequest> findRequestsByWarehouse(int warehouseId) throws Exception {
+        String sql = "SELECT purchase_request_id, warehouse_id, requested_by, approved_by, reason, status, created_at, approved_at FROM purchase_requests WHERE warehouse_id = ? ORDER BY purchase_request_id DESC";
+        List<PurchaseRequest> list = new ArrayList<PurchaseRequest>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, warehouseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
 }

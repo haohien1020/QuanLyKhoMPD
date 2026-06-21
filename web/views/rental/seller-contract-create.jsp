@@ -134,31 +134,46 @@
                                     </div>
                                 </div>
 
-                                <%-- Generator selection --%>
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Máy phát điện khả dụng <span class="text-danger">*</span></label>
-                                    <c:choose>
-                                        <c:when test="${empty generators}">
-                                            <div class="no-generators-warning mt-1">
-                                                <strong><i class="fas fa-times-circle text-danger"></i> Không có máy phát điện sẵn sàng!</strong>
-                                                <p class="mb-0 mt-1 small">Hiện tại kho của bạn không có máy phát điện nào với trạng thái IN_STOCK. Vui lòng liên hệ Warehouse Manager.</p>
-                                            </div>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <div class="generator-option-label">
-                                                <i class="fas fa-info-circle"></i>
-                                                Chỉ hiển thị máy <strong>IN_STOCK</strong> thuộc kho của bạn (${fn:length(generators)} máy sẵn sàng)
-                                            </div>
-                                            <select name="generatorId" class="form-control" id="generatorId" required>
-                                                <option value="">-- Chọn máy phát điện --</option>
-                                                <c:forEach var="g" items="${generators}">
-                                                    <option value="${g.generatorId}">
-                                                        ${g.generatorName} | ${g.brand} | ${g.powerValue} kVA | Vị trí: ${g.location}
-                                                    </option>
-                                                </c:forEach>
-                                            </select>
-                                        </c:otherwise>
-                                    </c:choose>
+                                 <%-- Generator selection --%>
+                                <div class="form-group row">
+                                    <div class="col-md-6">
+                                        <label class="font-weight-bold">Mẫu máy phát (Thông số & Tồn kho) <span class="text-danger">*</span></label>
+                                        <c:set var="hasAvailableModels" value="false" />
+                                        <c:forEach var="group" items="${groupedInventories}">
+                                            <c:if test="${group.inStockCount > 0}">
+                                                <c:set var="hasAvailableModels" value="true" />
+                                            </c:if>
+                                        </c:forEach>
+                                        <c:choose>
+                                            <c:when test="${empty groupedInventories or not hasAvailableModels}">
+                                                <div class="no-generators-warning mt-1">
+                                                    <strong><i class="fas fa-times-circle text-danger"></i> Không có máy phát điện sẵn sàng!</strong>
+                                                    <p class="mb-0 mt-1 small">Hiện tại kho không có máy phát điện nào với trạng thái IN_STOCK.</p>
+                                                </div>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <select class="form-control" id="generatorGroupSelect" required>
+                                                    <option value="">-- Chọn mẫu máy --</option>
+                                                    <c:forEach var="group" items="${groupedInventories}">
+                                                        <c:if test="${group.inStockCount > 0}">
+                                                            <option value="${group.brand}::${group.generatorName}::${group.powerValue}::${group.fuelType}">
+                                                                ${group.brand} ${group.generatorName} | ${group.powerValue} kVA | ${group.fuelType} (Sẵn có: ${group.inStockCount} | Đang thuê: ${group.rentedCount})
+                                                            </option>
+                                                        </c:if>
+                                                    </c:forEach>
+                                                </select>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="font-weight-bold">Số Serial khả dụng <span class="text-danger">*</span></label>
+                                        <select name="generatorId" class="form-control" id="generatorId" required disabled>
+                                            <option value="">-- Chọn mẫu máy trước --</option>
+                                        </select>
+                                        <div id="locationInfo" class="small text-muted mt-1 font-italic" style="display:none;">
+                                            <i class="fas fa-map-marker-alt"></i> Vị trí chi tiết: <span id="locationSpan" class="font-weight-bold text-dark"></span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <%-- Dates --%>
@@ -227,7 +242,79 @@
 <script src="${pageContext.request.contextPath}/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/js/sb-admin-2.min.js"></script>
 <script>
-    // Auto-calculate totalAmount = rentalPrice * days + deposit
+    // Preloaded available generators
+    var allGenerators = [
+        <c:forEach var="g" items="${generators}" varStatus="loop">
+            {
+                generatorId: "${g.generatorId}",
+                generatorName: "<c:out value="${g.generatorName}" />",
+                brand: "<c:out value="${g.brand}" />",
+                powerValue: "<c:out value="${g.powerValue}" />",
+                fuelType: "<c:out value="${g.fuelType}" />",
+                serialNumber: "<c:out value="${g.serialNumber}" />",
+                location: "<c:out value="${g.location}" />",
+                status: "${g.status}",
+                rentalPrice: "${g.rentalPrice}"
+            }${not loop.last ? ',' : ''}
+        </c:forEach>
+    ];
+
+    $(document).ready(function() {
+        // Cascading logic for generator selection
+        $('#generatorGroupSelect').on('change', function() {
+            var groupKey = $(this).val();
+            var $serialSelect = $('#generatorId');
+            var $locInfo = $('#locationInfo');
+            
+            $serialSelect.empty();
+            $locInfo.hide();
+            
+            if (!groupKey) {
+                $serialSelect.append('<option value="">-- Chọn mẫu máy trước --</option>').prop('disabled', true);
+                return;
+            }
+            
+            var parts = groupKey.split('::');
+            var brand = parts[0];
+            var name = parts[1];
+            var power = parts[2];
+            var fuel = parts[3];
+            
+            var filtered = allGenerators.filter(function(g) {
+                return g.brand === brand && g.generatorName === name && g.powerValue === power && g.fuelType === fuel && g.status === 'IN_STOCK';
+            });
+            
+            if (filtered.length === 0) {
+                $serialSelect.append('<option value="">-- Không có máy sẵn có --</option>').prop('disabled', true);
+            } else {
+                $serialSelect.append('<option value="">-- Chọn số Serial --</option>');
+                filtered.forEach(function(g) {
+                    $serialSelect.append('<option value="' + g.generatorId + '" data-location="' + g.location + '">' + g.serialNumber + '</option>');
+                });
+                $serialSelect.prop('disabled', false);
+
+                // Auto load rental price of this model
+                var modelPrice = filtered[0].rentalPrice || 0;
+                $('#rentalPrice').val(modelPrice).trigger('change');
+            }
+        });
+        
+        $('#generatorId').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var location = selectedOption.data('location');
+            var $locInfo = $('#locationInfo');
+            var $locSpan = $('#locationSpan');
+            
+            if (location) {
+                $locSpan.text(location);
+                $locInfo.show();
+            } else {
+                $locInfo.hide();
+            }
+        });
+    });
+
+    // Auto-calculate totalAmount = (rentalPrice * days) - depositAmount
     function calcTotal() {
         var start = document.getElementById('startDate').value;
         var end = document.getElementById('expectedReturnDate').value;
@@ -235,20 +322,23 @@
         var deposit = parseFloat(document.getElementById('depositAmount').value) || 0;
         if (start && end && price > 0) {
             var days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)));
-            var total = price * days;
-            document.getElementById('totalAmount').value = total;
+            var total = (price * days) - deposit;
+            document.getElementById('totalAmount').value = Math.max(0, total);
         }
     }
-    ['startDate', 'expectedReturnDate', 'rentalPrice'].forEach(function(id) {
+    
+    ['startDate', 'expectedReturnDate', 'rentalPrice', 'depositAmount'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('change', calcTotal);
     });
 
-    // Set min date for startDate to today
-    var today = new Date().toISOString().split('T')[0];
+    // Set min date for startDate to today (Local Timezone safe)
+    var tzoffset = (new Date()).getTimezoneOffset() * 60000;
+    var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
     if (document.getElementById('startDate')) {
-        document.getElementById('startDate').setAttribute('min', today);
+        document.getElementById('startDate').setAttribute('min', localISOTime);
     }
+    
     // Validate return date >= start date
     if (document.getElementById('startDate')) {
         document.getElementById('startDate').addEventListener('change', function() {
@@ -256,6 +346,21 @@
             if (retDate) retDate.setAttribute('min', this.value);
         });
     }
+
+    // Strict Date Validation on submit
+    $('#contractForm').on('submit', function(e) {
+        var startVal = document.getElementById('startDate').value;
+        var endVal = document.getElementById('expectedReturnDate').value;
+        if (startVal && endVal) {
+            var start = new Date(startVal);
+            var end = new Date(endVal);
+            if (end < start) {
+                e.preventDefault();
+                alert('Ngày trả dự kiến không được nhỏ hơn ngày bắt đầu thuê!');
+                return false;
+            }
+        }
+    });
 </script>
 </body>
 </html>

@@ -12,6 +12,8 @@
     List<User> warehouseManagers = (List<User>) request.getAttribute("warehouseManagers");
     @SuppressWarnings("unchecked")
     List<Integer> assignedManagerIds = (List<Integer>) request.getAttribute("assignedManagerIds");
+    @SuppressWarnings("unchecked")
+    List<Warehouse> activeManagerAssignments = (List<Warehouse>) request.getAttribute("activeManagerAssignments");
 
     String q = (String) request.getAttribute("q");
     String statusFilter = (String) request.getAttribute("statusFilter");
@@ -328,6 +330,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="font-weight-bold">Phân công Nhân viên Kỹ thuật (STAFF)</label>
+                        <div id="staffContainer" class="border rounded p-3" style="max-height: 180px; overflow-y: auto; background-color: #f8f9fc;">
+                            <!-- Staff checkboxes rendered dynamically via JS -->
+                        </div>
+                        <small class="form-text text-muted">Nhân viên được chọn sẽ thuộc quản lý trực tiếp của Warehouse Manager tại kho này.</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="status">Trạng Thái</label>
                         <select id="status" name="status" class="form-control">
                             <option value="ACTIVE">Hoạt động</option>
@@ -385,11 +395,36 @@
         <% } } %>
     ];
 
+    const activeManagerAssignments = [
+        <% if (activeManagerAssignments != null) {
+            for (int i = 0; i < activeManagerAssignments.size(); i++) {
+                Warehouse w = activeManagerAssignments.get(i);
+        %>
+            { warehouseId: <%= w.getWarehouseId() %>, managerId: <%= w.getWarehouseManagerId() %> }<%= i < activeManagerAssignments.size() - 1 ? "," : "" %>
+        <% } } %>
+    ];
+
+    function isManagerAssignedToOtherWarehouse(managerId, currentWarehouseId) {
+        return activeManagerAssignments.some(function (assignment) {
+            return assignment.managerId === managerId && assignment.warehouseId !== currentWarehouseId;
+        });
+    }
+
     const allWarehouseManagers = [
         <% if (warehouseManagers != null) {
             for (User wm : warehouseManagers) {
         %>
             { id: <%= wm.getUserId() %>, name: '<%= wm.getFullName().replace("'", "\\'") %> (<%= wm.getUsername().replace("'", "\\'") %>)' },
+        <% } } %>
+    ];
+
+    const allStaff = [
+        <% if (request.getAttribute("allStaff") != null) {
+            @SuppressWarnings("unchecked")
+            List<User> allStaffList = (List<User>) request.getAttribute("allStaff");
+            for (User s : allStaffList) {
+        %>
+            { id: <%= s.getUserId() %>, name: '<%= s.getFullName().replace("'", "\\'") %> (<%= s.getUsername().replace("'", "\\'") %>)', warehouseId: <%= s.getWarehouseId() != null ? s.getWarehouseId() : "null" %> },
         <% } } %>
     ];
 
@@ -435,11 +470,30 @@
         select.empty();
         select.append('<option value="">-- Chưa phân công --</option>');
         allWarehouseManagers.forEach(function (wm) {
-            if (!assignedManagerIds.includes(wm.id)) {
+            if (!isManagerAssignedToOtherWarehouse(wm.id, 0)) {
                 select.append('<option value="' + wm.id + '">' + wm.name + '</option>');
             }
         });
         select.val('');
+
+        // Rebuild staff list: show only unassigned staff (warehouseId === null)
+        const staffContainer = $('#staffContainer');
+        staffContainer.empty();
+        let hasStaff = false;
+        allStaff.forEach(function (s) {
+            if (s.warehouseId === null) {
+                staffContainer.append(
+                    '<div class="form-check mb-1">' +
+                    '<input class="form-check-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '">' +
+                    '<label class="form-check-label ml-1" for="staff_' + s.id + '">' + s.name + '</label>' +
+                    '</div>'
+                );
+                hasStaff = true;
+            }
+        });
+        if (!hasStaff) {
+            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF nào chưa gán kho.</p>');
+        }
 
         $('#warehouseModal').modal('show');
     }
@@ -452,16 +506,36 @@
         $('#address').val(address);
         $('#managerId').val(managerId > 0 ? managerId : '');
 
-
+        // Rebuild warehouseManagerId select options: include unassigned OR currently assigned to this warehouse
         const select = $('#warehouseManagerId');
         select.empty();
         select.append('<option value="">-- Chưa phân công --</option>');
         allWarehouseManagers.forEach(function (wm) {
-            if (!assignedManagerIds.includes(wm.id) || wm.id === warehouseManagerId) {
+            if (!isManagerAssignedToOtherWarehouse(wm.id, warehouseId)) {
                 select.append('<option value="' + wm.id + '">' + wm.name + '</option>');
             }
         });
         select.val(warehouseManagerId > 0 ? warehouseManagerId : '');
+
+        // Rebuild staff list: show unassigned staff OR staff currently in this warehouse
+        const staffContainer = $('#staffContainer');
+        staffContainer.empty();
+        let hasStaff = false;
+        allStaff.forEach(function (s) {
+            if (s.warehouseId === null || s.warehouseId === warehouseId) {
+                const checked = s.warehouseId === warehouseId ? 'checked' : '';
+                staffContainer.append(
+                    '<div class="form-check mb-1">' +
+                    '<input class="form-check-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '" ' + checked + '>' +
+                    '<label class="form-check-label ml-1" for="staff_' + s.id + '">' + s.name + '</label>' +
+                    '</div>'
+                );
+                hasStaff = true;
+            }
+        });
+        if (!hasStaff) {
+            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF khả dụng.</p>');
+        }
 
         $('#status').val(status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE');
         $('#warehouseModal').modal('show');

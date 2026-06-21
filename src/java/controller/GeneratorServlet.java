@@ -42,11 +42,44 @@ public class GeneratorServlet extends HttpServlet {
 
         try {
             String q = trim(request.getParameter("q"));
-            Integer warehouseId = parseInt(request.getParameter("warehouseId"));
             String status = trim(request.getParameter("status"));
+            Integer warehouseId;
+            boolean isSellerRestricted = false;
+            boolean isWarehouseRestricted = false;
+            Integer restrictedWarehouseId = null;
+
+            if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+                if (managedWarehouse != null) {
+                    restrictedWarehouseId = managedWarehouse.getWarehouseId();
+                    isWarehouseRestricted = true;
+                }
+            } else if (currentUser.hasRole("STAFF")) {
+                restrictedWarehouseId = currentUser.getWarehouseId();
+                isWarehouseRestricted = true;
+            } else if (currentUser.hasRole("SELLER")) {
+                restrictedWarehouseId = currentUser.getWarehouseId();
+                isSellerRestricted = true;
+                isWarehouseRestricted = true;
+            }
+
+            if (isWarehouseRestricted) {
+                warehouseId = restrictedWarehouseId;
+            } else {
+                warehouseId = parseInt(request.getParameter("warehouseId"));
+            }
 
             List<Generator> generators = generatorDAO.findGenerators(q, warehouseId, status);
-            List<Warehouse> warehouses = warehouseDAO.findAll();
+            List<Warehouse> warehouses;
+            if (isWarehouseRestricted) {
+                warehouses = new java.util.ArrayList<>();
+                if (warehouseId != null) {
+                    Warehouse wh = warehouseDAO.findById(warehouseId);
+                    if (wh != null) warehouses.add(wh);
+                }
+            } else {
+                warehouses = warehouseDAO.findAll();
+            }
             List<Supplier> suppliers = supplierDAO.findAll();
 
             request.setAttribute("generators", generators);
@@ -55,6 +88,10 @@ public class GeneratorServlet extends HttpServlet {
             request.setAttribute("q", q);
             request.setAttribute("warehouseIdFilter", warehouseId);
             request.setAttribute("statusFilter", status);
+            request.setAttribute("isSellerRestricted", isSellerRestricted);
+            request.setAttribute("sellerWarehouseId", warehouseId);
+            request.setAttribute("isWarehouseRestricted", isWarehouseRestricted);
+            request.setAttribute("restrictedWarehouseId", restrictedWarehouseId);
 
             request.getRequestDispatcher("/views/generator/generator-list.jsp").forward(request, response);
         } catch (Exception e) {
@@ -70,7 +107,7 @@ public class GeneratorServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
-        User currentUser = requireRole(request, response, "WAREHOUSE_MANAGER");
+        User currentUser = requireLogin(request, response);
         if (currentUser == null) {
             return;
         }
@@ -78,13 +115,23 @@ public class GeneratorServlet extends HttpServlet {
         String path = request.getServletPath();
         try {
             if ("/generators/create".equals(path)) {
+                if (!currentUser.hasRole("WAREHOUSE_MANAGER") && !(currentUser.hasRole("STAFF") && currentUser.isCanImportGenerator())) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
                 createGenerator(request, response, currentUser);
-            } else if ("/generators/update".equals(path)) {
-                updateGenerator(request, response);
-            } else if ("/generators/delete".equals(path)) {
-                deleteGenerator(request, response);
             } else {
-                response.sendRedirect(request.getContextPath() + "/generators");
+                if (!currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
+                if ("/generators/update".equals(path)) {
+                    updateGenerator(request, response);
+                } else if ("/generators/delete".equals(path)) {
+                    deleteGenerator(request, response);
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/generators");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -104,9 +151,32 @@ public class GeneratorServlet extends HttpServlet {
         String originType = trim(request.getParameter("originType"));
         String location = trim(request.getParameter("location"));
         String note = trim(request.getParameter("note"));
+        String barcode = trim(request.getParameter("barcode"));
 
         Timestamp importDate = parseTimestamp(request.getParameter("importDate"));
         BigDecimal purchasePrice = parseBigDecimal(request.getParameter("purchasePrice"));
+        BigDecimal rentalPrice = parseBigDecimal(request.getParameter("rentalPrice"));
+
+        // Security check for warehouse restriction
+        Integer restrictedWarehouseId = null;
+        boolean isWarehouseRestricted = false;
+        if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
+            Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+            if (managedWarehouse != null) {
+                restrictedWarehouseId = managedWarehouse.getWarehouseId();
+                isWarehouseRestricted = true;
+            }
+        } else if (currentUser.hasRole("STAFF")) {
+            restrictedWarehouseId = currentUser.getWarehouseId();
+            isWarehouseRestricted = true;
+        }
+
+        if (isWarehouseRestricted) {
+            if (warehouseId == null || !warehouseId.equals(restrictedWarehouseId)) {
+                response.sendRedirect(request.getContextPath() + "/generators?error=invalid_warehouse");
+                return;
+            }
+        }
 
         if (warehouseId == null || generatorName == null || generatorName.isEmpty() || serialNumber == null || serialNumber.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/generators?error=missing_required");
@@ -129,9 +199,14 @@ public class GeneratorServlet extends HttpServlet {
         g.setOriginType(originType == null ? "SUPPLIER" : originType);
         g.setImportDate(importDate != null ? importDate : new Timestamp(System.currentTimeMillis()));
         g.setPurchasePrice(purchasePrice);
+        g.setRentalPrice(rentalPrice != null ? rentalPrice : BigDecimal.ZERO);
         g.setLocation(location);
         g.setStatus("IN_STOCK");
         g.setNote(note);
+        if (barcode == null || barcode.trim().isEmpty()) {
+            barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+        }
+        g.setBarcode(barcode);
 
         int id = generatorDAO.insertImportToStock(g, currentUser.getUserId());
         if (id > 0) {
@@ -155,9 +230,11 @@ public class GeneratorServlet extends HttpServlet {
         String location = trim(request.getParameter("location"));
         String status = trim(request.getParameter("status"));
         String note = trim(request.getParameter("note"));
+        String barcode = trim(request.getParameter("barcode"));
 
         Timestamp importDate = parseTimestamp(request.getParameter("importDate"));
         BigDecimal purchasePrice = parseBigDecimal(request.getParameter("purchasePrice"));
+        BigDecimal rentalPrice = parseBigDecimal(request.getParameter("rentalPrice"));
 
         if (generatorId == null || warehouseId == null || generatorName == null || generatorName.isEmpty() || serialNumber == null || serialNumber.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/generators?error=missing_required");
@@ -168,6 +245,31 @@ public class GeneratorServlet extends HttpServlet {
         if (existing == null) {
             response.sendRedirect(request.getContextPath() + "/generators?error=not_found");
             return;
+        }
+
+        // Security check for warehouse restriction
+        HttpSession session = request.getSession(false);
+        User currentUser = session != null ? (User) session.getAttribute("currentUser") : null;
+        if (currentUser != null) {
+            Integer restrictedWarehouseId = null;
+            boolean isWarehouseRestricted = false;
+            if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+                if (managedWarehouse != null) {
+                    restrictedWarehouseId = managedWarehouse.getWarehouseId();
+                    isWarehouseRestricted = true;
+                }
+            } else if (currentUser.hasRole("STAFF")) {
+                restrictedWarehouseId = currentUser.getWarehouseId();
+                isWarehouseRestricted = true;
+            }
+
+            if (isWarehouseRestricted) {
+                if (existing.getWarehouseId() != restrictedWarehouseId || warehouseId == null || !warehouseId.equals(restrictedWarehouseId)) {
+                    response.sendRedirect(request.getContextPath() + "/generators?error=invalid_warehouse");
+                    return;
+                }
+            }
         }
 
         if (generatorDAO.isSerialNumberUsed(serialNumber, generatorId)) {
@@ -185,9 +287,14 @@ public class GeneratorServlet extends HttpServlet {
         existing.setOriginType(originType);
         existing.setImportDate(importDate);
         existing.setPurchasePrice(purchasePrice);
+        existing.setRentalPrice(rentalPrice != null ? rentalPrice : BigDecimal.ZERO);
         existing.setLocation(location);
         existing.setStatus(status);
         existing.setNote(note);
+        if (barcode == null || barcode.trim().isEmpty() || !existing.getSerialNumber().equals(serialNumber)) {
+            barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+        }
+        existing.setBarcode(barcode);
 
         boolean success = generatorDAO.update(existing);
         if (success) {
@@ -209,6 +316,28 @@ public class GeneratorServlet extends HttpServlet {
         if (existing == null) {
             response.sendRedirect(request.getContextPath() + "/generators?error=not_found");
             return;
+        }
+
+        // Security check for warehouse restriction
+        HttpSession session = request.getSession(false);
+        User currentUser = session != null ? (User) session.getAttribute("currentUser") : null;
+        if (currentUser != null) {
+            Integer restrictedWarehouseId = null;
+            boolean isWarehouseRestricted = false;
+            if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+                if (managedWarehouse != null) {
+                    restrictedWarehouseId = managedWarehouse.getWarehouseId();
+                    isWarehouseRestricted = true;
+                }
+            }
+
+            if (isWarehouseRestricted) {
+                if (existing.getWarehouseId() != restrictedWarehouseId) {
+                    response.sendRedirect(request.getContextPath() + "/generators?error=invalid_warehouse");
+                    return;
+                }
+            }
         }
 
         boolean success = generatorDAO.delete(generatorId);

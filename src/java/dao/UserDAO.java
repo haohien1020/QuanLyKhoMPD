@@ -26,7 +26,8 @@ public class UserDAO {
             + "u.updated_at, "
             + "u.ResetToken, "
             + "u.ResetTokenExpiry, "
-            + "u.warehouse_id ";
+            + "u.warehouse_id, "
+            + "u.can_import_generator ";
 
     private User mapResultSet(ResultSet rs) throws Exception {
         User u = new User(
@@ -50,6 +51,7 @@ public class UserDAO {
         if (!rs.wasNull()) {
             u.setWarehouseId(whId);
         }
+        u.setCanImportGenerator(rs.getBoolean("can_import_generator"));
         return u;
     }
 
@@ -57,7 +59,7 @@ public class UserDAO {
         String sql = "SELECT " + USER_SELECT_COLUMNS
                 + "FROM users u "
                 + "INNER JOIN roles r ON u.role_id = r.role_id "
-                + "WHERE u.username = ? AND u.`password` = ?";
+                + "WHERE u.username = ? AND u.`password` = ? AND r.status = 'ACTIVE'";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -353,7 +355,7 @@ public class UserDAO {
     }
 
     public List<User> findUsersByRoleName(String roleName) throws Exception {
-        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.`password`, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry, u.warehouse_id "
+        String sql = "SELECT " + USER_SELECT_COLUMNS
                 + "FROM users u "
                 + "INNER JOIN roles r ON u.role_id = r.role_id "
                 + "WHERE r.role_name = ? AND u.status = 'ACTIVE' "
@@ -388,5 +390,73 @@ public class UserDAO {
             }
         }
         return list;
+    }
+
+    public List<User> findStaffByWarehouse(int warehouseId) throws Exception {
+        String sql = "SELECT " + USER_SELECT_COLUMNS
+                + "FROM users u "
+                + "INNER JOIN roles r ON u.role_id = r.role_id "
+                + "WHERE r.role_name = 'STAFF' AND u.warehouse_id = ? "
+                + "ORDER BY u.user_id DESC";
+        List<User> list = new ArrayList<User>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, warehouseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean updateImportPermission(int userId, boolean canImport) throws Exception {
+        String sql = "UPDATE users SET can_import_generator = ?, updated_at = NOW() WHERE user_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, canImport ? 1 : 0);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public void updateWarehouseStaff(int warehouseId, List<Integer> selectedStaffIds) throws Exception {
+        String resetSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
+                + "SET u.warehouse_id = NULL, u.updated_at = NOW() "
+                + "WHERE u.warehouse_id = ? AND r.role_name = 'STAFF'";
+        
+        String assignSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
+                + "SET u.warehouse_id = ?, u.updated_at = NOW() "
+                + "WHERE u.user_id = ? AND r.role_name = 'STAFF'";
+
+        try (Connection conn = DBUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Reset all current staff of this warehouse to NULL
+                try (PreparedStatement psReset = conn.prepareStatement(resetSql)) {
+                    psReset.setInt(1, warehouseId);
+                    psReset.executeUpdate();
+                }
+
+                // 2. Assign selected staff to this warehouse
+                if (selectedStaffIds != null && !selectedStaffIds.isEmpty()) {
+                    try (PreparedStatement psAssign = conn.prepareStatement(assignSql)) {
+                        for (int staffId : selectedStaffIds) {
+                            psAssign.setInt(1, warehouseId);
+                            psAssign.setInt(2, staffId);
+                            psAssign.addBatch();
+                        }
+                        psAssign.executeBatch();
+                    }
+                }
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 }
