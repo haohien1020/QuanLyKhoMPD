@@ -130,4 +130,69 @@ public class InventoryTransaction {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    // Helper fields for display
+    private String generatorName;
+    private String generatorSerial;
+    private String partName;
+    private String partCode;
+    private String warehouseName;
+    private String supplierName;
+    private String creatorName;
+
+    public String getGeneratorName() {
+        return generatorName;
+    }
+
+    public void setGeneratorName(String generatorName) {
+        this.generatorName = generatorName;
+    }
+
+    public String getGeneratorSerial() {
+        return generatorSerial;
+    }
+
+    public void setGeneratorSerial(String generatorSerial) {
+        this.generatorSerial = generatorSerial;
+    }
+
+    public String getPartName() {
+        return partName;
+    }
+
+    public void setPartName(String partName) {
+        this.partName = partName;
+    }
+
+    public String getPartCode() {
+        return partCode;
+    }
+
+    public void setPartCode(String partCode) {
+        this.partCode = partCode;
+    }
+
+    public String getWarehouseName() {
+        return warehouseName;
+    }
+
+    public void setWarehouseName(String warehouseName) {
+        this.warehouseName = warehouseName;
+    }
+
+    public String getSupplierName() {
+        return supplierName;
+    }
+
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
+    }
+
+    public String getCreatorName() {
+        return creatorName;
+    }
+
+    public void setCreatorName(String creatorName) {
+        this.creatorName = creatorName;
+    }
 }

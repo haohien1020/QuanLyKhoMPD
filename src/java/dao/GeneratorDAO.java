@@ -2,6 +2,7 @@ package dao;
 
 import util.DBUtil;
 import model.Generator;
+import model.GroupedGeneratorInventory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,13 +29,15 @@ public class GeneratorDAO extends BaseDAO {
         item.setLocation(rs.getString("location"));
         item.setStatus(rs.getString("status"));
         item.setNote(rs.getString("note"));
+        item.setBarcode(rs.getString("barcode"));
         item.setCreatedAt(rs.getTimestamp("created_at"));
         item.setUpdatedAt(rs.getTimestamp("updated_at"));
+        item.setRentalPrice(rs.getBigDecimal("rental_price"));
         return item;
     }
 
     public Generator findById(int id) throws Exception {
-        String sql = "SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, created_at, updated_at FROM generators WHERE generator_id = ?";
+        String sql = "SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, barcode, created_at, updated_at, rental_price FROM generators WHERE generator_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -48,7 +51,7 @@ public class GeneratorDAO extends BaseDAO {
     }
 
     public List<Generator> findAll() throws Exception {
-        String sql = "SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, created_at, updated_at FROM generators ORDER BY generator_id DESC";
+        String sql = "SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, barcode, created_at, updated_at, rental_price FROM generators ORDER BY generator_id DESC";
         List<Generator> list = new ArrayList<Generator>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -61,7 +64,7 @@ public class GeneratorDAO extends BaseDAO {
     }
 
     public int insert(Generator item) throws Exception {
-        String sql = "INSERT INTO generators (warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO generators (warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, barcode, rental_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getWarehouseId());
@@ -77,6 +80,8 @@ public class GeneratorDAO extends BaseDAO {
             ps.setString(11, item.getLocation());
             ps.setString(12, item.getStatus());
             ps.setString(13, item.getNote());
+            ps.setString(14, item.getBarcode());
+            ps.setBigDecimal(15, item.getRentalPrice());
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
                 return 0;
@@ -132,7 +137,7 @@ public class GeneratorDAO extends BaseDAO {
     }
 
     private int insert(Connection conn, Generator item) throws Exception {
-        String sql = "INSERT INTO generators (warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO generators (warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, barcode, rental_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getWarehouseId());
             setNullableInt(ps, 2, item.getSupplierId());
@@ -147,6 +152,8 @@ public class GeneratorDAO extends BaseDAO {
             ps.setString(11, item.getLocation());
             ps.setString(12, item.getStatus());
             ps.setString(13, item.getNote());
+            ps.setString(14, item.getBarcode());
+            ps.setBigDecimal(15, item.getRentalPrice());
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
                 return 0;
@@ -193,7 +200,7 @@ public class GeneratorDAO extends BaseDAO {
     }
 
     public boolean update(Generator item) throws Exception {
-        String sql = "UPDATE generators SET warehouse_id = ?, supplier_id = ?, generator_name = ?, serial_number = ?, brand = ?, power_value = ?, fuel_type = ?, origin_type = ?, import_date = ?, purchase_price = ?, location = ?, status = ?, note = ?, updated_at = NOW() WHERE generator_id = ?";
+        String sql = "UPDATE generators SET warehouse_id = ?, supplier_id = ?, generator_name = ?, serial_number = ?, brand = ?, power_value = ?, fuel_type = ?, origin_type = ?, import_date = ?, purchase_price = ?, location = ?, status = ?, note = ?, barcode = ?, rental_price = ?, updated_at = NOW() WHERE generator_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getWarehouseId());
@@ -209,7 +216,9 @@ public class GeneratorDAO extends BaseDAO {
             ps.setString(11, item.getLocation());
             ps.setString(12, item.getStatus());
             ps.setString(13, item.getNote());
-            ps.setInt(14, item.getGeneratorId());
+            ps.setString(14, item.getBarcode());
+            ps.setBigDecimal(15, item.getRentalPrice());
+            ps.setInt(16, item.getGeneratorId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -224,7 +233,7 @@ public class GeneratorDAO extends BaseDAO {
     }
 
     public List<Generator> findGenerators(String keyword, Integer warehouseId, String statusFilter) throws Exception {
-        StringBuilder sql = new StringBuilder("SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, created_at, updated_at FROM generators WHERE 1 = 1 ");
+        StringBuilder sql = new StringBuilder("SELECT generator_id, warehouse_id, supplier_id, generator_name, serial_number, brand, power_value, fuel_type, origin_type, import_date, purchase_price, location, status, note, barcode, created_at, updated_at, rental_price FROM generators WHERE 1 = 1 ");
         List<Object> params = new ArrayList<Object>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -275,5 +284,38 @@ public class GeneratorDAO extends BaseDAO {
             }
         }
         return false;
+    }
+
+    public List<GroupedGeneratorInventory> findGroupedInventory(int warehouseId) throws Exception {
+        String sql = "SELECT "
+                + " generator_name, brand, power_value, fuel_type, "
+                + " COUNT(CASE WHEN status = 'IN_STOCK' THEN 1 END) AS in_stock_count, "
+                + " COUNT(CASE WHEN status = 'EXPORTED' THEN 1 END) AS rented_count, "
+                + " COUNT(CASE WHEN status IN ('MAINTENANCE', 'UNDER_REPAIR') THEN 1 END) AS maintenance_count, "
+                + " COUNT(*) AS total_count "
+                + "FROM generators "
+                + "WHERE warehouse_id = ? "
+                + "GROUP BY generator_name, brand, power_value, fuel_type "
+                + "ORDER BY brand, generator_name";
+        List<GroupedGeneratorInventory> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, warehouseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    GroupedGeneratorInventory item = new GroupedGeneratorInventory();
+                    item.setGeneratorName(rs.getString("generator_name"));
+                    item.setBrand(rs.getString("brand"));
+                    item.setPowerValue(rs.getString("power_value"));
+                    item.setFuelType(rs.getString("fuel_type"));
+                    item.setInStockCount(rs.getInt("in_stock_count"));
+                    item.setRentedCount(rs.getInt("rented_count"));
+                    item.setMaintenanceCount(rs.getInt("maintenance_count"));
+                    item.setTotalCount(rs.getInt("total_count"));
+                    list.add(item);
+                }
+            }
+        }
+        return list;
     }
 }

@@ -103,4 +103,31 @@ public class PartRequestDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<PartRequest> findPartRequests(Integer requestedBy, String statusFilter) throws Exception {
+        StringBuilder sql = new StringBuilder("SELECT request_id, warehouse_id, part_id, requested_by, approved_by, quantity, reason, status, created_at, approved_at FROM part_requests WHERE 1 = 1 ");
+        List<Object> params = new java.util.ArrayList<Object>();
+        if (requestedBy != null) {
+            sql.append("AND requested_by = ? ");
+            params.add(requestedBy);
+        }
+        if (statusFilter != null && !statusFilter.isEmpty()) {
+            sql.append("AND status = ? ");
+            params.add(statusFilter);
+        }
+        sql.append("ORDER BY request_id DESC");
+        List<PartRequest> list = new java.util.ArrayList<PartRequest>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
 }

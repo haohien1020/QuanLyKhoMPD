@@ -14,7 +14,6 @@ import model.User;
     "/manager/home",
     "/warehouse/dashboard",
     "/staff/home",
-    "/supplier/home",
     "/seller/home"
 })
 public class RoleHomeServlet extends HttpServlet {
@@ -39,16 +38,12 @@ public class RoleHomeServlet extends HttpServlet {
                 request.getRequestDispatcher("/views/home/manager-home.jsp").forward(request, response);
             } else if ("/warehouse/dashboard".equals(path)) {
                 requireRole(currentUser, response, "WAREHOUSE_MANAGER");
-                loadWarehouseData(request);
+                loadWarehouseData(request, currentUser);
                 request.getRequestDispatcher("/views/home/warehouse-home.jsp").forward(request, response);
             } else if ("/staff/home".equals(path)) {
                 requireRole(currentUser, response, "STAFF");
                 loadStaffData(request, currentUser);
                 request.getRequestDispatcher("/views/home/staff-home.jsp").forward(request, response);
-            } else if ("/supplier/home".equals(path)) {
-                requireRole(currentUser, response, "SUPPLIER");
-                loadSupplierData(request, currentUser);
-                request.getRequestDispatcher("/views/home/supplier-home.jsp").forward(request, response);
             } else if ("/seller/home".equals(path)) {
                 requireRole(currentUser, response, "SELLER");
                 loadSellerData(request, currentUser);
@@ -78,7 +73,11 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("unreadNotifications", dashboardDAO.countWhere("notifications", "is_read = 0"));
     }
 
-    private void loadWarehouseData(HttpServletRequest request) throws Exception {
+    private void loadWarehouseData(HttpServletRequest request, User currentUser) throws Exception {
+        dao.WarehouseDAO warehouseDAO = new dao.WarehouseDAO();
+        model.Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+        request.setAttribute("managedWarehouse", managedWarehouse);
+
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
         request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generators", "status = 'IN_STOCK'"));
@@ -103,34 +102,6 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("unreadNotifications",
                 dashboardDAO.countWhereInt("notifications", "user_id = ? AND is_read = 0", userId));
-    }
-
-    private void loadSupplierData(HttpServletRequest request, User currentUser) throws Exception {
-        dao.SupplierPortalDAO supplierPortalDAO = new dao.SupplierPortalDAO();
-        model.Supplier supplier = supplierPortalDAO.findSupplierByEmail(currentUser.getEmail());
-        if (supplier != null) {
-            request.setAttribute("supplierInfo", supplier);
-            java.util.List<model.PurchaseOrder> orders = supplierPortalDAO.findOrdersForSupplier(supplier.getSupplierId());
-            int totalOrders = orders.size();
-            int pendingOrders = 0;
-            int activeDeliveries = 0;
-            for (model.PurchaseOrder order : orders) {
-                String status = order.getStatus();
-                if ("PENDING".equalsIgnoreCase(status)) {
-                    pendingOrders++;
-                } else if ("DELIVERING".equalsIgnoreCase(status)) {
-                    activeDeliveries++;
-                }
-            }
-            request.setAttribute("totalOrders", totalOrders);
-            request.setAttribute("pendingOrders", pendingOrders);
-            request.setAttribute("activeDeliveries", activeDeliveries);
-        } else {
-            request.setAttribute("totalOrders", 0);
-            request.setAttribute("pendingOrders", 0);
-            request.setAttribute("activeDeliveries", 0);
-            request.setAttribute("supplierError", "Tài khoản của bạn chưa được liên kết với bất kỳ hồ sơ Nhà cung cấp nào trong hệ thống hoặc Nhà cung cấp không hoạt động. Vui lòng liên hệ Thủ kho.");
-        }
     }
 
     private void loadSellerData(HttpServletRequest request, User currentUser) throws Exception {
@@ -162,8 +133,6 @@ public class RoleHomeServlet extends HttpServlet {
             request.getRequestDispatcher("/views/home/manager-home.jsp").forward(request, response);
         } else if ("/warehouse/dashboard".equals(path)) {
             request.getRequestDispatcher("/views/home/warehouse-home.jsp").forward(request, response);
-        } else if ("/supplier/home".equals(path)) {
-            request.getRequestDispatcher("/views/home/supplier-home.jsp").forward(request, response);
         } else if ("/seller/home".equals(path)) {
             request.getRequestDispatcher("/views/home/seller-home.jsp").forward(request, response);
         } else {

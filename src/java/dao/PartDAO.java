@@ -78,7 +78,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public boolean update(Part item) throws Exception {
-        String sql = "UPDATE parts SET warehouse_id = ?, part_name = ?, part_code = ?, quantity = ?, min_quantity = ?, unit = ?, status = ?, updated_at = GETDATE() WHERE part_id = ?";
+        String sql = "UPDATE parts SET warehouse_id = ?, part_name = ?, part_code = ?, quantity = ?, min_quantity = ?, unit = ?, status = ?, updated_at = NOW() WHERE part_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getWarehouseId());
@@ -100,5 +100,53 @@ public class PartDAO extends BaseDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public List<Part> findParts(String q, Integer warehouseId, String status) throws Exception {
+        StringBuilder sql = new StringBuilder("SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+        if (q != null && !q.trim().isEmpty()) {
+            sql.append("AND (part_name LIKE ? OR part_code LIKE ?) ");
+            String kw = "%" + q.trim() + "%";
+            params.add(kw);
+            params.add(kw);
+        }
+        if (warehouseId != null) {
+            sql.append("AND warehouse_id = ? ");
+            params.add(warehouseId);
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND status = ? ");
+            params.add(status.trim());
+        }
+        sql.append("ORDER BY part_id DESC");
+        List<Part> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean isPartCodeUsed(String partCode, int excludeId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM parts WHERE LOWER(part_code) = LOWER(?) AND part_id <> ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, partCode.trim());
+            ps.setInt(2, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -208,6 +208,24 @@ public class WarehouseDAO extends BaseDAO {
         return list;
     }
 
+    public List<Warehouse> findActiveWarehouseManagerAssignments() throws Exception {
+        String sql = "SELECT warehouse_id, warehouse_name, warehouse_manager_id FROM warehouses WHERE warehouse_manager_id IS NOT NULL AND status = 'ACTIVE'";
+        List<Warehouse> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Warehouse w = new Warehouse();
+                w.setWarehouseId(rs.getInt("warehouse_id"));
+                w.setWarehouseName(rs.getString("warehouse_name"));
+                w.setWarehouseManagerId(rs.getInt("warehouse_manager_id"));
+                list.add(w);
+            }
+        }
+        return list;
+    }
+
+
     public Warehouse findWarehouseByManager(int userId) throws Exception {
         String sql = "SELECT w.warehouse_id, w.warehouse_name, w.address, w.manager_id, w.warehouse_manager_id, w.status, w.created_at, "
                 + "u1.full_name AS manager_name, "

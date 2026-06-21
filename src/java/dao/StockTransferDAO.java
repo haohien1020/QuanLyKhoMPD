@@ -97,4 +97,23 @@ public class StockTransferDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<StockTransfer> findTransfersByWarehouse(int warehouseId) throws Exception {
+        String sql = "SELECT transfer_id, from_warehouse_id, to_warehouse_id, created_by, approved_by, status, created_at, approved_at "
+                + "FROM stock_transfers "
+                + "WHERE from_warehouse_id = ? OR to_warehouse_id = ? "
+                + "ORDER BY transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, warehouseId);
+            ps.setInt(2, warehouseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
 }

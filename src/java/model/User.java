@@ -22,6 +22,7 @@ public class User {
     private String resetToken;
     private Timestamp resetTokenExpiry;
     private Integer warehouseId;
+    private boolean canImportGenerator;
 
     public User() {
     }
@@ -196,5 +197,13 @@ public class User {
 
     public void setWarehouseId(Integer warehouseId) {
         this.warehouseId = warehouseId;
+    }
+
+    public boolean isCanImportGenerator() {
+        return canImportGenerator;
+    }
+
+    public void setCanImportGenerator(boolean canImportGenerator) {
+        this.canImportGenerator = canImportGenerator;
     }
 }

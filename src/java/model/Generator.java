@@ -164,11 +164,31 @@ public class Generator {
         this.createdAt = createdAt;
     }
 
+    private String barcode;
+
+    public String getBarcode() {
+        return barcode;
+    }
+
+    public void setBarcode(String barcode) {
+        this.barcode = barcode;
+    }
+
     public Timestamp getUpdatedAt() {
         return updatedAt;
     }
 
     public void setUpdatedAt(Timestamp updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    private BigDecimal rentalPrice;
+
+    public BigDecimal getRentalPrice() {
+        return rentalPrice;
+    }
+
+    public void setRentalPrice(BigDecimal rentalPrice) {
+        this.rentalPrice = rentalPrice;
     }
 }
