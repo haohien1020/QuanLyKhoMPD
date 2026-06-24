@@ -221,34 +221,6 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card business-card border-left-secondary h-100">
-                                            <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">5</span></div>
-                                                <h6 class="font-weight-bold text-gray-900">Yêu cầu & Phê duyệt</h6>
-                                                <p class="small text-muted mb-3">${pendingPartRequests} yêu cầu cấp linh kiện và ${pendingPurchaseRequests} yêu cầu mua hàng chờ duyệt.</p>
-                                                <div class="module-actions">
-                                                    <a href="${pageContext.request.contextPath}/part-requests" class="btn btn-sm btn-outline-secondary">Cấp linh kiện</a>
-                                                    <a href="${pageContext.request.contextPath}/purchase-requests" class="btn btn-sm btn-outline-secondary">Mua sắm</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card business-card border-left-primary h-100">
-                                            <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">6</span></div>
-                                                <h6 class="font-weight-bold text-gray-900">Mua sắm & Nhà cung cấp</h6>
-                                                <p class="small text-muted mb-3">${totalSuppliers} nhà cung cấp đối tác, ${pendingPurchaseOrders} đơn mua hàng.</p>
-                                                <div class="module-actions">
-                                                    <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-outline-primary">Nhà cung cấp</a>
-                                                    <a href="${pageContext.request.contextPath}/purchase-orders" class="btn btn-sm btn-outline-primary">Đơn mua hàng</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
 
                                 </div>
                             </div>

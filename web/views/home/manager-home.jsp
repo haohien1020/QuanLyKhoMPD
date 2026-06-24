@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <!DOCTYPE html>
@@ -46,7 +46,7 @@
                         <div class="card border-left-warning shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Yêu cầu chờ phê duyệt</div>
-                                <div class="h4 font-weight-bold text-gray-800">${pendingPartRequests + pendingPurchaseRequests + pendingTransfers}</div>
+                                <div class="h4 font-weight-bold text-gray-800">${pendingPartRequests + pendingTransfers}</div>
                                 <div class="small text-muted">Các yêu cầu và điều chuyển đang chờ duyệt</div>
                             </div>
                         </div>
@@ -76,11 +76,10 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-clipboard-check text-warning"></i> Yêu cầu & Phê duyệt</h6>
-                                <p class="small text-muted">Xem xét phê duyệt yêu cầu phụ tùng, yêu cầu mua hàng và điều chuyển kho.</p>
+                                <p class="small text-muted">Xem xét phê duyệt yêu cầu phụ tùng và điều chuyển kho.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/manager/pending-requests" class="btn btn-sm btn-warning">Hàng đợi chờ duyệt</a>
                                     <a href="${pageContext.request.contextPath}/part-requests" class="btn btn-sm btn-outline-secondary">Yêu cầu phụ tùng</a>
-                                    <a href="${pageContext.request.contextPath}/purchase-requests" class="btn btn-sm btn-outline-secondary">Yêu cầu mua sắm</a>
                                 </div>
                             </div>
                         </div>
@@ -89,10 +88,9 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-invoice text-primary"></i> Mua sắm & Nhà cung cấp</h6>
-                                <p class="small text-muted">Theo dõi các đơn đặt hàng và giữ cho quy trình mua sắm vận hành liên tục.</p>
+                                <p class="small text-muted">Quản lý thông tin và danh sách các nhà cung cấp thiết bị.</p>
                                 <div class="workflow-actions">
-                                    <a href="${pageContext.request.contextPath}/purchase-orders" class="btn btn-sm btn-primary">Đơn mua hàng</a>
-                                    <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-outline-primary">Nhà cung cấp</a>
+                                    <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-primary">Nhà cung cấp</a>
                                 </div>
                             </div>
                         </div>
@@ -104,6 +102,7 @@
                                 <p class="small text-muted">${totalWarehouses} kho hàng, ${totalGenerators} máy phát điện, ${lowStockParts} phụ tùng thiếu hụt.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/warehouses" class="btn btn-sm btn-success">Quản lý kho</a>
+                                    <a href="${pageContext.request.contextPath}/manager/employees" class="btn btn-sm btn-outline-success">Quản lý nhân viên</a>
                                     <a href="${pageContext.request.contextPath}/stock-transfers" class="btn btn-sm btn-outline-success">Điều chuyển kho</a>
                                 </div>
                             </div>

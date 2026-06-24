@@ -65,11 +65,19 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .barcode-img-cell img {
-            height: 38px;
-            max-width: 130px;
+        .barcode-img-cell img, img.barcode-render {
+            height: auto;
+            max-width: 100%;
+            width: auto;
             display: block;
             margin: 0 auto;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            background-color: #ffffff;
+            padding: 3px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
         }
         .status-badge { font-size: 0.78rem; }
         .back-link {
@@ -247,7 +255,6 @@
                                             ? new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(gb.getCreatedAt()) : "-";
                                 %>
                                 <%
-                                        // Lookup generator detail for this barcode
                                         Generator genDetail = null;
                                         if (generators != null) {
                                             for (Generator gd : generators) {
@@ -267,7 +274,6 @@
                                         String priceStr       = genDetail != null && genDetail.getPurchasePrice() != null ? String.format("%,.0f", genDetail.getPurchasePrice()) : "-";
                                         String rentalPriceStr = genDetail != null && genDetail.getRentalPrice() != null ? String.format("%,.0f", genDetail.getRentalPrice()) : "-";
                                         String warehouseStr   = genDetail != null && genDetail.getWarehouseId() > 0 ? String.valueOf(genDetail.getWarehouseId()) : "-";
-                                        // Status badge for the barcode unit
                                         String unitStatusBadge;
                                         switch (gb.getStatus() != null ? gb.getStatus() : "") {
                                             case "IN_STOCK":     unitStatusBadge = "badge-success"; break;
@@ -289,9 +295,9 @@
                                     <td class="text-center">
                                         <code class="font-weight-bold text-gray-800"><%= gb.getSerialNumber() %></code>
                                     </td>
-                                    <td class="barcode-img-cell text-center">
+                                    <td class="barcode-img-cell text-center" style="cursor:pointer;" onclick="openBarcodeDetail('<%= safeGenName %>', '<%= safeSerial %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= priceStr %>', '<%= rentalPriceStr %>', '<%= safeLocation %>', '<%= safeNote %>', '<%= gb.getStatus() != null ? gb.getStatus() : "" %>', '<%= unitStatusBadge %>', '<%= createdStr %>')" title="Click để xem phóng to mã vạch">
                                         <img class="barcode-render" data-serial="<%= gb.getSerialNumber() %>" alt="<%= gb.getSerialNumber() %>">
-                                        <div class="text-muted mt-1" style="font-size:0.7rem;"><%= gb.getSerialNumber() %></div>
+                                        <div class="text-dark font-weight-bold mt-1" style="font-size:0.75rem; font-family: monospace; letter-spacing: 0.5px;"><%= gb.getSerialNumber() %></div>
                                     </td>
                                     <td class="text-center"><%=statusBadge%></td>
                                     <td class="text-center text-muted" style="font-size:0.82rem;"><%= createdStr %></td>
@@ -379,10 +385,10 @@
                             <code class="text-gray-800 font-weight-bold" id="mdSerial" style="font-size:1rem;"></code>
                         </div>
                         <div class="mb-3">
-                            <div class="small text-muted font-weight-bold mb-1">Mã vạch</div>
-                            <div class="text-center p-2 bg-light rounded border">
-                                <img id="mdBarcodeImg" src="" alt="Barcode" style="max-height:55px; max-width:100%;">
-                                <div class="text-muted mt-1" id="mdBarcodeLabel" style="font-size:0.7rem;"></div>
+                            <div class="small text-muted font-weight-bold mb-1">Mã vạch Barcode</div>
+                            <div class="text-center p-3 bg-light rounded border shadow-sm">
+                                <img id="mdBarcodeImg" src="" alt="Barcode" style="height: 60px; max-width: 100%; width: auto; display: block; margin: 0 auto; background: #ffffff; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; image-rendering: pixelated;">
+                                <div class="font-weight-bold text-dark mt-2" id="mdBarcodeLabel" style="font-size: 0.92rem; font-family: 'Courier New', monospace; letter-spacing: 1.2px; word-break: break-all; background: #fff; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; display: inline-block;"></div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -436,7 +442,7 @@ $(document).ready(function() {
         }
     });
 
-    // Render barcodes via JsBarcode
+    // Render barcodes in table cells with clear quiet zone & crisp resolution (larger size for scanning)
     $('.barcode-render').each(function() {
         var serial = $(this).data('serial');
         if (serial) {
@@ -444,10 +450,12 @@ $(document).ready(function() {
                 var canvas = document.createElement('canvas');
                 JsBarcode(canvas, serial, {
                     format: 'CODE128',
-                    width: 1.4,
-                    height: 32,
+                    width: 2.0,
+                    height: 48,
                     displayValue: false,
-                    margin: 0
+                    margin: 10,
+                    background: '#ffffff',
+                    lineColor: '#000000'
                 });
                 $(this).attr('src', canvas.toDataURL('image/png'));
             } catch(e) {
@@ -479,6 +487,59 @@ $(document).ready(function() {
             $('#filterForm').submit();
         }
     });
+
+    // Auto-focus search field for instant hardware scanner input
+    searchInput.focus();
+
+    // Automatically open the detail modal if there is exactly 1 search result (e.g. after a barcode scan)
+    <% if (filterKeyword != null && !filterKeyword.trim().isEmpty() && totalCount == 1) { 
+        GeneratorBarcode uniqueGb = barcodes.get(0);
+        Generator genDetail = null;
+        if (generators != null) {
+            for (Generator gd : generators) {
+                if (gd.getGeneratorId() == uniqueGb.getGeneratorId()) {
+                    genDetail = gd;
+                    break;
+                }
+            }
+        }
+        String safeGenName    = genDetail != null && genDetail.getGeneratorName() != null ? genDetail.getGeneratorName().replace("'", "\\'") : "-";
+        String safeSerial     = uniqueGb.getSerialNumber() != null ? uniqueGb.getSerialNumber().replace("'", "\\'") : "-";
+        String safeBrand      = genDetail != null && genDetail.getBrand() != null ? genDetail.getBrand().replace("'", "\\'") : "-";
+        String safePower      = genDetail != null && genDetail.getPowerValue() != null ? genDetail.getPowerValue().replace("'", "\\'") : "-";
+        String safeFuel       = genDetail != null && genDetail.getFuelType() != null ? genDetail.getFuelType().replace("'", "\\'") : "-";
+        String safeLocation   = genDetail != null && genDetail.getLocation() != null ? genDetail.getLocation().replace("'", "\\'") : "-";
+        String safeNote       = genDetail != null && genDetail.getNote() != null ? genDetail.getNote().replace("'", "\\'").replace("\n", " ") : "-";
+        String priceStr       = genDetail != null && genDetail.getPurchasePrice() != null ? String.format("%,.0f", genDetail.getPurchasePrice()) : "-";
+        String rentalPriceStr = genDetail != null && genDetail.getRentalPrice() != null ? String.format("%,.0f", genDetail.getRentalPrice()) : "-";
+        String unitStatusBadge;
+        switch (uniqueGb.getStatus() != null ? uniqueGb.getStatus() : "") {
+            case "IN_STOCK":     unitStatusBadge = "badge-success"; break;
+            case "EXPORTED":     unitStatusBadge = "badge-secondary"; break;
+            case "TRANSFERRED":  unitStatusBadge = "badge-info"; break;
+            case "UNDER_REPAIR": unitStatusBadge = "badge-danger"; break;
+            case "MAINTENANCE":  unitStatusBadge = "badge-warning"; break;
+            case "DAMAGED":      unitStatusBadge = "badge-dark"; break;
+            default:             unitStatusBadge = "badge-light"; break;
+        }
+        String createdStr = uniqueGb.getCreatedAt() != null
+            ? new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(uniqueGb.getCreatedAt()) : "-";
+    %>
+        openBarcodeDetail(
+            '<%= safeGenName %>',
+            '<%= safeSerial %>',
+            '<%= safeBrand %>',
+            '<%= safePower %>',
+            '<%= safeFuel %>',
+            '<%= priceStr %>',
+            '<%= rentalPriceStr %>',
+            '<%= safeLocation %>',
+            '<%= safeNote %>',
+            '<%= uniqueGb.getStatus() != null ? uniqueGb.getStatus() : "" %>',
+            '<%= unitStatusBadge %>',
+            '<%= createdStr %>'
+        );
+    <% } %>
 });
 
 function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPrice, location, note, status, badgeClass, createdAt) {
@@ -508,16 +569,18 @@ function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPri
     var label = statusLabels[status] || status;
     $('#mdStatusBadge').html('<span class="badge ' + badgeClass + ' px-2 py-1" style="font-size:0.85rem;">' + label + '</span>');
 
-    // Render barcode
+    // Render barcode in detail modal with high-res crisp quiet zone (larger size for scanning)
     if (serial) {
         try {
             var canvas = document.createElement('canvas');
             JsBarcode(canvas, serial, {
                 format: 'CODE128',
-                width: 1.6,
-                height: 45,
+                width: 2.2,
+                height: 70,
                 displayValue: false,
-                margin: 2
+                margin: 12,
+                background: '#ffffff',
+                lineColor: '#000000'
             });
             $('#mdBarcodeImg').attr('src', canvas.toDataURL('image/png')).show();
             $('#mdBarcodeLabel').text(serial);

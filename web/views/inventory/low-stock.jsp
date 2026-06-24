@@ -34,9 +34,8 @@
 
                 <!-- Data Table -->
                 <div class="card shadow mb-4 border-left-danger">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-danger">Danh sách linh kiện dưới ngưỡng tối thiểu</h6>
-                        <a href="${pageContext.request.contextPath}/purchase-requests/create" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Tạo yêu cầu mua hàng nhanh</a>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -48,7 +47,6 @@
                                         <th>Số lượng hiện tại</th>
                                         <th>Số lượng tối thiểu cần có</th>
                                         <th>Đơn vị tính</th>
-                                        <th>Gợi ý hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -59,14 +57,11 @@
                                             <td>${part.quantity}</td>
                                             <td>${part.minQuantity}</td>
                                             <td>${part.unit}</td>
-                                            <td>
-                                                <a href="${pageContext.request.contextPath}/purchase-requests/create?partId=${part.partId}&quantity=${part.minQuantity * 2}" class="btn btn-xs btn-danger"><i class="fas fa-shopping-cart"></i> Đề xuất mua hàng</a>
-                                            </td>
                                         </tr>
                                     </c:forEach>
                                     <c:if test="${empty parts}">
                                         <tr>
-                                            <td colspan="6" class="text-center text-success py-4">
+                                            <td colspan="5" class="text-center text-success py-4">
                                                 <i class="fas fa-check-circle fa-2x"></i> <br>
                                                 <span class="d-block mt-2 font-weight-bold">Tồn kho an toàn! Không có linh kiện nào dưới ngưỡng tối thiểu.</span>
                                             </td>
