@@ -1,5 +1,6 @@
 package controller.auth;
 
+
 import dao.PasswordResetTokenDAO;
 import dao.UserDAO;
 import javax.servlet.ServletException;
@@ -12,21 +13,26 @@ import java.io.IOException;
 import model.PasswordResetToken;
 import model.User;
 
+
 @WebServlet(name = "ResetPasswordServlet", urlPatterns = {"/reset-password"})
 public class ResetPasswordServlet extends HttpServlet {
 
+
     private final PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
     private final UserDAO userDAO = new UserDAO();
+
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String token = request.getParameter("token");
 
+
         if (token == null || token.trim().isEmpty()) {
             showInvalidToken(request, response);
             return;
         }
+
 
         try {
             PasswordResetToken resetToken = tokenDAO.findValidByToken(token.trim());
@@ -35,11 +41,13 @@ public class ResetPasswordServlet extends HttpServlet {
                 return;
             }
 
+
             User user = userDAO.findById(resetToken.getUserId());
             if (user == null || !user.isActive()) {
                 showInvalidToken(request, response);
                 return;
             }
+
 
             request.setAttribute("token", token.trim());
             request.setAttribute("email", user.getEmail());
@@ -47,11 +55,12 @@ public class ResetPasswordServlet extends HttpServlet {
             request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("errorMessage", "System error. Please try again later.");
+            request.setAttribute("errorMessage", "Lỗi hệ thống. Vui lòng thử lại sau.");
             request.setAttribute("canReset", false);
             request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
         }
     }
+
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -59,14 +68,17 @@ public class ResetPasswordServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
+
         String token = request.getParameter("token");
         String newPassword = request.getParameter("newPassword");
         String confirmPassword = request.getParameter("confirmPassword");
+
 
         if (token == null || token.trim().isEmpty()) {
             showInvalidToken(request, response);
             return;
         }
+
 
         try {
             PasswordResetToken resetToken = tokenDAO.findValidByToken(token.trim());
@@ -75,61 +87,71 @@ public class ResetPasswordServlet extends HttpServlet {
                 return;
             }
 
+
             User user = userDAO.findById(resetToken.getUserId());
             if (user == null || !user.isActive()) {
                 showInvalidToken(request, response);
                 return;
             }
 
+
             request.setAttribute("token", token.trim());
             request.setAttribute("email", user.getEmail());
             request.setAttribute("canReset", true);
 
+
             if (newPassword == null || newPassword.trim().isEmpty()) {
-                request.setAttribute("errorMessage", "Please enter a new password.");
+                request.setAttribute("errorMessage", "Vui lòng nhập mật khẩu mới.");
                 request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
                 return;
             }
 
+
             if (confirmPassword == null || !newPassword.equals(confirmPassword)) {
-                request.setAttribute("errorMessage", "Password confirmation does not match.");
+                request.setAttribute("errorMessage", "Xác nhận mật khẩu không khớp.");
                 request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
                 return;
             }
+
 
             if (!isValidPassword(newPassword)) {
                 request.setAttribute("errorMessage",
-                        "Password must be at least 6 characters and contain at least 1 uppercase letter and 1 number.");
+                        "Mật khẩu phải dài ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 chữ số.");
                 request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
                 return;
             }
+
 
             boolean updated = userDAO.updatePassword(user.getUserId(), newPassword);
             if (!updated) {
-                request.setAttribute("errorMessage", "Could not update password. Please try again.");
+                request.setAttribute("errorMessage", "Không thể cập nhật mật khẩu. Vui lòng thử lại.");
                 request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
                 return;
             }
 
+
             tokenDAO.markUsed(resetToken.getTokenId());
 
+
             HttpSession session = request.getSession();
-            session.setAttribute("successMessage", "Password reset successfully. Please log in with your new password.");
+            session.setAttribute("successMessage", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.");
             response.sendRedirect(request.getContextPath() + "/auth/login");
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("errorMessage", "System error. Please try again later.");
+            request.setAttribute("errorMessage", "Lỗi hệ thống. Vui lòng thử lại sau.");
             request.setAttribute("canReset", false);
             request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
         }
     }
 
+
     private void showInvalidToken(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setAttribute("errorMessage", "Password reset link is invalid or expired.");
+        request.setAttribute("errorMessage", "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
         request.setAttribute("canReset", false);
         request.getRequestDispatcher("/views/auth/reset-password.jsp").forward(request, response);
     }
+
 
     private boolean isValidPassword(String password) {
         if (password == null || password.length() < 6) {
@@ -138,3 +160,7 @@ public class ResetPasswordServlet extends HttpServlet {
         return password.matches(".*[A-Z].*") && password.matches(".*\\d.*");
     }
 }
+
+
+
+

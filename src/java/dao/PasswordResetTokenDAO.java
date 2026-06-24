@@ -1,5 +1,6 @@
 package dao;
 
+
 import util.DBUtil;
 import model.PasswordResetToken;
 import java.sql.Connection;
@@ -9,7 +10,9 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class PasswordResetTokenDAO extends BaseDAO {
+
 
     public PasswordResetTokenDAO() {
         try {
@@ -18,6 +21,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
             e.printStackTrace();
         }
     }
+
 
     private synchronized void initTableStructure() throws Exception {
         String checkSql = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'password_reset_tokens'";
@@ -31,10 +35,12 @@ public class PasswordResetTokenDAO extends BaseDAO {
             }
         }
 
+
         if (!tableExists) {
             createTable();
         }
     }
+
 
     private void createTable() throws Exception {
         String sql = "CREATE TABLE password_reset_tokens ("
@@ -52,6 +58,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
     }
 
+
     private PasswordResetToken mapResultSet(ResultSet rs) throws Exception {
         PasswordResetToken item = new PasswordResetToken();
         item.setTokenId(rs.getInt("token_id"));
@@ -62,6 +69,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         item.setCreatedAt(rs.getTimestamp("created_at"));
         return item;
     }
+
 
     public PasswordResetToken findById(int id) throws Exception {
         String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at FROM password_reset_tokens WHERE token_id = ?";
@@ -77,6 +85,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         return null;
     }
 
+
     public List<PasswordResetToken> findAll() throws Exception {
         String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at FROM password_reset_tokens ORDER BY token_id DESC";
         List<PasswordResetToken> list = new ArrayList<PasswordResetToken>();
@@ -89,6 +98,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
         return list;
     }
+
 
     public int insert(PasswordResetToken item) throws Exception {
         String sql = "INSERT INTO password_reset_tokens (user_id, token, expired_at, is_used) VALUES (?, ?, ?, ?)";
@@ -111,13 +121,15 @@ public class PasswordResetTokenDAO extends BaseDAO {
         return 0;
     }
 
+
     public PasswordResetToken findValidByToken(String token) throws Exception {
         String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at "
                 + "FROM password_reset_tokens "
-                + "WHERE token = ? AND is_used = 0 AND expired_at > NOW()";
+                + "WHERE token = ? AND is_used = 0 AND expired_at > ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);
+            ps.setTimestamp(2, new java.sql.Timestamp(System.currentTimeMillis()));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapResultSet(rs);
@@ -126,6 +138,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
         return null;
     }
+
 
     public boolean markUsed(int tokenId) throws Exception {
         String sql = "UPDATE password_reset_tokens SET is_used = 1 WHERE token_id = ?";
@@ -136,6 +149,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
     }
 
+
     public boolean markUserTokensUsed(int userId) throws Exception {
         String sql = "UPDATE password_reset_tokens SET is_used = 1 WHERE user_id = ? AND is_used = 0";
         try (Connection conn = DBUtil.getConnection();
@@ -144,6 +158,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
             return ps.executeUpdate() >= 0;
         }
     }
+
 
     public boolean update(PasswordResetToken item) throws Exception {
         String sql = "UPDATE password_reset_tokens SET user_id = ?, token = ?, expired_at = ?, is_used = ? WHERE token_id = ?";
@@ -158,6 +173,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
     }
 
+
     public boolean delete(int id) throws Exception {
         String sql = "DELETE FROM password_reset_tokens WHERE token_id = ?";
         try (Connection conn = DBUtil.getConnection();
@@ -167,3 +183,6 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
     }
 }
+
+
+
