@@ -19,8 +19,8 @@ import model.User;
 import model.Warehouse;
 
 @WebServlet(name = "PurchaseRequestServlet", urlPatterns = {
-    "/purchase-requests",
-    "/purchase-requests/create"
+        "/purchase-requests",
+        "/purchase-requests/create"
 })
 public class PurchaseRequestServlet extends HttpServlet {
 

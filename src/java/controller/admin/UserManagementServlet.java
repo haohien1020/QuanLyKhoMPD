@@ -19,7 +19,8 @@ import model.User;
     "/admin/user/create",
     "/admin/user/detail",
     "/admin/user/update",
-    "/admin/user/toggle-active"
+    "/admin/user/toggle-active",
+    "/admin/user/delete"
 })
 public class UserManagementServlet extends HttpServlet {
 
@@ -69,6 +70,8 @@ public class UserManagementServlet extends HttpServlet {
                 updateUser(request, response);
             } else if ("/admin/user/toggle-active".equals(path)) {
                 toggleActive(request, response, currentUser);
+            } else if ("/admin/user/delete".equals(path)) {
+                deleteUser(request, response, currentUser);
             } else {
                 response.sendRedirect(request.getContextPath() + "/admin/users");
             }
@@ -137,6 +140,10 @@ public class UserManagementServlet extends HttpServlet {
             return;
         }
 
+        List<String> activeRoles = roleDAO.findActiveRoleNames();
+        activeRoles.remove("SELLER");
+        request.setAttribute("allRoles", activeRoles);
+
         request.setAttribute("viewUser", viewUser);
         request.getRequestDispatcher("/views/admin/user-detail.jsp").forward(request, response);
     }
@@ -202,6 +209,7 @@ public class UserManagementServlet extends HttpServlet {
         String fullName = trim(request.getParameter("fullName"));
         String email = trim(request.getParameter("email"));
         String phone = trim(request.getParameter("phone"));
+        String roleName = trim(request.getParameter("role"));
 
         String errorCode = validateUpdate(id, username, fullName, email, phone);
         if (errorCode != null) {
@@ -209,7 +217,18 @@ public class UserManagementServlet extends HttpServlet {
             return;
         }
 
-        boolean updated = userDAO.updateAdminUser(id, username, fullName, email, phone);
+        Role role = roleDAO.findByName(roleName);
+        if (role == null || !"ACTIVE".equalsIgnoreCase(role.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/admin/user/detail?id=" + id + "&error=invalid_role");
+            return;
+        }
+
+        if ("SELLER".equalsIgnoreCase(roleName)) {
+            response.sendRedirect(request.getContextPath() + "/admin/user/detail?id=" + id + "&error=invalid_role");
+            return;
+        }
+
+        boolean updated = userDAO.updateAdminUser(id, role.getRoleId(), username, fullName, email, phone);
         if (!updated) {
             response.sendRedirect(request.getContextPath() + "/admin/user/detail?id=" + id + "&error=update_failed");
             return;
@@ -244,6 +263,27 @@ public class UserManagementServlet extends HttpServlet {
         userDAO.updateStatus(id, newStatus);
         response.sendRedirect(request.getContextPath()
                 + "/admin/users?success=" + (active ? "unbanned" : "banned"));
+    }
+
+    private void deleteUser(HttpServletRequest request, HttpServletResponse response, User currentUser)
+            throws Exception {
+        Integer id = parseInt(request.getParameter("userId"));
+        if (id == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/users");
+            return;
+        }
+
+        if (id == currentUser.getUserId()) {
+            response.sendRedirect(request.getContextPath() + "/admin/users?error=self_delete");
+            return;
+        }
+
+        boolean success = userDAO.delete(id);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/admin/users?success=deleted");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/admin/users?error=delete_failed");
+        }
     }
 
     private String validateCreate(String username, String password, String fullName,

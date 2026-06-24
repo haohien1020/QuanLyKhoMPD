@@ -32,7 +32,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
-                + "WHERE w.warehouse_id = ?";
+                + "WHERE w.warehouse_id = ? AND w.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -52,6 +52,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
+                + "WHERE w.is_deleted = 0 "
                 + "ORDER BY w.warehouse_id DESC";
         List<Warehouse> list = new ArrayList<Warehouse>();
         try (Connection conn = DBUtil.getConnection();
@@ -72,7 +73,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
-                + "WHERE 1 = 1 "
+                + "WHERE w.is_deleted = 0 "
         );
         List<Object> params = new ArrayList<Object>();
         
@@ -142,7 +143,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public boolean delete(int id) throws Exception {
-        String sql = "DELETE FROM warehouses WHERE warehouse_id = ?";
+        String sql = "UPDATE warehouses SET is_deleted = 1 WHERE warehouse_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -151,7 +152,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public boolean isWarehouseManagerAssignedToAnotherWarehouse(int warehouseManagerId, int warehouseId) throws Exception {
-        String sql = "SELECT COUNT(*) FROM warehouses WHERE warehouse_manager_id = ? AND warehouse_id <> ? AND status = 'ACTIVE'";
+        String sql = "SELECT COUNT(*) FROM warehouses WHERE warehouse_manager_id = ? AND warehouse_id <> ? AND status = 'ACTIVE' AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, warehouseManagerId);
@@ -166,7 +167,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public boolean existsByName(String name, int excludeId) throws Exception {
-        String sql = "SELECT COUNT(*) FROM warehouses WHERE LOWER(TRIM(warehouse_name)) = LOWER(TRIM(?)) AND warehouse_id <> ?";
+        String sql = "SELECT COUNT(*) FROM warehouses WHERE LOWER(TRIM(warehouse_name)) = LOWER(TRIM(?)) AND warehouse_id <> ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
@@ -181,7 +182,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public boolean existsByAddress(String address, int excludeId) throws Exception {
-        String sql = "SELECT COUNT(*) FROM warehouses WHERE LOWER(TRIM(address)) = LOWER(TRIM(?)) AND warehouse_id <> ?";
+        String sql = "SELECT COUNT(*) FROM warehouses WHERE LOWER(TRIM(address)) = LOWER(TRIM(?)) AND warehouse_id <> ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, address);
@@ -196,7 +197,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public List<Integer> findAssignedWarehouseManagerIds() throws Exception {
-        String sql = "SELECT warehouse_manager_id FROM warehouses WHERE warehouse_manager_id IS NOT NULL AND status = 'ACTIVE'";
+        String sql = "SELECT warehouse_manager_id FROM warehouses WHERE warehouse_manager_id IS NOT NULL AND status = 'ACTIVE' AND is_deleted = 0";
         List<Integer> list = new ArrayList<Integer>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -209,7 +210,7 @@ public class WarehouseDAO extends BaseDAO {
     }
 
     public List<Warehouse> findActiveWarehouseManagerAssignments() throws Exception {
-        String sql = "SELECT warehouse_id, warehouse_name, warehouse_manager_id FROM warehouses WHERE warehouse_manager_id IS NOT NULL AND status = 'ACTIVE'";
+        String sql = "SELECT warehouse_id, warehouse_name, warehouse_manager_id FROM warehouses WHERE warehouse_manager_id IS NOT NULL AND status = 'ACTIVE' AND is_deleted = 0";
         List<Warehouse> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -233,7 +234,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
-                + "WHERE w.warehouse_manager_id = ? AND w.status = 'ACTIVE'";
+                + "WHERE w.warehouse_manager_id = ? AND w.status = 'ACTIVE' AND w.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -253,13 +254,13 @@ public class WarehouseDAO extends BaseDAO {
                 + "u2.full_name AS warehouse_manager_name, "
                 + "u2.email AS warehouse_manager_email, "
                 + "u2.phone AS warehouse_manager_phone, "
-                + "(SELECT COUNT(*) FROM generators g WHERE g.warehouse_id = w.warehouse_id) AS total_generators, "
-                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id) AS total_parts, "
-                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id AND p.quantity < p.min_quantity) AS low_stock_parts "
+                + "(SELECT COUNT(*) FROM generators g WHERE g.warehouse_id = w.warehouse_id AND g.is_deleted = 0) AS total_generators, "
+                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id AND p.is_deleted = 0) AS total_parts, "
+                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id AND p.quantity < p.min_quantity AND p.is_deleted = 0) AS low_stock_parts "
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
-                + "WHERE w.manager_id = ? "
+                + "WHERE w.manager_id = ? AND w.is_deleted = 0 "
         );
         List<Object> params = new ArrayList<>();
         params.add(managerId);

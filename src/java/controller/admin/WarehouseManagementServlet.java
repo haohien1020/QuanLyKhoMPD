@@ -17,7 +17,8 @@ import model.Warehouse;
     "/admin/warehouses",
     "/admin/warehouse/create",
     "/admin/warehouse/update",
-    "/admin/warehouse/toggle-status"
+    "/admin/warehouse/toggle-status",
+    "/admin/warehouse/delete"
 })
 public class WarehouseManagementServlet extends HttpServlet {
 
@@ -40,10 +41,6 @@ public class WarehouseManagementServlet extends HttpServlet {
             try {
                 request.setAttribute("warehouses", warehouseDAO.findAll());
                 request.setAttribute("managers", userDAO.findUsersByRoleName("MANAGER"));
-                request.setAttribute("warehouseManagers", userDAO.findUsersByRoleName("WAREHOUSE_MANAGER"));
-                request.setAttribute("assignedManagerIds", warehouseDAO.findAssignedWarehouseManagerIds());
-                request.setAttribute("activeManagerAssignments", warehouseDAO.findActiveWarehouseManagerAssignments());
-                request.setAttribute("allStaff", userDAO.findUsersByRoleName("STAFF"));
             } catch (Exception ignored) {
             }
             request.getRequestDispatcher("/views/admin/warehouse-list.jsp").forward(request, response);
@@ -69,6 +66,8 @@ public class WarehouseManagementServlet extends HttpServlet {
                 updateWarehouse(request, response);
             } else if ("/admin/warehouse/toggle-status".equals(path)) {
                 toggleStatus(request, response);
+            } else if ("/admin/warehouse/delete".equals(path)) {
+                deleteWarehouse(request, response);
             } else {
                 response.sendRedirect(request.getContextPath() + "/admin/warehouses");
             }
@@ -85,17 +84,9 @@ public class WarehouseManagementServlet extends HttpServlet {
 
         List<Warehouse> list = warehouseDAO.findWarehouses(q, status);
         List<User> managers = userDAO.findUsersByRoleName("MANAGER");
-        List<User> warehouseManagers = userDAO.findUsersByRoleName("WAREHOUSE_MANAGER");
-        List<Integer> assignedManagerIds = warehouseDAO.findAssignedWarehouseManagerIds();
-        List<Warehouse> activeManagerAssignments = warehouseDAO.findActiveWarehouseManagerAssignments();
-        List<User> allStaff = userDAO.findUsersByRoleName("STAFF");
 
         request.setAttribute("warehouses", list);
         request.setAttribute("managers", managers);
-        request.setAttribute("warehouseManagers", warehouseManagers);
-        request.setAttribute("assignedManagerIds", assignedManagerIds);
-        request.setAttribute("activeManagerAssignments", activeManagerAssignments);
-        request.setAttribute("allStaff", allStaff);
         request.setAttribute("q", q);
         request.setAttribute("statusFilter", status);
 
@@ -107,7 +98,6 @@ public class WarehouseManagementServlet extends HttpServlet {
         String warehouseName = trim(request.getParameter("warehouseName"));
         String address = trim(request.getParameter("address"));
         Integer managerId = parseInt(request.getParameter("managerId"));
-        Integer warehouseManagerId = parseInt(request.getParameter("warehouseManagerId"));
         String status = trim(request.getParameter("status"));
 
         if (status == null || status.isEmpty()) {
@@ -139,35 +129,15 @@ public class WarehouseManagementServlet extends HttpServlet {
             return;
         }
 
-        // Validate Warehouse Manager uniqueness constraint: a WAREHOUSE_MANAGER can manage at most 1 active warehouse.
-        if (warehouseManagerId != null && "ACTIVE".equals(status)) {
-            boolean isAssigned = warehouseDAO.isWarehouseManagerAssignedToAnotherWarehouse(warehouseManagerId, 0);
-            if (isAssigned) {
-                response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=warehouse_manager_assigned");
-                return;
-            }
-        }
-
         Warehouse item = new Warehouse();
         item.setWarehouseName(warehouseName);
         item.setAddress(address);
         item.setManagerId(managerId);
-        item.setWarehouseManagerId(warehouseManagerId);
+        item.setWarehouseManagerId(null);
         item.setStatus(status);
 
         int generatedId = warehouseDAO.insert(item);
         if (generatedId > 0) {
-            String[] staffIdParams = request.getParameterValues("staffIds");
-            List<Integer> selectedStaffIds = new java.util.ArrayList<>();
-            if (staffIdParams != null) {
-                for (String p : staffIdParams) {
-                    Integer sId = parseInt(p);
-                    if (sId != null) {
-                        selectedStaffIds.add(sId);
-                    }
-                }
-            }
-            userDAO.updateWarehouseStaff(generatedId, selectedStaffIds);
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=created");
         } else {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=create_failed");
@@ -180,7 +150,6 @@ public class WarehouseManagementServlet extends HttpServlet {
         String warehouseName = trim(request.getParameter("warehouseName"));
         String address = trim(request.getParameter("address"));
         Integer managerId = parseInt(request.getParameter("managerId"));
-        Integer warehouseManagerId = parseInt(request.getParameter("warehouseManagerId"));
         String status = trim(request.getParameter("status"));
 
         if (id == null) {
@@ -219,37 +188,15 @@ public class WarehouseManagementServlet extends HttpServlet {
             return;
         }
 
-        // Validate Warehouse Manager uniqueness constraint: a WAREHOUSE_MANAGER can manage at most 1 active warehouse.
-        String finalStatus = (status != null && !status.isEmpty()) ? status : item.getStatus();
-        if (warehouseManagerId != null && "ACTIVE".equals(finalStatus)) {
-            boolean isAssigned = warehouseDAO.isWarehouseManagerAssignedToAnotherWarehouse(warehouseManagerId, id);
-            if (isAssigned) {
-                response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=warehouse_manager_assigned");
-                return;
-            }
-        }
-
         item.setWarehouseName(warehouseName);
         item.setAddress(address);
         item.setManagerId(managerId);
-        item.setWarehouseManagerId(warehouseManagerId);
         if (status != null && !status.isEmpty()) {
             item.setStatus(status);
         }
 
         boolean updated = warehouseDAO.update(item);
         if (updated) {
-            String[] staffIdParams = request.getParameterValues("staffIds");
-            List<Integer> selectedStaffIds = new java.util.ArrayList<>();
-            if (staffIdParams != null) {
-                for (String p : staffIdParams) {
-                    Integer sId = parseInt(p);
-                    if (sId != null) {
-                        selectedStaffIds.add(sId);
-                    }
-                }
-            }
-            userDAO.updateWarehouseStaff(id, selectedStaffIds);
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=updated");
         } else {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=update_failed");
@@ -273,16 +220,6 @@ public class WarehouseManagementServlet extends HttpServlet {
         }
 
         String newStatus = active ? "ACTIVE" : "INACTIVE";
-
-        // Validate Warehouse Manager uniqueness constraint if activating
-        if (active && item.getWarehouseManagerId() != null) {
-            boolean isAssigned = warehouseDAO.isWarehouseManagerAssignedToAnotherWarehouse(item.getWarehouseManagerId(), id);
-            if (isAssigned) {
-                response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=warehouse_manager_assigned");
-                return;
-            }
-        }
-
         item.setStatus(newStatus);
 
         boolean updated = warehouseDAO.update(item);
@@ -290,6 +227,22 @@ public class WarehouseManagementServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=" + (active ? "activated" : "deactivated"));
         } else {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=toggle_failed");
+        }
+    }
+
+    private void deleteWarehouse(HttpServletRequest request, HttpServletResponse response)
+            throws Exception {
+        Integer id = parseInt(request.getParameter("warehouseId"));
+        if (id == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/warehouses");
+            return;
+        }
+
+        boolean success = warehouseDAO.delete(id);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=deleted");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=delete_failed");
         }
     }
 

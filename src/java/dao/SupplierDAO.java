@@ -24,7 +24,7 @@ public class SupplierDAO extends BaseDAO {
     }
 
     public Supplier findById(int id) throws Exception {
-        String sql = "SELECT supplier_id, supplier_name, phone, email, address, status, created_at FROM suppliers WHERE supplier_id = ?";
+        String sql = "SELECT supplier_id, supplier_name, phone, email, address, status, created_at FROM suppliers WHERE supplier_id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -38,7 +38,7 @@ public class SupplierDAO extends BaseDAO {
     }
 
     public List<Supplier> findAll() throws Exception {
-        String sql = "SELECT supplier_id, supplier_name, phone, email, address, status, created_at FROM suppliers ORDER BY supplier_id DESC";
+        String sql = "SELECT supplier_id, supplier_name, phone, email, address, status, created_at FROM suppliers WHERE is_deleted = 0 ORDER BY supplier_id DESC";
         List<Supplier> list = new ArrayList<Supplier>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -87,7 +87,7 @@ public class SupplierDAO extends BaseDAO {
     }
 
     public boolean delete(int id) throws Exception {
-        String sql = "DELETE FROM suppliers WHERE supplier_id = ?";
+        String sql = "UPDATE suppliers SET is_deleted = 1 WHERE supplier_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -98,7 +98,7 @@ public class SupplierDAO extends BaseDAO {
     public List<Supplier> findSuppliers(String keyword, String statusFilter) throws Exception {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT supplier_id, supplier_name, phone, email, address, status, created_at ")
-           .append("FROM suppliers WHERE 1 = 1 ");
+           .append("FROM suppliers WHERE is_deleted = 0 ");
 
         List<Object> params = new ArrayList<>();
 
@@ -148,7 +148,7 @@ public class SupplierDAO extends BaseDAO {
             return false;
         }
 
-        String sql = "SELECT COUNT(*) FROM suppliers WHERE LOWER(email) = LOWER(?) AND supplier_id <> ?";
+        String sql = "SELECT COUNT(*) FROM suppliers WHERE LOWER(email) = LOWER(?) AND supplier_id <> ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

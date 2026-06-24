@@ -21,7 +21,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public Role findById(int id) throws Exception {
-        String sql = "SELECT role_id, role_name, description, status FROM roles WHERE role_id = ?";
+        String sql = "SELECT role_id, role_name, description, status FROM roles WHERE role_id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -35,7 +35,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public List<Role> findAll() throws Exception {
-        String sql = "SELECT role_id, role_name, description, status FROM roles ORDER BY role_id DESC";
+        String sql = "SELECT role_id, role_name, description, status FROM roles WHERE is_deleted = 0 ORDER BY role_id DESC";
         List<Role> list = new ArrayList<Role>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -48,7 +48,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public List<Role> findRoles(String keyword, String statusFilter) throws Exception {
-        StringBuilder sql = new StringBuilder("SELECT role_id, role_name, description, status FROM roles WHERE 1 = 1 ");
+        StringBuilder sql = new StringBuilder("SELECT role_id, role_name, description, status FROM roles WHERE is_deleted = 0 ");
         List<Object> params = new ArrayList<Object>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -82,7 +82,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public List<String> findActiveRoleNames() throws Exception {
-        String sql = "SELECT role_name FROM roles WHERE status = 'ACTIVE' ORDER BY role_id ASC";
+        String sql = "SELECT role_name FROM roles WHERE status = 'ACTIVE' AND is_deleted = 0 ORDER BY role_id ASC";
         List<String> list = new ArrayList<String>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -95,7 +95,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public Role findByName(String roleName) throws Exception {
-        String sql = "SELECT role_id, role_name, description, status FROM roles WHERE role_name = ?";
+        String sql = "SELECT role_id, role_name, description, status FROM roles WHERE role_name = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roleName);
@@ -109,7 +109,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public boolean isRoleNameUsedByAnotherRole(String roleName, int roleId) throws Exception {
-        String sql = "SELECT COUNT(*) FROM roles WHERE LOWER(role_name) = LOWER(?) AND role_id <> ?";
+        String sql = "SELECT COUNT(*) FROM roles WHERE LOWER(role_name) = LOWER(?) AND role_id <> ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roleName);
@@ -166,7 +166,7 @@ public class RoleDAO extends BaseDAO {
     }
 
     public boolean delete(int id) throws Exception {
-        String sql = "DELETE FROM roles WHERE role_id = ?";
+        String sql = "UPDATE roles SET is_deleted = 1 WHERE role_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);

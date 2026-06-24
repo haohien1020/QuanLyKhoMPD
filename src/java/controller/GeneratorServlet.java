@@ -24,7 +24,8 @@ import model.Supplier;
     "/generators",
     "/generators/create",
     "/generators/update",
-    "/generators/delete"
+    "/generators/delete",
+    "/generators/barcodes"
 })
 public class GeneratorServlet extends HttpServlet {
 
@@ -41,6 +42,75 @@ public class GeneratorServlet extends HttpServlet {
         }
 
         try {
+            // ===== /generators/barcodes =====
+            String path = request.getServletPath();
+            if ("/generators/barcodes".equals(path)) {
+                Integer filterGeneratorId = parseInt(request.getParameter("generatorId"));
+                String filterStatus = trim(request.getParameter("status"));
+                String filterKeyword = trim(request.getParameter("q"));
+
+                List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword);
+                List<Generator> generators = generatorDAO.findAll();
+
+                request.setAttribute("barcodes", barcodes);
+                request.setAttribute("generators", generators);
+                request.setAttribute("filterGeneratorId", filterGeneratorId);
+                request.setAttribute("filterStatus", filterStatus);
+                request.setAttribute("filterKeyword", filterKeyword);
+                request.getRequestDispatcher("/views/generator/generator-barcodes.jsp").forward(request, response);
+                return;
+            }
+
+            String action = trim(request.getParameter("action"));
+            if ("next-serial".equals(action)) {
+                String name = trim(request.getParameter("name"));
+                Integer supplierId = parseInt(request.getParameter("supplierId"));
+                String nextSerial = generatorDAO.generateNextSerialNumber(name, supplierId);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"success\":true,\"serialNumber\":\"" + nextSerial + "\"}");
+                return;
+            }
+
+            if ("check-name".equals(action)) {
+                String name = trim(request.getParameter("name"));
+                Integer generatorId = parseInt(request.getParameter("generatorId"));
+                if (generatorId == null) {
+                    generatorId = 0;
+                }
+                boolean used = generatorDAO.isNameUsed(name, generatorId);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"success\":true,\"used\":" + used + "}");
+                return;
+            }
+
+            if ("get-barcodes".equals(action)) {
+                Integer generatorId = parseInt(request.getParameter("generatorId"));
+                if (generatorId != null) {
+                    List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesByGeneratorId(generatorId);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    StringBuilder sb = new StringBuilder("[");
+                    for (int i = 0; i < barcodes.size(); i++) {
+                        model.GeneratorBarcode gb = barcodes.get(i);
+                        sb.append("{");
+                        sb.append("\"barcodeId\":").append(gb.getBarcodeId()).append(",");
+                        sb.append("\"generatorId\":").append(gb.getGeneratorId()).append(",");
+                        sb.append("\"serialNumber\":\"").append(gb.getSerialNumber()).append("\",");
+                        sb.append("\"barcode\":\"").append(gb.getBarcode()).append("\",");
+                        sb.append("\"status\":\"").append(gb.getStatus() == null ? "" : gb.getStatus()).append("\"");
+                        sb.append("}");
+                        if (i < barcodes.size() - 1) {
+                            sb.append(",");
+                        }
+                    }
+                    sb.append("]");
+                    response.getWriter().write(sb.toString());
+                    return;
+                }
+            }
+
             String q = trim(request.getParameter("q"));
             String status = trim(request.getParameter("status"));
             Integer warehouseId;
@@ -178,14 +248,24 @@ public class GeneratorServlet extends HttpServlet {
             }
         }
 
-        if (warehouseId == null || generatorName == null || generatorName.isEmpty() || serialNumber == null || serialNumber.isEmpty()) {
+        if (warehouseId == null || generatorName == null || generatorName.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/generators?error=missing_required");
             return;
         }
 
-        if (generatorDAO.isSerialNumberUsed(serialNumber, 0)) {
-            response.sendRedirect(request.getContextPath() + "/generators?error=serial_exists");
+        if (generatorDAO.isNameUsed(generatorName, 0)) {
+            response.sendRedirect(request.getContextPath() + "/generators?error=name_exists");
             return;
+        }
+
+        if (serialNumber != null && !serialNumber.isEmpty()) {
+            if (generatorDAO.isSerialNumberUsed(serialNumber, 0)) {
+                response.sendRedirect(request.getContextPath() + "/generators?error=serial_exists");
+                return;
+            }
+        } else {
+            serialNumber = null;
+            barcode = null;
         }
 
         Generator g = new Generator();
@@ -203,12 +283,17 @@ public class GeneratorServlet extends HttpServlet {
         g.setLocation(location);
         g.setStatus("IN_STOCK");
         g.setNote(note);
-        if (barcode == null || barcode.trim().isEmpty()) {
-            barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+        
+        if (serialNumber != null && !serialNumber.isEmpty()) {
+            if (barcode == null || barcode.trim().isEmpty()) {
+                barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+            }
+        } else {
+            barcode = null;
         }
         g.setBarcode(barcode);
 
-        int id = generatorDAO.insertImportToStock(g, currentUser.getUserId());
+        int id = generatorDAO.insert(g);
         if (id > 0) {
             response.sendRedirect(request.getContextPath() + "/generators?success=created");
         } else {
@@ -236,7 +321,7 @@ public class GeneratorServlet extends HttpServlet {
         BigDecimal purchasePrice = parseBigDecimal(request.getParameter("purchasePrice"));
         BigDecimal rentalPrice = parseBigDecimal(request.getParameter("rentalPrice"));
 
-        if (generatorId == null || warehouseId == null || generatorName == null || generatorName.isEmpty() || serialNumber == null || serialNumber.isEmpty()) {
+        if (generatorId == null || warehouseId == null || generatorName == null || generatorName.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/generators?error=missing_required");
             return;
         }
@@ -272,9 +357,19 @@ public class GeneratorServlet extends HttpServlet {
             }
         }
 
-        if (generatorDAO.isSerialNumberUsed(serialNumber, generatorId)) {
-            response.sendRedirect(request.getContextPath() + "/generators?error=serial_exists");
+        if (generatorDAO.isNameUsed(generatorName, generatorId)) {
+            response.sendRedirect(request.getContextPath() + "/generators?error=name_exists");
             return;
+        }
+
+        if (serialNumber != null && !serialNumber.isEmpty()) {
+            if (generatorDAO.isSerialNumberUsed(serialNumber, generatorId)) {
+                response.sendRedirect(request.getContextPath() + "/generators?error=serial_exists");
+                return;
+            }
+        } else {
+            serialNumber = null;
+            barcode = null;
         }
 
         existing.setWarehouseId(warehouseId);
@@ -291,8 +386,13 @@ public class GeneratorServlet extends HttpServlet {
         existing.setLocation(location);
         existing.setStatus(status);
         existing.setNote(note);
-        if (barcode == null || barcode.trim().isEmpty() || !existing.getSerialNumber().equals(serialNumber)) {
-            barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+
+        if (serialNumber != null && !serialNumber.isEmpty()) {
+            if (barcode == null || barcode.trim().isEmpty() || existing.getSerialNumber() == null || !existing.getSerialNumber().equals(serialNumber)) {
+                barcode = util.BarcodeGenerator.generateCode39(serialNumber);
+            }
+        } else {
+            barcode = null;
         }
         existing.setBarcode(barcode);
 

@@ -92,7 +92,7 @@
                     </h1>
                     <% if (canImportGenerator) { %>
                     <button type="button" class="btn btn-primary btn-sm" onclick="openCreateModal()">
-                        <i class="fas fa-plus"></i> Thêm máy phát điện
+                        <i class="fas fa-plus"></i> Thêm mẫu máy phát điện mới
                     </button>
                     <% } else if (isSellerRestricted) { %>
                     <a href="${pageContext.request.contextPath}/seller/contracts/create" class="btn btn-success btn-sm">
@@ -104,7 +104,7 @@
                 <!-- Thông báo kết quả -->
                 <% if ("created".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Thêm máy phát điện mới thành công!
+                    <i class="fas fa-check-circle"></i> Thêm mẫu máy phát điện mới thành công!
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("updated".equals(successParam)) { %>
@@ -120,6 +120,11 @@
                 <% } else if ("serial_exists".equals(errorParam)) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
                     <i class="fas fa-exclamation-circle"></i> Số serial này đã tồn tại trong hệ thống. Vui lòng nhập mã duy nhất khác.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("name_exists".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Tên máy phát điện này đã tồn tại trong hệ thống. Vui lòng nhập tên khác.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("missing_required".equals(errorParam)) { %>
@@ -158,6 +163,7 @@
                                 <option value="MAINTENANCE" <%= "MAINTENANCE".equals(statusFilter) ? "selected" : "" %>>Bảo trì</option>
                                 <option value="UNDER_REPAIR" <%= "UNDER_REPAIR".equals(statusFilter) ? "selected" : "" %>>Đang sửa</option>
                                 <option value="EXPORTED" <%= "EXPORTED".equals(statusFilter) ? "selected" : "" %>>Đã xuất kho</option>
+                                <option value="TRANSFERRED" <%= "TRANSFERRED".equals(statusFilter) ? "selected" : "" %>>Đã chuyển kho</option>
                                 <option value="DAMAGED" <%= "DAMAGED".equals(statusFilter) ? "selected" : "" %>>Đã hỏng</option>
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
@@ -202,6 +208,7 @@
                                     <option value="MAINTENANCE" <%= "MAINTENANCE".equals(statusFilter) ? "selected" : "" %>>Bảo trì (MAINTENANCE)</option>
                                     <option value="UNDER_REPAIR" <%= "UNDER_REPAIR".equals(statusFilter) ? "selected" : "" %>>Đang sửa chữa (UNDER_REPAIR)</option>
                                     <option value="EXPORTED" <%= "EXPORTED".equals(statusFilter) ? "selected" : "" %>>Đã xuất kho (EXPORTED)</option>
+                                    <option value="TRANSFERRED" <%= "TRANSFERRED".equals(statusFilter) ? "selected" : "" %>>Đã chuyển kho (TRANSFERRED)</option>
                                     <option value="DAMAGED" <%= "DAMAGED".equals(statusFilter) ? "selected" : "" %>>Đã hỏng (DAMAGED)</option>
                                 </select>
                             </div>
@@ -230,8 +237,7 @@
                                 <tr>
                                     <th class="text-center">ID</th>
                                     <th class="generator-name-col text-left">Tên máy phát</th>
-                                    <th class="text-center">Số Serial</th>
-                                    <th class="text-center">Mã vạch</th>
+
                                     <th class="text-center">Thương hiệu</th>
                                     <th class="text-center">Công suất</th>
                                     <th class="text-center">Nhiên liệu</th>
@@ -239,7 +245,6 @@
                                     <th class="text-center">Số lượng</th>
                                     <th class="text-center">Kho lưu trữ</th>
                                     <th class="text-center">Vị trí chi tiết</th>
-                                    <th class="text-center" style="width: 130px;">Trạng thái</th>
                                     <th class="text-center" style="width: 140px;">Hành động</th>
                                 </tr>
                                 </thead>
@@ -248,7 +253,7 @@
                                     if (generators == null || generators.isEmpty()) {
                                 %>
                                 <tr>
-                                    <td colspan="13" class="text-center text-muted py-4">
+                                    <td colspan="10" class="text-center text-muted py-4">
                                          <i class="fas fa-inbox fa-3x mb-3 text-gray-300"></i>
                                          <p class="m-0">Không tìm thấy máy phát điện nào khớp với bộ lọc.</p>
                                     </td>
@@ -280,6 +285,9 @@
                                             } else if ("EXPORTED".equals(g.getStatus())) {
                                                 badgeClass = "badge-secondary";
                                                 statusVn = "Đã xuất kho";
+                                            } else if ("TRANSFERRED".equals(g.getStatus())) {
+                                                badgeClass = "badge-info";
+                                                statusVn = "Đã chuyển kho";
                                             } else if ("DAMAGED".equals(g.getStatus())) {
                                                 badgeClass = "badge-dark";
                                                 statusVn = "Đã hỏng";
@@ -287,7 +295,7 @@
 
                                             // Escape strings for Javascript modal mapping
                                             String safeName = g.getGeneratorName().replace("'", "\\'");
-                                            String safeSerial = g.getSerialNumber().replace("'", "\\'");
+                                            String safeSerial = g.getSerialNumber() != null ? g.getSerialNumber().replace("'", "\\'") : "";
                                             String safeBrand = g.getBrand() != null ? g.getBrand().replace("'", "\\'") : "";
                                             String safePower = g.getPowerValue() != null ? g.getPowerValue().replace("'", "\\'") : "";
                                             String safeFuel = g.getFuelType() != null ? g.getFuelType().replace("'", "\\'") : "";
@@ -302,27 +310,26 @@
                                 <tr>
                                     <td class="text-center text-nowrap"><%= g.getGeneratorId() %></td>
                                     <td class="generator-name-col">
-                                        <span class="font-weight-bold text-gray-900"><%= g.getGeneratorName() %></span>
+                                        <a href="${pageContext.request.contextPath}/generators/barcodes?generatorId=<%= g.getGeneratorId() %>"
+                                           class="font-weight-bold text-primary" style="text-decoration:none;"
+                                           title="Xem danh sách mã vạch">
+                                            <i class="fas fa-barcode mr-1" style="font-size:0.75rem;"></i><%= g.getGeneratorName() %>
+                                        </a>
                                     </td>
-                                    <td class="text-center text-nowrap"><code class="text-xs font-weight-bold"><%= g.getSerialNumber() %></code></td>
-                                    <td class="text-center text-nowrap">
-                                        <img class="barcode-render" data-serial="<%= g.getSerialNumber() %>" alt="Barcode" style="height: 48px; max-width: 140px;"/>
-                                    </td>
+
                                     <td class="text-center text-nowrap"><%= g.getBrand() != null ? g.getBrand() : "-" %></td>
                                     <td class="text-center text-nowrap"><%= g.getPowerValue() != null ? g.getPowerValue() : "-" %></td>
                                     <td class="text-center text-nowrap"><%= g.getFuelType() != null ? g.getFuelType() : "-" %></td>
                                     <td class="text-right text-nowrap font-weight-bold text-success">
                                         <%= g.getRentalPrice() != null ? String.format("%,.0f", g.getRentalPrice()) : "0" %>
                                     </td>
-                                    <td class="text-center text-nowrap">1</td>
+                                    <td class="text-center text-nowrap"><%= g.getQuantity() %></td>
                                     <td class="text-left text-nowrap"><span class="badge badge-light border"><i class="fas fa-warehouse mr-1 text-gray-500"></i> <%= warehouseName %></span></td>
                                     <td><%= g.getLocation() != null && !g.getLocation().isEmpty() ? g.getLocation() : "-" %></td>
-                                    <td class="text-center text-nowrap">
-                                        <span class="badge <%= badgeClass %> px-2 py-1"><%= statusVn %></span>
-                                    </td>
+
                                     <td class="text-center text-nowrap">
                                         <button type="button" class="btn btn-sm btn-light border shadow-sm"
-                                                onclick="openDetailModal('<%= safeName %>', '<%= safeSerial %>', '<%= g.getBarcode() != null ? g.getBarcode() : "" %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= warehouseName %>', '<%= safeLocation %>', '<%= statusVn %>', '<%= badgeClass %>', '<%= importDateStr %>', '<%= purchasePriceStr %>', '<%= safeNote %>', '<%= g.getRentalPrice() != null ? g.getRentalPrice().toString() : "0" %>')"
+                                                onclick="openDetailModal(<%= g.getGeneratorId() %>, '<%= safeName %>', '<%= safeSerial %>', '<%= g.getBarcode() != null ? g.getBarcode() : "" %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= warehouseName %>', '<%= safeLocation %>', '<%= statusVn %>', '<%= badgeClass %>', '<%= importDateStr %>', '<%= purchasePriceStr %>', '<%= safeNote %>', '<%= g.getRentalPrice() != null ? g.getRentalPrice().toString() : "0" %>')"
                                                 title="Xem chi tiết">
                                             <i class="fas fa-eye text-primary"></i>
                                         </button>
@@ -364,7 +371,7 @@
         <div class="modal-content">
             <form id="generatorForm" method="post" action="${pageContext.request.contextPath}/generators/create">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="generatorModalTitle">Thêm máy phát điện</h5>
+                    <h5 class="modal-title" id="generatorModalTitle">Thêm mẫu máy phát điện mới</h5>
                     <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
@@ -378,12 +385,33 @@
                             <input type="text" id="formName" name="generatorName" class="form-control" required maxlength="100" placeholder="Ví dụ: Máy Phát Điện Honda EN-2500">
                         </div>
                         <div class="form-group col-md-6">
-                            <label for="formSerial">Số Serial <span class="text-danger">*</span></label>
-                            <input type="text" id="formSerial" name="serialNumber" class="form-control" required maxlength="100" placeholder="Ví dụ: HD-EN25-99882">
-                            <div id="formBarcodeContainer" class="mt-2 text-center p-2 border rounded bg-white" style="display:none; max-width: 250px; margin: 0 auto;">
-                                <div class="small text-muted font-weight-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Mã vạch hiện tại</div>
-                                <img id="formBarcodeImg" src="" alt="Barcode" style="max-height: 60px; max-width: 100%;" />
-                            </div>
+                            <label for="formSupplier">Nhà cung cấp <span class="text-danger">*</span></label>
+                            <select id="formSupplier" name="supplierId" class="form-control" required>
+                                <option value="">--- Chọn nhà cung cấp ---</option>
+                                <% if (suppliers != null) {
+                                    for (Supplier s : suppliers) { %>
+                                    <option value="<%= s.getSupplierId() %>"><%= s.getSupplierName() %></option>
+                                <% } } %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="form-group col-md-6" id="formSerialGroup">
+                            <label for="formSerial">Số Serial <span class="text-muted">(Hệ thống tự động sinh)</span></label>
+                            <input type="text" id="formSerial" name="serialNumber" class="form-control" readonly style="background-color: #e9ecef; cursor: not-allowed;" placeholder="Tự sinh sau khi chọn Tên & Nhà cung cấp">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="formWarehouse">Kho lưu trữ <span class="text-danger">*</span></label>
+                            <select id="formWarehouse" name="warehouseId" class="form-control" required>
+                                <% if (!isWarehouseRestricted) { %>
+                                <option value="">--- Chọn kho lưu trữ ---</option>
+                                <% } %>
+                                <% if (warehouses != null) {
+                                    for (Warehouse w : warehouses) { %>
+                                    <option value="<%= w.getWarehouseId() %>" <%= (isWarehouseRestricted && warehouses.size() == 1) ? "selected" : "" %>><%= w.getWarehouseName() %></option>
+                                <% } } %>
+                            </select>
                         </div>
                     </div>
 
@@ -427,31 +455,6 @@
                                 <option value="Gasoline">Xăng (Gasoline)</option>
                                 <option value="Biogas">Khí sinh học (Biogas)</option>
                                 <option value="Solar">Điện mặt trời / Hybrid</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="form-group col-md-6">
-                            <label for="formWarehouse">Kho lưu trữ <span class="text-danger">*</span></label>
-                            <select id="formWarehouse" name="warehouseId" class="form-control" required>
-                                <% if (!isWarehouseRestricted) { %>
-                                <option value="">--- Chọn kho lưu trữ ---</option>
-                                <% } %>
-                                <% if (warehouses != null) {
-                                    for (Warehouse w : warehouses) { %>
-                                    <option value="<%= w.getWarehouseId() %>" <%= (isWarehouseRestricted && warehouses.size() == 1) ? "selected" : "" %>><%= w.getWarehouseName() %></option>
-                                <% } } %>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="formSupplier">Nhà cung cấp <span class="text-danger">*</span></label>
-                            <select id="formSupplier" name="supplierId" class="form-control" required>
-                                <option value="">--- Chọn nhà cung cấp ---</option>
-                                <% if (suppliers != null) {
-                                    for (Supplier s : suppliers) { %>
-                                    <option value="<%= s.getSupplierId() %>"><%= s.getSupplierName() %></option>
-                                <% } } %>
                             </select>
                         </div>
                     </div>
@@ -510,6 +513,7 @@
                                 <option value="MAINTENANCE">Bảo trì hệ thống (MAINTENANCE)</option>
                                 <option value="UNDER_REPAIR">Đang sửa chữa (UNDER_REPAIR)</option>
                                 <option value="EXPORTED">Đã xuất xưởng / Sử dụng (EXPORTED)</option>
+                                <option value="TRANSFERRED">Đã chuyển kho (TRANSFERRED)</option>
                                 <option value="DAMAGED">Đã hỏng hóc (DAMAGED)</option>
                             </select>
                         </div>
@@ -656,7 +660,7 @@
 
 <!-- Modal xem chi tiết máy phát điện -->
 <div class="modal fade" id="detailGeneratorModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-gradient-primary text-white">
                 <h5 class="modal-title"><i class="fas fa-info-circle mr-1"></i> Chi tiết máy phát điện</h5>
@@ -688,10 +692,7 @@
                                     <td class="font-weight-bold text-muted">Vị trí chi tiết:</td>
                                     <td id="detailLocation"></td>
                                 </tr>
-                                <tr>
-                                    <td class="font-weight-bold text-muted">Trạng thái:</td>
-                                    <td><span id="detailStatus"></span></td>
-                                </tr>
+
                                 <tr>
                                     <td class="font-weight-bold text-muted">Ngày nhập:</td>
                                     <td id="detailImportDate"></td>
@@ -711,13 +712,32 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="col-md-5 d-flex flex-column align-items-center justify-content-center bg-light p-3 rounded">
-                        <div class="text-center font-weight-bold text-muted mb-2 small text-uppercase tracking-wider">Mã vạch số Serial</div>
-                        <div class="bg-white p-3 rounded shadow-sm d-flex align-items-center justify-content-center" style="min-height: 100px; width: 100%;">
-                            <img id="detailBarcodeImg" src="" alt="Barcode" style="max-width: 100%; height: auto;" />
-                            <span id="detailBarcodeNoImage" class="text-danger font-italic small" style="display:none;">Không thể tạo mã vạch</span>
+                    <div class="col-md-5 bg-light p-3 rounded border-left">
+                        <div class="text-center font-weight-bold text-muted mb-2 small text-uppercase tracking-wider"><i class="fas fa-barcode mr-1"></i> Danh sách mã vạch & Serial</div>
+                        <div class="input-group input-group-sm mb-2">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                            </div>
+                            <input type="text" id="barcodeSearchInput" class="form-control" placeholder="Tìm serial, trạng thái..." autocomplete="off">
+                            <div class="input-group-append">
+                                <span class="input-group-text bg-white text-muted" id="barcodeSearchCount" style="font-size:0.75rem;"></span>
+                            </div>
                         </div>
-                        <div class="mt-2 text-center text-gray-900 font-weight-bold"><code id="detailSerial" class="h5"></code></div>
+                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; background: white; padding: 5px;">
+                            <table class="table table-sm table-bordered text-gray-900 mb-0" id="detailBarcodesTable" style="font-size: 0.85rem;">
+                                <thead class="thead-light" style="position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th class="text-center" style="width:40px;">#</th>
+                                        <th class="text-center">Số Serial</th>
+                                        <th class="text-center">Mã vạch</th>
+                                        <th class="text-center">Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailBarcodesList">
+                                    <!-- Dynamic rows loaded via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -754,6 +774,28 @@
             }
         });
 
+        // ===== Tìm kiếm realtime trong danh sách mã vạch =====
+        $('#barcodeSearchInput').on('keyup input', function() {
+            var query = $(this).val().trim().toLowerCase();
+            var rows = $('#detailBarcodesList tr');
+            var visibleCount = 0;
+
+            rows.each(function() {
+                var serial  = $(this).attr('data-serial') || '';
+                var status  = $(this).attr('data-status') || '';
+                var matched = serial.includes(query) || status.includes(query);
+                $(this).toggle(matched);
+                if (matched) visibleCount++;
+            });
+
+            var total = rows.filter('[data-serial]').length;
+            if (query === '') {
+                $('#barcodeSearchCount').text(total + ' mã');
+            } else {
+                $('#barcodeSearchCount').text(visibleCount + '/' + total + ' mã');
+            }
+        });
+
         // Tạo mã vạch Code 128 đồng bộ bằng JsBarcode cho tất cả các dòng
         $('.barcode-render').each(function() {
             var serial = $(this).data('serial');
@@ -773,6 +815,90 @@
                     console.error("Lỗi khi render mã vạch cho serial: " + serial, e);
                 }
             }
+        });
+
+        // Tự động sinh số Serial khi nhập tên máy phát điện và chọn nhà cung cấp (chỉ áp dụng khi tạo mới)
+        function tryGenerateSerial() {
+            var generatorId = $('#generatorId').val();
+            if (generatorId) {
+                return; // Đang chỉnh sửa máy phát điện cũ, không tự sinh Serial
+            }
+            var name = $('#formName').val().trim();
+            var supplier = $('#formSupplier').val();
+            var serialInput = $('#formSerial');
+            
+            if (name && supplier) {
+                $.ajax({
+                    url: '${pageContext.request.contextPath}/generators',
+                    type: 'GET',
+                    data: {
+                        action: 'next-serial',
+                        name: name,
+                        supplierId: supplier
+                    },
+                    success: function(res) {
+                        if (res.success && res.serialNumber) {
+                            serialInput.val(res.serialNumber);
+                            serialInput.trigger('change');
+                        }
+                    },
+                    error: function(err) {
+                        console.error('Lỗi khi sinh số Serial tự động:', err);
+                    }
+                });
+            } else {
+                serialInput.val('');
+                serialInput.trigger('change');
+            }
+        }
+
+        // Auto-generation disabled for model creation. Physical serial numbers will be generated during batch imports.
+        // $('#formName, #formSupplier').on('blur change', function() {
+        //     tryGenerateSerial();
+        // });
+
+        function validateGeneratorName() {
+            var name = $('#formName').val();
+            var generatorId = $('#generatorId').val() || 0;
+            var inputEl = document.getElementById('formName');
+            
+            if (name && name.trim() !== '') {
+                $.ajax({
+                    url: '${pageContext.request.contextPath}/generators',
+                    type: 'GET',
+                    data: {
+                        action: 'check-name',
+                        name: name.trim(),
+                        generatorId: generatorId
+                    },
+                    success: function(res) {
+                        if (res && res.success) {
+                            if (res.used) {
+                                inputEl.setCustomValidity('Tên máy phát điện này đã tồn tại trong hệ thống.');
+                                $('#formName').addClass('is-invalid');
+                                if ($('#formNameFeedback').length === 0) {
+                                    $('#formName').after('<div id="formNameFeedback" class="invalid-feedback">Tên máy phát điện này đã tồn tại trong hệ thống. Vui lòng nhập tên khác.</div>');
+                                }
+                            } else {
+                                inputEl.setCustomValidity('');
+                                $('#formName').removeClass('is-invalid');
+                                $('#formNameFeedback').remove();
+                            }
+                        }
+                    },
+                    error: function(err) {
+                        console.error('Lỗi khi kiểm tra trùng tên:', err);
+                    }
+                });
+            } else {
+                inputEl.setCustomValidity('');
+                $('#formName').removeClass('is-invalid');
+                $('#formNameFeedback').remove();
+            }
+        }
+
+        $('#formName').on('blur change', function() {
+            validateGeneratorName();
         });
 
         // Ngăn chặn nhập hoặc dán số âm cho công suất
@@ -861,6 +987,9 @@
 
         // Generate barcode on submit & show confirmation modal
         $('#generatorForm').on('submit', function(e) {
+            if (!this.checkValidity()) {
+                return;
+            }
             // Gộp phần số và đơn vị công suất trước khi submit
             var num = $('#formPowerNumber').val();
             var unit = $('#formPowerUnit').val();
@@ -916,7 +1045,8 @@
 
                 // Đổ dữ liệu sang modal xác nhận
                 $('#confirmName').text($('#formName').val() || '-');
-                $('#confirmSerial').text($('#formSerial').val() || '-');
+                var serialVal = $('#formSerial').val();
+                $('#confirmSerial').text(serialVal ? serialVal : 'Chưa có (Đăng ký mẫu máy mới)');
                 
                 var brandSelectVal = $('#formBrandSelect').val();
                 if (brandSelectVal === 'Other') {
@@ -959,7 +1089,7 @@
         });
     });
 
-    function openDetailModal(name, serial, barcode, brand, power, fuel, warehouse, location, statusText, statusBadgeClass, importDate, price, note, rentalPrice) {
+    function openDetailModal(generatorId, name, serial, barcode, brand, power, fuel, warehouse, location, statusText, statusBadgeClass, importDate, price, note, rentalPrice) {
         $('#detailName').text(name || '-');
         $('#detailBrand').text(brand || '-');
         $('#detailPower').text(power || '-');
@@ -990,29 +1120,84 @@
         $('#detailRentalPrice').text(formattedRentalPrice);
         $('#detailNote').text(note || '-');
         
-        var imgElement = $('#detailBarcodeImg');
-        if (serial) {
-            try {
-                var canvas = document.createElement('canvas');
-                JsBarcode(canvas, serial, {
-                    format: "CODE128",
-                    width: 2,
-                    height: 50,
-                    displayValue: true,
-                    fontSize: 14,
-                    margin: 0
-                });
-                imgElement.attr('src', canvas.toDataURL("image/png")).show();
-                $('#detailBarcodeNoImage').hide();
-            } catch(e) {
-                imgElement.hide();
-                $('#detailBarcodeNoImage').show();
+        // Clear barcodes table, reset search, and show loader
+        $('#barcodeSearchInput').val('');
+        $('#barcodeSearchCount').text('');
+        $('#detailBarcodesList').html('<tr><td colspan="4" class="text-center py-3"><i class="fas fa-spinner fa-spin mr-1"></i> Đang tải danh sách...</td></tr>');
+        
+        // Fetch barcodes via AJAX
+        $.ajax({
+            url: '${pageContext.request.contextPath}/generators',
+            type: 'GET',
+            data: {
+                action: 'get-barcodes',
+                generatorId: generatorId
+            },
+            success: function(res) {
+                if (res && res.length > 0) {
+                    var html = '';
+                        var rowNum = 0;
+                    res.forEach(function(item) {
+                        rowNum++;
+                        var statusBadge = '';
+                        if (item.status === 'IN_STOCK') {
+                            statusBadge = '<span class="badge badge-success px-2 py-1">Trong kho</span>';
+                        } else if (item.status === 'MAINTENANCE') {
+                            statusBadge = '<span class="badge badge-warning px-2 py-1">Bảo trì</span>';
+                        } else if (item.status === 'UNDER_REPAIR') {
+                            statusBadge = '<span class="badge badge-danger px-2 py-1">Đang sửa</span>';
+                        } else if (item.status === 'EXPORTED') {
+                            statusBadge = '<span class="badge badge-secondary px-2 py-1">Đã xuất</span>';
+                        } else if (item.status === 'DAMAGED') {
+                            statusBadge = '<span class="badge badge-dark px-2 py-1">Đã hỏng</span>';
+                        } else {
+                            statusBadge = '<span class="badge badge-light px-2 py-1">' + item.status + '</span>';
+                        }
+                        
+                        html += '<tr data-serial="' + item.serialNumber.toLowerCase() + '" data-status="' + item.status.toLowerCase() + '">';
+                        html += '<td class="text-center align-middle text-muted" style="width:40px;">' + rowNum + '</td>';
+                        html += '<td class="text-center align-middle"><code class="font-weight-bold" style="font-size: 0.8rem;">' + item.serialNumber + '</code></td>';
+                        html += '<td class="text-center align-middle"><img class="modal-barcode-render" data-serial="' + item.serialNumber + '" style="height: 35px; max-width: 120px;" alt="Barcode" /></td>';
+                        html += '<td class="text-center align-middle">' + statusBadge + '</td>';
+                        html += '</tr>';
+                    });
+                    $('#detailBarcodesList').html(html);
+                    
+                    // Update total count
+                    var totalCount = res.length;
+                    $('#barcodeSearchCount').text(totalCount + ' mã');
+                    
+                    // Render barcodes
+                    $('#detailBarcodesList .modal-barcode-render').each(function() {
+                        var s = $(this).data('serial');
+                        if (s) {
+                            try {
+                                var canvas = document.createElement('canvas');
+                                JsBarcode(canvas, s, {
+                                    format: "CODE128",
+                                    width: 1.2,
+                                    height: 25,
+                                    displayValue: false,
+                                    margin: 0
+                                });
+                                $(this).attr('src', canvas.toDataURL("image/png"));
+                            } catch(e) {
+                                console.error(e);
+                            }
+                        }
+                    });
+                } else {
+                    $('#detailBarcodesList').html('<tr><td colspan="4" class="text-center text-muted py-3">Không tìm thấy mã vạch nào</td></tr>');
+                    $('#barcodeSearchCount').text('0 mã');
+                }
+            },
+            error: function(err) {
+                console.error(err);
+                $('#detailBarcodesList').html('<tr><td colspan="4" class="text-center text-danger py-3">Lỗi khi tải danh sách mã vạch</td></tr>');
+                $('#barcodeSearchCount').text('');
             }
-        } else {
-            imgElement.hide();
-            $('#detailBarcodeNoImage').show();
-        }
-        $('#detailSerial').text(serial || '-');
+        });
+
         $('#detailGeneratorModal').modal('show');
     }
 
@@ -1099,14 +1284,17 @@
     <% if (canImportGenerator) { %>
     function openCreateModal() {
         isConfirmed = false;
-        $('#generatorModalTitle').text('Thêm máy phát điện mới');
+        $('#generatorModalTitle').text('Thêm mẫu máy phát điện mới');
         $('#generatorForm').attr('action', '${pageContext.request.contextPath}/generators/create');
         $('#generatorId').val('');
         $('#formBarcode').val('');
-        $('#formBarcodeContainer').hide();
-        $('#formBarcodeImg').attr('src', '');
-        $('#formName').val('');
-        $('#formSerial').val('').prop('readonly', false);
+
+        $('#formName').val('').removeClass('is-invalid');
+        document.getElementById('formName').setCustomValidity('');
+        $('#formNameFeedback').remove();
+        // Ẩn trường Số Serial khi tạo mới vì là đăng ký mẫu máy
+        $('#formSerialGroup').hide();
+        $('#formSerial').val('');
         $('#formBrandSelect').val('');
         $('#formBrand').val('').hide();
         $('#formPowerNumber').val('');
@@ -1138,28 +1326,17 @@
         $('#generatorId').val(generatorId);
         $('#formBarcode').val(barcode || '');
         
-        if (serial) {
-            try {
-                var canvas = document.createElement('canvas');
-                JsBarcode(canvas, serial, {
-                    format: "CODE128",
-                    width: 2,
-                    height: 40,
-                    displayValue: true,
-                    fontSize: 13,
-                    margin: 0
-                });
-                $('#formBarcodeImg').attr('src', canvas.toDataURL("image/png"));
-                $('#formBarcodeContainer').show();
-            } catch (e) {
-                $('#formBarcodeContainer').hide();
-            }
-        } else {
-            $('#formBarcodeContainer').hide();
-        }
 
-        $('#formName').val(name);
-        $('#formSerial').val(serial).prop('readonly', true);
+        $('#formName').val(name).removeClass('is-invalid');
+        document.getElementById('formName').setCustomValidity('');
+        $('#formNameFeedback').remove();
+        if (serial && serial.trim() !== '') {
+            $('#formSerialGroup').show();
+            $('#formSerial').val(serial).prop('readonly', true);
+        } else {
+            $('#formSerialGroup').hide();
+            $('#formSerial').val('');
+        }
         
         var popularBrands = ['Honda', 'Hyundai', 'Cummins', 'Mitsubishi', 'Perkins', 'Denyo', 'Kipor', 'Yanmar', 'Kohler'];
         if (brand && brand.trim() !== '') {

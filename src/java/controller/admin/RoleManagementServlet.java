@@ -19,7 +19,8 @@ import model.User;
     "/admin/roles",
     "/admin/roles/create",
     "/admin/roles/update",
-    "/admin/roles/toggle-status"
+    "/admin/roles/toggle-status",
+    "/admin/roles/delete"
 })
 public class RoleManagementServlet extends HttpServlet {
 
@@ -62,6 +63,8 @@ public class RoleManagementServlet extends HttpServlet {
                 updateRole(request, response);
             } else if ("/admin/roles/toggle-status".equals(path)) {
                 toggleStatus(request, response);
+            } else if ("/admin/roles/delete".equals(path)) {
+                deleteRole(request, response);
             } else {
                 response.sendRedirect(request.getContextPath() + "/admin/roles");
             }
@@ -70,6 +73,30 @@ public class RoleManagementServlet extends HttpServlet {
             request.setAttribute("error", "System error. Please try again later.");
             showFallbackList(request, response);
         }
+    }
+
+    private void deleteRole(HttpServletRequest request, HttpServletResponse response)
+            throws Exception {
+        Integer roleId = parseInt(request.getParameter("roleId"));
+        if (roleId == null) {
+            redirectWithError(response, request, "invalid_id");
+            return;
+        }
+
+        Role role = roleDAO.findById(roleId);
+        if (role == null) {
+            redirectWithError(response, request, "not_found");
+            return;
+        }
+
+        if (userDAO.countByRoleId(roleId) > 0) {
+            redirectWithError(response, request, "role_in_use");
+            return;
+        }
+
+        boolean deleted = roleDAO.delete(roleId);
+        response.sendRedirect(request.getContextPath()
+                + "/admin/roles?success=" + (deleted ? "deleted" : "delete_failed"));
     }
 
     private void showList(HttpServletRequest request, HttpServletResponse response)

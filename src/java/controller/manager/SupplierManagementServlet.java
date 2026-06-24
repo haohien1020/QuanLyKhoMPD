@@ -16,7 +16,8 @@ import model.User;
     "/suppliers",
     "/suppliers/create",
     "/suppliers/update",
-    "/suppliers/status"
+    "/suppliers/status",
+    "/suppliers/delete"
 })
 public class SupplierManagementServlet extends HttpServlet {
 
@@ -65,6 +66,8 @@ public class SupplierManagementServlet extends HttpServlet {
                 updateSupplier(request, response);
             } else if ("/suppliers/status".equals(path)) {
                 updateSupplierStatus(request, response);
+            } else if ("/suppliers/delete".equals(path)) {
+                deleteSupplier(request, response);
             } else {
                 response.sendRedirect(request.getContextPath() + "/suppliers");
             }
@@ -161,6 +164,22 @@ public class SupplierManagementServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/suppliers?success=status_updated");
         } else {
             response.sendRedirect(request.getContextPath() + "/suppliers?error=update_failed");
+        }
+    }
+
+    private void deleteSupplier(HttpServletRequest request, HttpServletResponse response)
+            throws Exception {
+        Integer supplierId = parseInt(request.getParameter("supplierId"));
+        if (supplierId == null) {
+            response.sendRedirect(request.getContextPath() + "/suppliers");
+            return;
+        }
+
+        boolean success = supplierDAO.delete(supplierId);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/suppliers?success=deleted");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/suppliers?error=delete_failed");
         }
     }
 

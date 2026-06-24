@@ -2,6 +2,7 @@ package controller;
 
 import dao.GeneratorDAO;
 import dao.InventoryTransactionDAO;
+import dao.NotificationDAO;
 import dao.RentalContractDAO;
 import dao.UserDAO;
 import dao.WarehouseDAO;
@@ -17,6 +18,7 @@ import model.CustomerRentalContract;
 import model.CustomerRentedGenerator;
 import model.Generator;
 import model.InventoryTransaction;
+import model.Notification;
 import model.User;
 import model.Warehouse;
 
@@ -59,21 +61,18 @@ public class WarehouseRentalServlet extends HttpServlet {
             }
             request.setAttribute("managedWarehouse", managedWarehouse);
 
-            if ("/warehouse/rentals/action".equals(path) && "assign-staff".equals(action)) {
+            if ("assign-staff".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
-                CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
-                List<CustomerRentedGenerator> items = rentalContractDAO.getGeneratorsForContract(contractId);
-                List<User> staffList = userDAO.findUsersByRoleName("STAFF");
-
-                request.setAttribute("contract", contract);
-                request.setAttribute("items", items);
+                List<User> staffList = userDAO.findStaffByWarehouse(managedWarehouse.getWarehouseId());
                 request.setAttribute("staffList", staffList);
-                request.getRequestDispatcher("/views/maintenance/assign-task.jsp").forward(request, response);
-            } else {
-                List<CustomerRentalContract> list = rentalContractDAO.findContractsByWarehouse(managedWarehouse.getWarehouseId());
-                request.setAttribute("contracts", list);
-                request.getRequestDispatcher("/views/rental/rental-request-list.jsp").forward(request, response);
+                request.setAttribute("assignContractId", contractId);
+                CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                request.setAttribute("assignContract", contract);
             }
+
+            List<CustomerRentalContract> list = rentalContractDAO.findContractsByWarehouse(managedWarehouse.getWarehouseId());
+            request.setAttribute("contracts", list);
+            request.getRequestDispatcher("/views/rental/rental-request-list.jsp").forward(request, response);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -99,19 +98,7 @@ public class WarehouseRentalServlet extends HttpServlet {
 
         String action = request.getParameter("action");
         try {
-            if ("assign-staff".equals(action)) {
-                int contractId = Integer.parseInt(request.getParameter("contractId"));
-                int generatorId = Integer.parseInt(request.getParameter("generatorId"));
-                int staffId = Integer.parseInt(request.getParameter("staffId"));
-                String issue = request.getParameter("issueDescription");
-
-                boolean success = rentalContractDAO.assignStaffToCheck(generatorId, currentUser.getUserId(), staffId, issue);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=staff_assigned");
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals/action?action=assign-staff&contractId=" + contractId + "&error=failed");
-                }
-            } else if ("approve".equals(action)) {
+            if ("approve".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
                 boolean success = rentalContractDAO.updateContractStatus(contractId, "APPROVED", currentUser.getUserId());
                 if (success) {
@@ -136,6 +123,14 @@ public class WarehouseRentalServlet extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=approved");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=approve_failed");
+                }
+            } else if ("reject".equals(action)) {
+                int contractId = Integer.parseInt(request.getParameter("contractId"));
+                boolean success = rentalContractDAO.updateContractStatus(contractId, "REJECTED", currentUser.getUserId());
+                if (success) {
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
                 }
             } else if ("deliver".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
@@ -196,6 +191,31 @@ public class WarehouseRentalServlet extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=returned");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=return_failed");
+                }
+            } else if ("assign-staff".equals(action)) {
+                int contractId = Integer.parseInt(request.getParameter("contractId"));
+                int staffId = Integer.parseInt(request.getParameter("staffId"));
+                
+                boolean success = rentalContractDAO.assignStaff(contractId, staffId);
+                if (success) {
+                    try {
+                        CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                        NotificationDAO notificationDAO = new NotificationDAO();
+                        Notification notif = new Notification();
+                        notif.setUserId(staffId);
+                        notif.setTitle("Phân công Pre-delivery Check-up");
+                        notif.setMessage("Bạn đã được phân công thực hiện pre-delivery check-up cho Hợp đồng: " 
+                                + (contract != null ? contract.getContractCode() : ("ID " + contractId)));
+                        notif.setType("RENTAL");
+                        notif.setRead(false);
+                        notificationDAO.insert(notif);
+                    } catch (Exception ex) {
+                        System.err.println("Failed to send assignment notification: " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=staff_assigned");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=assign_failed");
                 }
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);

@@ -78,7 +78,7 @@
                             <h1 class="h3 mb-2 text-gray-900">Generator Management System</h1>
                             <p class="mb-0 text-gray-700">
                                 Trung tâm điều phối nghiệp vụ cho người dùng, kho hàng, máy phát điện, vận hành tồn kho,
-                                phê duyệt, mua hàng, bảo trì/sửa chữa, báo cáo và nhật ký hệ thống.
+                                phê duyệt, mua hàng, báo cáo và nhật ký hệ thống.
                             </p>
                         </div>
                         <div class="text-sm-right mt-3 mt-sm-0">
@@ -118,7 +118,7 @@
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Tài sản (Máy phát)</div>
                                         <div class="metric-value font-weight-bold text-gray-800">${totalGenerators}</div>
-                                        <div class="small text-muted">${inStockGenerators} sẵn sàng trong kho, ${maintenanceGenerators} đang sửa chữa</div>
+                                        <div class="small text-muted">${inStockGenerators} sẵn sàng trong kho</div>
                                     </div>
                                     <div class="col-auto"><i class="fas fa-bolt fa-2x text-gray-300"></i></div>
                                 </div>
@@ -133,7 +133,7 @@
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Công việc chờ xử lý</div>
                                         <div class="metric-value font-weight-bold text-gray-800">${pendingWork}</div>
-                                        <div class="small text-muted">yêu cầu, điều chuyển và sửa chữa đang đợi</div>
+                                        <div class="small text-muted">yêu cầu và điều chuyển đang đợi</div>
                                     </div>
                                     <div class="col-auto"><i class="fas fa-clipboard-check fa-2x text-gray-300"></i></div>
                                 </div>
@@ -249,18 +249,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 mb-3 mb-md-0">
-                                        <div class="card business-card border-left-danger h-100">
-                                            <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">7</span></div>
-                                                <h6 class="font-weight-bold text-gray-900">Bảo trì & Sửa chữa</h6>
-                                                <p class="small text-muted mb-3">${pendingRepairs} yêu cầu sửa chữa chờ duyệt, ${inProgressRepairs} đang thực hiện.</p>
-                                                <div class="module-actions">
-                                                    <a href="${pageContext.request.contextPath}/maintenance-repairs" class="btn btn-sm btn-outline-danger">Phiếu sửa chữa</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -279,7 +268,6 @@
                                 </div>
                                 <div class="small">
                                     <div class="mb-2"><span class="status-dot ok"></span>Máy sẵn sàng trong kho: ${inStockGenerators}</div>
-                                    <div class="mb-2"><span class="status-dot warn"></span>Đang bảo trì/sửa chữa: ${maintenanceGenerators}</div>
                                     <div class="mb-2"><span class="status-dot danger"></span>Máy bị hỏng: ${damagedGenerators}</div>
                                     <div><span class="status-dot info"></span>Công việc đang chờ xử lý: ${pendingWork}</div>
                                 </div>
@@ -371,16 +359,15 @@
         new Chart(healthCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Sẵn sàng trong kho', 'Đang bảo trì/sửa chữa', 'Bị hỏng', 'Công việc chờ xử lý'],
+                labels: ['Sẵn sàng trong kho', 'Bị hỏng', 'Công việc chờ xử lý'],
                 datasets: [{
                     data: [
                         Number('${inStockGenerators}' || 0),
-                        Number('${maintenanceGenerators}' || 0),
                         Number('${damagedGenerators}' || 0),
                         Number('${pendingWork}' || 0)
                     ],
-                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b', '#36b9cc'],
-                    hoverBackgroundColor: ['#17a673', '#dda20a', '#be2617', '#2c9faf'],
+                    backgroundColor: ['#1cc88a', '#e74a3b', '#36b9cc'],
+                    hoverBackgroundColor: ['#17a673', '#be2617', '#2c9faf'],
                     hoverBorderColor: 'rgba(234, 236, 244, 1)'
                 }]
             },

@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <!DOCTYPE html>
@@ -42,7 +42,7 @@
                 </c:if>
 
                 <div class="row">
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-4 col-md-6 mb-4">
                         <div class="card border-left-primary shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Generators</div>
@@ -51,7 +51,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-4 col-md-6 mb-4">
                         <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Parts</div>
@@ -60,21 +60,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-4 col-md-6 mb-4">
                         <div class="card border-left-warning shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">My requests</div>
                                 <div class="h4 font-weight-bold text-gray-800">${myPartRequests}</div>
                                 <div class="small text-muted">${myPendingPartRequests} pending</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-danger shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Repair Work</div>
-                                <div class="h4 font-weight-bold text-gray-800">${myRepairTasks}</div>
-                                <div class="small text-muted">${myRepairReports} reports created</div>
                             </div>
                         </div>
                     </div>
@@ -105,6 +96,7 @@
                             </div>
                         </div>
                     </div>
+                    <c:if test="${sessionScope.currentUser.canImportInventory or sessionScope.currentUser.canExportInventory}">
                     <div class="col-lg-6 mb-4">
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
@@ -116,19 +108,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-6 mb-4">
-                        <div class="card workflow-card shadow h-100">
-                            <div class="card-body">
-                                <h6 class="font-weight-bold text-gray-900"><i class="fas fa-wrench text-danger"></i> Repair Tasks</h6>
-                                <p class="small text-muted">Report generator issues, view assigned repair work and update progress.</p>
-                                <div class="workflow-actions">
-                                    <a href="${pageContext.request.contextPath}/staff/repair-request/create" class="btn btn-sm btn-danger">Report Issue</a>
-                                    <a href="${pageContext.request.contextPath}/staff/repair-tasks" class="btn btn-sm btn-outline-danger">My Tasks</a>
-                                    <a href="${pageContext.request.contextPath}/staff/repair-progress" class="btn btn-sm btn-outline-danger">Progress</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </c:if>
+
                 </div>
 
                 <div class="card shadow mb-4">

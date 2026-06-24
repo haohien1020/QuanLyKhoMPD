@@ -70,7 +70,7 @@
 
                 <% if ("permission_updated".equals(successParam)) { %>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fas fa-check-circle"></i> Cập nhật quyền nhập máy phát điện thành công.
+                    <i class="fas fa-check-circle"></i> Cập nhật quyền nhân viên thành công.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("no_warehouse".equals(errorParam)) { %>
@@ -114,8 +114,9 @@
                                     <th>Email</th>
                                     <th>SĐT</th>
                                     <th>Trạng thái</th>
-                                    <th style="min-width: 200px;">Quyền nhập máy phát</th>
-                                    <th>Hành động</th>
+                                    <th>Quyền nhập mẫu máy mới</th>
+                                    <th>Quyền nhập kho</th>
+                                    <th>Quyền xuất kho</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -123,7 +124,7 @@
                                     if (staffList == null || staffList.isEmpty()) {
                                 %>
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-5">
+                                    <td colspan="9" class="text-center text-muted py-5">
                                         <i class="fas fa-user-friends fa-3x mb-3 text-gray-400"></i>
                                         <p class="mb-0">Chưa có nhân viên kỹ thuật (STAFF) nào thuộc kho này</p>
                                     </td>
@@ -145,28 +146,70 @@
                                             <span class="badge badge-danger">Đã khóa</span>
                                         <% } %>
                                     </td>
+                                    <!-- Quyền nhập mẫu máy phát điện mới -->
                                     <td class="text-center">
                                         <% if (u.isCanImportGenerator()) { %>
-                                            <span class="badge badge-primary permission-badge">
+                                            <span class="badge badge-primary permission-badge mb-1">
                                                 <i class="fas fa-check-circle"></i> Được cho phép
                                             </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Thu hồi quyền nhập mẫu máy mới"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'import_generator', false)">
+                                                <i class="fas fa-times"></i> Thu hồi
+                                            </button>
                                         <% } else { %>
-                                            <span class="badge badge-secondary permission-badge">
+                                            <span class="badge badge-secondary permission-badge mb-1">
                                                 <i class="fas fa-times-circle"></i> Không được phép
                                             </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Cấp quyền nhập mẫu máy mới"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'import_generator', true)">
+                                                <i class="fas fa-check"></i> Cấp quyền
+                                            </button>
                                         <% } %>
                                     </td>
-                                    <td class="text-center text-nowrap">
-                                        <% if (u.isCanImportGenerator()) { %>
-                                        <button type="button" class="btn btn-sm btn-danger shadow-sm" title="Thu hồi quyền nhập máy phát"
-                                                onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', false)">
-                                            <i class="fas fa-times"></i> Thu hồi quyền
-                                        </button>
+                                    <!-- Quyền nhập kho -->
+                                    <td class="text-center">
+                                        <% if (u.isCanImportInventory()) { %>
+                                            <span class="badge badge-primary permission-badge mb-1">
+                                                <i class="fas fa-check-circle"></i> Được cho phép
+                                            </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Thu hồi quyền nhập kho"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'import_inventory', false)">
+                                                <i class="fas fa-times"></i> Thu hồi
+                                            </button>
                                         <% } else { %>
-                                        <button type="button" class="btn btn-sm btn-success shadow-sm" title="Cấp quyền nhập máy phát"
-                                                onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', true)">
-                                            <i class="fas fa-check"></i> Cấp quyền
-                                        </button>
+                                            <span class="badge badge-secondary permission-badge mb-1">
+                                                <i class="fas fa-times-circle"></i> Không được phép
+                                            </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Cấp quyền nhập kho"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'import_inventory', true)">
+                                                <i class="fas fa-check"></i> Cấp quyền
+                                            </button>
+                                        <% } %>
+                                    </td>
+                                    <!-- Quyền xuất kho -->
+                                    <td class="text-center">
+                                        <% if (u.isCanExportInventory()) { %>
+                                            <span class="badge badge-primary permission-badge mb-1">
+                                                <i class="fas fa-check-circle"></i> Được cho phép
+                                            </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Thu hồi quyền xuất kho"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'export_inventory', false)">
+                                                <i class="fas fa-times"></i> Thu hồi
+                                            </button>
+                                        <% } else { %>
+                                            <span class="badge badge-secondary permission-badge mb-1">
+                                                <i class="fas fa-times-circle"></i> Không được phép
+                                            </span>
+                                            <br/>
+                                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 shadow-sm" style="font-size: 0.75rem;" title="Cấp quyền xuất kho"
+                                                    onclick="showToggleModal(<%= u.getUserId() %>, '<%= u.getUsername() %>', 'export_inventory', true)">
+                                                <i class="fas fa-check"></i> Cấp quyền
+                                            </button>
                                         <% } %>
                                     </td>
                                 </tr>
@@ -202,9 +245,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                <form id="toggleForm" action="${pageContext.request.contextPath}/warehouse/staff/toggle-import" method="post" class="d-inline">
+                <form id="toggleForm" action="" method="post" class="d-inline">
                     <input type="hidden" id="toggleStaffId" name="staffId">
-                    <input type="hidden" id="toggleCanImport" name="canImport">
                     <button type="submit" class="btn" id="toggleConfirmBtn">Xác nhận</button>
                 </form>
             </div>
@@ -241,16 +283,59 @@
         });
     });
 
-    function showToggleModal(staffId, username, setCanImport) {
+    function showToggleModal(staffId, username, permissionType, setAllowed) {
         $('#toggleStaffId').val(staffId);
-        $('#toggleCanImport').val(setCanImport);
-        if (setCanImport) {
-            $('#toggleModalTitle').text('Cấp quyền Nhập máy phát');
-            $('#toggleModalBody').html('Bạn có chắc muốn <strong>cấp quyền nhập máy phát điện</strong> cho nhân viên <strong>' + username + '</strong>?');
+        
+        var form = $('#toggleForm');
+        // Remove dynamically added inputs from previous opens
+        form.find('input[type="hidden"]').not('#toggleStaffId').remove();
+        
+        var title = '';
+        var bodyText = '';
+        var actionUrl = '';
+        
+        if (permissionType === 'import_generator') {
+            actionUrl = '${pageContext.request.contextPath}/warehouse/staff/toggle-import';
+            form.append('<input type="hidden" name="canImport" value="' + setAllowed + '">');
+            
+            if (setAllowed) {
+                title = 'Cấp quyền Nhập mẫu máy phát điện mới';
+                bodyText = 'Bạn có chắc muốn <strong>cấp quyền nhập mẫu máy phát điện mới</strong> cho nhân viên <strong>' + username + '</strong>?';
+            } else {
+                title = 'Thu hồi quyền Nhập mẫu máy phát điện mới';
+                bodyText = 'Bạn có chắc muốn <strong>thu hồi quyền nhập mẫu máy phát điện mới</strong> từ nhân viên <strong>' + username + '</strong>?';
+            }
+        } else if (permissionType === 'import_inventory') {
+            actionUrl = '${pageContext.request.contextPath}/warehouse/staff/toggle-import-inventory';
+            form.append('<input type="hidden" name="canImportInventory" value="' + setAllowed + '">');
+            
+            if (setAllowed) {
+                title = 'Cấp quyền Nhập kho';
+                bodyText = 'Bạn có chắc muốn <strong>cấp quyền nhập kho</strong> tại màn hình Giao dịch cho nhân viên <strong>' + username + '</strong>?';
+            } else {
+                title = 'Thu hồi quyền Nhập kho';
+                bodyText = 'Bạn có chắc muốn <strong>thu hồi quyền nhập kho</strong> từ nhân viên <strong>' + username + '</strong>?';
+            }
+        } else if (permissionType === 'export_inventory') {
+            actionUrl = '${pageContext.request.contextPath}/warehouse/staff/toggle-export-inventory';
+            form.append('<input type="hidden" name="canExportInventory" value="' + setAllowed + '">');
+            
+            if (setAllowed) {
+                title = 'Cấp quyền Xuất kho';
+                bodyText = 'Bạn có chắc muốn <strong>cấp quyền xuất kho</strong> tại màn hình Giao dịch cho nhân viên <strong>' + username + '</strong>?';
+            } else {
+                title = 'Thu hồi quyền Xuất kho';
+                bodyText = 'Bạn có chắc muốn <strong>thu hồi quyền xuất kho</strong> từ nhân viên <strong>' + username + '</strong>?';
+            }
+        }
+        
+        form.attr('action', actionUrl);
+        $('#toggleModalTitle').text(title);
+        $('#toggleModalBody').html(bodyText);
+        
+        if (setAllowed) {
             $('#toggleConfirmBtn').removeClass('btn-danger').addClass('btn-success').text('Cấp quyền');
         } else {
-            $('#toggleModalTitle').text('Thu hồi quyền Nhập máy phát');
-            $('#toggleModalBody').html('Bạn có chắc muốn <strong>thu hồi quyền nhập máy phát điện</strong> từ nhân viên <strong>' + username + '</strong>?');
             $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-danger').text('Thu hồi');
         }
         $('#toggleModal').modal('show');

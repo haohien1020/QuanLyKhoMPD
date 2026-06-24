@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ page import="java.util.List" %>
         <%@ page import="model.User" %>
 
@@ -91,8 +91,22 @@
                                                                                 <button type="button" class="close"
                                                                                     data-dismiss="alert"><span>&times;</span></button>
                                                                             </div>
-                                                                            <% } else if
-                                                                                ("self_toggle".equals(errorParam)) { %>
+                                                                            <% } else if ("deleted".equals(successParam)) { %>
+                                                                            <div class="alert alert-success alert-dismissible fade show">
+                                                                                <i class="fas fa-check-circle"></i> Xóa tài khoản thành công.
+                                                                                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                                                                            </div>
+                                                                            <% } else if ("delete_failed".equals(errorParam)) { %>
+                                                                            <div class="alert alert-danger alert-dismissible fade show">
+                                                                                <i class="fas fa-exclamation-circle"></i> Xóa tài khoản thất bại.
+                                                                                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                                                                            </div>
+                                                                            <% } else if ("self_delete".equals(errorParam)) { %>
+                                                                            <div class="alert alert-warning alert-dismissible fade show">
+                                                                                <i class="fas fa-exclamation-triangle"></i> Không thể xóa chính tài khoản của bạn.
+                                                                                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                                                                            </div>
+                                                                            <% } else if ("self_toggle".equals(errorParam)) { %>
                                                                                 <div
                                                                                     class="alert alert-warning alert-dismissible fade show">
                                                                                     <i
@@ -408,6 +422,14 @@
                                                                                                                             </button>
                                                                                                                             <% } }
                                                                                                                                 %>
+                                                                                                                             <% if (!isSelf) { %>
+                                                                                                                             <button type="button"
+                                                                                                                                 class="btn btn-sm btn-danger"
+                                                                                                                                 title="Xóa người dùng"
+                                                                                                                                 onclick="showDeleteModal(<%= u.getUserId() %>, '<%= u.getUsername() %>')">
+                                                                                                                                 <i class="fas fa-trash"></i>
+                                                                                                                             </button>
+                                                                                                                             <% } %>
                                                                                                                 </td>
                                                                                                                 </tr>
                                                                                                                 <% } }
@@ -449,6 +471,28 @@
                                                     <input type="hidden" id="toggleActive" name="active">
                                                     <button type="submit" class="btn" id="toggleConfirmBtn">Xác
                                                         nhận</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Modal xác nhận Xóa -->
+                                <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Xóa tài khoản</h5>
+                                                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Bạn có chắc muốn xóa tài khoản <strong><span id="deleteUsername"></span></strong>? Thao tác này không thể hoàn tác.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                                                <form action="${pageContext.request.contextPath}/admin/user/delete" method="post" class="d-inline">
+                                                    <input type="hidden" id="deleteUserId" name="userId">
+                                                    <button type="submit" class="btn btn-danger">Xóa</button>
                                                 </form>
                                             </div>
                                         </div>
@@ -502,6 +546,12 @@
                                             $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-danger').text('Ban');
                                         }
                                         $('#toggleModal').modal('show');
+                                    }
+
+                                    function showDeleteModal(userId, username) {
+                                        $('#deleteUserId').val(userId);
+                                        $('#deleteUsername').text(username);
+                                        $('#deleteUserModal').modal('show');
                                     }
                                 </script>
 

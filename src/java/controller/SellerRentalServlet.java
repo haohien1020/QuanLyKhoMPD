@@ -116,7 +116,7 @@ public class SellerRentalServlet extends HttpServlet {
         List<Generator> generators = new java.util.ArrayList<>();
         List<GroupedGeneratorInventory> groupedInventories = new java.util.ArrayList<>();
         if (sellerWarehouseId != null) {
-            generators = generatorDAO.findGenerators(null, sellerWarehouseId, "IN_STOCK");
+            generators = generatorDAO.findAvailableUnitsForRent(sellerWarehouseId);
             groupedInventories = generatorDAO.findGroupedInventory(sellerWarehouseId);
         }
 
@@ -150,7 +150,7 @@ public class SellerRentalServlet extends HttpServlet {
             warehouses.add(w);
         }
 
-        List<Generator> generators = generatorDAO.findGenerators(null, sellerWarehouseId, "IN_STOCK");
+        List<Generator> generators = generatorDAO.findAvailableUnitsForRent(sellerWarehouseId);
         List<GroupedGeneratorInventory> groupedInventories = new java.util.ArrayList<>();
         if (sellerWarehouseId != null) {
             groupedInventories = generatorDAO.findGroupedInventory(sellerWarehouseId);

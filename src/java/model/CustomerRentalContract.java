@@ -131,4 +131,105 @@ public class CustomerRentalContract {
     public void setGeneratorCount(int generatorCount) {
         this.generatorCount = generatorCount;
     }
+
+    private String sellerName;
+    private String customerPhone;
+    private String customerEmail;
+    private String generatorName;
+    private String serialNumber;
+    private String brand;
+    private String powerValue;
+    private String fuelType;
+    private BigDecimal rentalPrice;
+
+    public String getSellerName() {
+        return sellerName;
+    }
+
+    public void setSellerName(String sellerName) {
+        this.sellerName = sellerName;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public void setCustomerPhone(String customerPhone) {
+        this.customerPhone = customerPhone;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
+    public String getGeneratorName() {
+        return generatorName;
+    }
+
+    public void setGeneratorName(String generatorName) {
+        this.generatorName = generatorName;
+    }
+
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public String getPowerValue() {
+        return powerValue;
+    }
+
+    public void setPowerValue(String powerValue) {
+        this.powerValue = powerValue;
+    }
+
+    public String getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(String fuelType) {
+        this.fuelType = fuelType;
+    }
+
+    public BigDecimal getRentalPrice() {
+        return rentalPrice;
+    }
+
+    public void setRentalPrice(BigDecimal rentalPrice) {
+        this.rentalPrice = rentalPrice;
+    }
+
+    private Integer assignedStaffId;
+    private String assignedStaffName;
+
+    public Integer getAssignedStaffId() {
+        return assignedStaffId;
+    }
+
+    public void setAssignedStaffId(Integer assignedStaffId) {
+        this.assignedStaffId = assignedStaffId;
+    }
+
+    public String getAssignedStaffName() {
+        return assignedStaffName;
+    }
+
+    public void setAssignedStaffName(String assignedStaffName) {
+        this.assignedStaffName = assignedStaffName;
+    }
 }

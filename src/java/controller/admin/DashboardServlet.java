@@ -82,8 +82,6 @@ public class DashboardServlet extends HttpServlet {
             request.setAttribute("totalSuppliers", dashboardDAO.count("suppliers"));
             request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
             request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generators", "status = 'IN_STOCK'"));
-            request.setAttribute("maintenanceGenerators",
-                    dashboardDAO.countWhere("generators", "status IN ('MAINTENANCE', 'UNDER_REPAIR')"));
             request.setAttribute("damagedGenerators", dashboardDAO.countWhere("generators", "status = 'DAMAGED'"));
 
             request.setAttribute("totalParts", dashboardDAO.count("parts"));
@@ -94,8 +92,6 @@ public class DashboardServlet extends HttpServlet {
             request.setAttribute("pendingPartRequests", dashboardDAO.countWhere("part_requests", "status = 'PENDING'"));
             request.setAttribute("pendingPurchaseRequests", dashboardDAO.countWhere("purchase_requests", "status = 'PENDING'"));
             request.setAttribute("pendingPurchaseOrders", dashboardDAO.countWhere("purchase_orders", "status = 'PENDING'"));
-            request.setAttribute("pendingRepairs", dashboardDAO.countWhere("maintenance_repairs", "repair_status = 'PENDING'"));
-            request.setAttribute("inProgressRepairs", dashboardDAO.countWhere("maintenance_repairs", "repair_status = 'IN_PROGRESS'"));
             request.setAttribute("pendingWork", dashboardDAO.countPendingWork());
 
             request.setAttribute("unreadNotifications", dashboardDAO.countWhere("notifications", "is_read = 0"));

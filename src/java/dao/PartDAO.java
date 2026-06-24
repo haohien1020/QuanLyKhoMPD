@@ -27,7 +27,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public Part findById(int id) throws Exception {
-        String sql = "SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE part_id = ?";
+        String sql = "SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE part_id = ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -41,7 +41,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public List<Part> findAll() throws Exception {
-        String sql = "SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts ORDER BY part_id DESC";
+        String sql = "SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE is_deleted = 0 ORDER BY part_id DESC";
         List<Part> list = new ArrayList<Part>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -94,7 +94,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public boolean delete(int id) throws Exception {
-        String sql = "DELETE FROM parts WHERE part_id = ?";
+        String sql = "UPDATE parts SET is_deleted = 1, updated_at = NOW() WHERE part_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -103,7 +103,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public List<Part> findParts(String q, Integer warehouseId, String status) throws Exception {
-        StringBuilder sql = new StringBuilder("SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE 1=1 ");
+        StringBuilder sql = new StringBuilder("SELECT part_id, warehouse_id, part_name, part_code, quantity, min_quantity, unit, status, created_at, updated_at FROM parts WHERE is_deleted = 0 ");
         List<Object> params = new ArrayList<>();
         if (q != null && !q.trim().isEmpty()) {
             sql.append("AND (part_name LIKE ? OR part_code LIKE ?) ");
@@ -136,7 +136,7 @@ public class PartDAO extends BaseDAO {
     }
 
     public boolean isPartCodeUsed(String partCode, int excludeId) throws Exception {
-        String sql = "SELECT COUNT(*) FROM parts WHERE LOWER(part_code) = LOWER(?) AND part_id <> ?";
+        String sql = "SELECT COUNT(*) FROM parts WHERE LOWER(part_code) = LOWER(?) AND part_id <> ? AND is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, partCode.trim());

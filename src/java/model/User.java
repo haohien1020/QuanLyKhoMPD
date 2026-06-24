@@ -23,6 +23,8 @@ public class User {
     private Timestamp resetTokenExpiry;
     private Integer warehouseId;
     private boolean canImportGenerator;
+    private boolean canImportInventory;
+    private boolean canExportInventory;
 
     public User() {
     }
@@ -205,5 +207,40 @@ public class User {
 
     public void setCanImportGenerator(boolean canImportGenerator) {
         this.canImportGenerator = canImportGenerator;
+    }
+
+    public boolean isCanImportInventory() {
+        return canImportInventory;
+    }
+
+    public void setCanImportInventory(boolean canImportInventory) {
+        this.canImportInventory = canImportInventory;
+    }
+
+    public boolean isCanExportInventory() {
+        return canExportInventory;
+    }
+
+    public void setCanExportInventory(boolean canExportInventory) {
+        this.canExportInventory = canExportInventory;
+    }
+
+    private String warehouseName;
+    private String warehouseManagerName;
+
+    public String getWarehouseName() {
+        return warehouseName;
+    }
+
+    public void setWarehouseName(String warehouseName) {
+        this.warehouseName = warehouseName;
+    }
+
+    public String getWarehouseManagerName() {
+        return warehouseManagerName;
+    }
+
+    public void setWarehouseManagerName(String warehouseManagerName) {
+        this.warehouseManagerName = warehouseManagerName;
     }
 }

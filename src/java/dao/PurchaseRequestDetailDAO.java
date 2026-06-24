@@ -90,4 +90,19 @@ public class PurchaseRequestDetailDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<PurchaseRequestDetail> findByRequestId(int purchaseRequestId) throws Exception {
+        String sql = "SELECT detail_id, purchase_request_id, part_id, item_name, quantity FROM purchase_request_details WHERE purchase_request_id = ?";
+        List<PurchaseRequestDetail> list = new ArrayList<PurchaseRequestDetail>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseRequestId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
 }

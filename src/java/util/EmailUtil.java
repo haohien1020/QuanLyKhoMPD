@@ -12,11 +12,17 @@ import javax.mail.internet.MimeMessage;
 
 public class EmailUtil {
 
+    // private static final String SMTP_HOST = getConfig("SMTP_HOST");
+    // private static final String SMTP_PORT = getConfig("SMTP_PORT");
+    // private static final String SMTP_USER = getConfig("SMTP_USER");
+    // private static final String SMTP_PASS = getConfig("SMTP_PASS");
+    // private static final String SMTP_FROM = getConfig("SMTP_FROM");
+
     private static final String SMTP_HOST = "smtp.gmail.com";
     private static final String SMTP_PORT = "587";
-    private static final String SMTP_USER = "";
-    private static final String SMTP_PASS = "";
-    private static final String SMTP_FROM = "";
+    private static final String SMTP_USER = "haohien1020@gmail.com";
+    private static final String SMTP_PASS = "ylgg pkyx divs qxtg";
+    private static final String SMTP_FROM = "haohien1020@gmail.com";
 
     private EmailUtil() {
     }

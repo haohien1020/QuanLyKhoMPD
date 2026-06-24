@@ -86,6 +86,16 @@
                     <i class="fas fa-check-circle"></i> Đã cập nhật trạng thái khách hàng.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
+                <% } else if ("deleted".equals(successParam)) { %>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> Xóa khách hàng thành công.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("delete_failed".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Xóa khách hàng thất bại.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
                 <% } else if ("email_exists".equals(errorParam)) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
                     <i class="fas fa-exclamation-circle"></i> Email khách hàng đã tồn tại.
@@ -216,6 +226,11 @@
                                                 <i class="fas <%= "ACTIVE".equals(status) ? "fa-ban" : "fa-check" %>"></i>
                                             </button>
                                         </form>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="openDeleteModal(<%= c.getCustomerId() %>, '<%= safeName %>')"
+                                                title="Xóa khách hàng">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                     <% } %>
                                 </tr>
@@ -360,6 +375,12 @@
         $('#customerModal').modal('show');
     }
 
+    function openDeleteModal(customerId, customerName) {
+        $('#deleteCustomerId').val(customerId);
+        $('#deleteCustomerName').text(customerName);
+        $('#deleteCustomerModal').modal('show');
+    }
+    
     $(document).ready(function() {
         $('#customerForm').on('submit', function (e) {
             let isValid = true;
@@ -415,6 +436,30 @@
     });
     <% } %>
 </script>
+
+<% if (canManageCustomers) { %>
+<div class="modal fade" id="deleteCustomerModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Xác nhận xóa khách hàng</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa khách hàng <strong id="deleteCustomerName"></strong>?</p>
+                <p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Lưu ý: Hành động này là xóa mềm, khách hàng sẽ không xuất hiện trên hệ thống nhưng dữ liệu vẫn được lưu trữ.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <form id="deleteCustomerForm" action="${pageContext.request.contextPath}/customers/delete" method="post" class="d-inline">
+                    <input type="hidden" id="deleteCustomerId" name="customerId">
+                    <button type="submit" class="btn btn-danger">Xóa khách hàng</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<% } %>
 
 </body>
 </html>
