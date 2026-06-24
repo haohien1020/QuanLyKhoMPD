@@ -1,8 +1,8 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -131,7 +131,7 @@
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.6);
+            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.5);
             background: linear-gradient(135deg, #2e59d9 0%, #1e3a8a 100%);
         }
 
@@ -303,7 +303,7 @@
                                     <span>hoặc</span>
                                 </div>
 
-                                <!-- Forgot Password -->
+                                <!-- Quên mật khẩu -->
                                 <div class="text-center">
                                     <a class="forgot-link" 
                                        href="${pageContext.request.contextPath}/forgot-password">

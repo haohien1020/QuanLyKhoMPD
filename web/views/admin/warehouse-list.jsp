@@ -8,12 +8,6 @@
     List<Warehouse> warehouses = (List<Warehouse>) request.getAttribute("warehouses");
     @SuppressWarnings("unchecked")
     List<User> managers = (List<User>) request.getAttribute("managers");
-    @SuppressWarnings("unchecked")
-    List<User> warehouseManagers = (List<User>) request.getAttribute("warehouseManagers");
-    @SuppressWarnings("unchecked")
-    List<Integer> assignedManagerIds = (List<Integer>) request.getAttribute("assignedManagerIds");
-    @SuppressWarnings("unchecked")
-    List<Warehouse> activeManagerAssignments = (List<Warehouse>) request.getAttribute("activeManagerAssignments");
 
     String q = (String) request.getAttribute("q");
     String statusFilter = (String) request.getAttribute("statusFilter");
@@ -146,6 +140,16 @@
                     <i class="fas fa-check-circle"></i> Đã chuyển kho hàng về trạng thái ngưng hoạt động.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
+                <% } else if ("deleted".equals(successParam)) { %>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> Xóa kho hàng thành công.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("delete_failed".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Xóa kho hàng thất bại.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
                 <% } %>
 
                 <div class="card shadow mb-4">
@@ -259,6 +263,11 @@
                                             <i class="fas fa-check"></i>
                                         </button>
                                         <% } %>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="openDeleteModal(<%= wh.getWarehouseId() %>, '<%= safeWhName %>')"
+                                                title="Xóa kho">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 <%
@@ -304,19 +313,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="warehouseManagerId">Quản Lý Trực Tiếp (Warehouse Manager)</label>
-                        <select id="warehouseManagerId" name="warehouseManagerId" class="form-control">
-                            <option value="">-- Chưa phân công --</option>
-                            <% if (warehouseManagers != null) {
-                                for (User wm : warehouseManagers) {
-                            %>
-                            <option value="<%= wm.getUserId() %>"><%= wm.getFullName() %> (<%= wm.getUsername() %>)</option>
-                            <% } } %>
-                        </select>
-                        <small class="form-text text-muted">Mỗi Warehouse Manager chỉ có thể quản lý tối đa 1 kho hoạt động.</small>
-                    </div>
-
-                    <div class="form-group">
                         <label for="managerId">Người Giám Sát (Manager)</label>
                         <select id="managerId" name="managerId" class="form-control">
                             <option value="">-- Chưa phân công --</option>
@@ -327,17 +323,7 @@
                             <% } } %>
                         </select>
                         <small class="form-text text-muted">Manager có thể quản lý / giám sát cùng lúc nhiều kho.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Phân công Nhân viên Kỹ thuật (STAFF)</label>
-                        <div id="staffContainer" class="border rounded p-3" style="max-height: 180px; overflow-y: auto; background-color: #f8f9fc;">
-                            <!-- Staff checkboxes rendered dynamically via JS -->
-                        </div>
-                        <small class="form-text text-muted">Nhân viên được chọn sẽ thuộc quản lý trực tiếp của Warehouse Manager tại kho này.</small>
-                    </div>
-
-                    <div class="form-group">
+                    </div><div class="form-group">
                         <label for="status">Trạng Thái</label>
                         <select id="status" name="status" class="form-control">
                             <option value="ACTIVE">Hoạt động</option>
@@ -379,6 +365,29 @@
     </div>
 </div>
 
+<%-- Confirm Delete Warehouse Modal --%>
+<div class="modal fade" id="deleteWarehouseModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Xác nhận xóa kho hàng</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa kho hàng <strong id="deleteWarehouseName"></strong>?</p>
+                <p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Lưu ý: Hành động này là xóa mềm, kho hàng sẽ không xuất hiện trên hệ thống nhưng dữ liệu vẫn được lưu trữ.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <form id="deleteWarehouseForm" action="${pageContext.request.contextPath}/admin/warehouse/delete" method="post" class="d-inline">
+                    <input type="hidden" id="deleteWarehouseId" name="warehouseId">
+                    <button type="submit" class="btn btn-danger">Xóa kho</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="${pageContext.request.contextPath}/assets/vendor/jquery/jquery.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/vendor/jquery-easing/jquery.easing.min.js"></script>
@@ -387,46 +396,7 @@
 <script src="${pageContext.request.contextPath}/assets/vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
 <script>
-    const assignedManagerIds = [
-        <% if (assignedManagerIds != null) {
-            for (int i = 0; i < assignedManagerIds.size(); i++) {
-        %>
-            <%= assignedManagerIds.get(i) %><%= i < assignedManagerIds.size() - 1 ? "," : "" %>
-        <% } } %>
-    ];
 
-    const activeManagerAssignments = [
-        <% if (activeManagerAssignments != null) {
-            for (int i = 0; i < activeManagerAssignments.size(); i++) {
-                Warehouse w = activeManagerAssignments.get(i);
-        %>
-            { warehouseId: <%= w.getWarehouseId() %>, managerId: <%= w.getWarehouseManagerId() %> }<%= i < activeManagerAssignments.size() - 1 ? "," : "" %>
-        <% } } %>
-    ];
-
-    function isManagerAssignedToOtherWarehouse(managerId, currentWarehouseId) {
-        return activeManagerAssignments.some(function (assignment) {
-            return assignment.managerId === managerId && assignment.warehouseId !== currentWarehouseId;
-        });
-    }
-
-    const allWarehouseManagers = [
-        <% if (warehouseManagers != null) {
-            for (User wm : warehouseManagers) {
-        %>
-            { id: <%= wm.getUserId() %>, name: '<%= wm.getFullName().replace("'", "\\'") %> (<%= wm.getUsername().replace("'", "\\'") %>)' },
-        <% } } %>
-    ];
-
-    const allStaff = [
-        <% if (request.getAttribute("allStaff") != null) {
-            @SuppressWarnings("unchecked")
-            List<User> allStaffList = (List<User>) request.getAttribute("allStaff");
-            for (User s : allStaffList) {
-        %>
-            { id: <%= s.getUserId() %>, name: '<%= s.getFullName().replace("'", "\\'") %> (<%= s.getUsername().replace("'", "\\'") %>)', warehouseId: <%= s.getWarehouseId() != null ? s.getWarehouseId() : "null" %> },
-        <% } } %>
-    ];
 
     $(document).ready(function () {
         $('#warehouseTable').DataTable({
@@ -465,36 +435,6 @@
         $('#managerId').val('');
         $('#status').val('ACTIVE');
 
-        // Rebuild warehouseManagerId select options dynamically
-        const select = $('#warehouseManagerId');
-        select.empty();
-        select.append('<option value="">-- Chưa phân công --</option>');
-        allWarehouseManagers.forEach(function (wm) {
-            if (!isManagerAssignedToOtherWarehouse(wm.id, 0)) {
-                select.append('<option value="' + wm.id + '">' + wm.name + '</option>');
-            }
-        });
-        select.val('');
-
-        // Rebuild staff list: show only unassigned staff (warehouseId === null)
-        const staffContainer = $('#staffContainer');
-        staffContainer.empty();
-        let hasStaff = false;
-        allStaff.forEach(function (s) {
-            if (s.warehouseId === null) {
-                staffContainer.append(
-                    '<div class="form-check mb-1">' +
-                    '<input class="form-check-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '">' +
-                    '<label class="form-check-label ml-1" for="staff_' + s.id + '">' + s.name + '</label>' +
-                    '</div>'
-                );
-                hasStaff = true;
-            }
-        });
-        if (!hasStaff) {
-            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF nào chưa gán kho.</p>');
-        }
-
         $('#warehouseModal').modal('show');
     }
 
@@ -506,40 +446,9 @@
         $('#address').val(address);
         $('#managerId').val(managerId > 0 ? managerId : '');
 
-        // Rebuild warehouseManagerId select options: include unassigned OR currently assigned to this warehouse
-        const select = $('#warehouseManagerId');
-        select.empty();
-        select.append('<option value="">-- Chưa phân công --</option>');
-        allWarehouseManagers.forEach(function (wm) {
-            if (!isManagerAssignedToOtherWarehouse(wm.id, warehouseId)) {
-                select.append('<option value="' + wm.id + '">' + wm.name + '</option>');
-            }
-        });
-        select.val(warehouseManagerId > 0 ? warehouseManagerId : '');
-
-        // Rebuild staff list: show unassigned staff OR staff currently in this warehouse
-        const staffContainer = $('#staffContainer');
-        staffContainer.empty();
-        let hasStaff = false;
-        allStaff.forEach(function (s) {
-            if (s.warehouseId === null || s.warehouseId === warehouseId) {
-                const checked = s.warehouseId === warehouseId ? 'checked' : '';
-                staffContainer.append(
-                    '<div class="form-check mb-1">' +
-                    '<input class="form-check-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '" ' + checked + '>' +
-                    '<label class="form-check-label ml-1" for="staff_' + s.id + '">' + s.name + '</label>' +
-                    '</div>'
-                );
-                hasStaff = true;
-            }
-        });
-        if (!hasStaff) {
-            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF khả dụng.</p>');
-        }
-
         $('#status').val(status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE');
         $('#warehouseModal').modal('show');
-    }
+     }
 
     function openToggleModal(warehouseId, warehouseName, setActive) {
         $('#toggleWarehouseId').val(warehouseId);
@@ -554,6 +463,12 @@
             $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-warning').text('Ngưng hoạt động');
         }
         $('#toggleModal').modal('show');
+    }
+
+    function openDeleteModal(warehouseId, warehouseName) {
+        $('#deleteWarehouseId').val(warehouseId);
+        $('#deleteWarehouseName').text(warehouseName);
+        $('#deleteWarehouseModal').modal('show');
     }
 </script>
 

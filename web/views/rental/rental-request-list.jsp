@@ -37,6 +37,12 @@
                                         <div class="alert alert-success"><i class="fas fa-check-circle"></i> Đã duyệt
                                             hợp đồng thuê máy thành công!</div>
                                     </c:if>
+                                    <c:if test="${param.success == 'rejected'}">
+                                        <div class="alert alert-success"><i class="fas fa-check-circle"></i> Đã từ chối yêu cầu thuê máy thành công!</div>
+                                    </c:if>
+                                    <c:if test="${param.error == 'reject_failed'}">
+                                        <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Từ chối yêu cầu thuê máy thất bại!</div>
+                                    </c:if>
                                     <c:if test="${param.success == 'delivered'}">
                                         <div class="alert alert-success"><i class="fas fa-check-circle"></i> Đã xác nhận
                                             bàn giao máy cho khách thuê! Máy phát điện đã được cập nhật trạng thái xuất
@@ -98,6 +104,9 @@
                                                                             <span class="badge badge-success">Đã hoàn
                                                                                 thành</span>
                                                                         </c:when>
+                                                                        <c:when test="${contract.status == 'REJECTED'}">
+                                                                            <span class="badge badge-danger">Đã từ chối</span>
+                                                                        </c:when>
                                                                         <c:otherwise>
                                                                             <span
                                                                                 class="badge badge-secondary">${contract.status}</span>
@@ -111,20 +120,34 @@
                                                                         title="Xem chi tiết hợp đồng">
                                                                         <i class="fas fa-eye"></i> Chi tiết
                                                                     </button>
+
                                                                     <c:choose>
                                                                         <c:when test="${contract.status == 'PENDING'}">
                                                                             <a href="${pageContext.request.contextPath}/warehouse/rentals/action?action=assign-staff&contractId=${contract.rentalContractId}"
                                                                                 class="btn btn-warning btn-sm mb-1"><i
-                                                                                    class="fas fa-user-plus"></i> Phân
-                                                                                công Staff</a>
-
+                                                                                    class="fas fa-user-plus"></i> Phân công Staff</a>
+                                                                            <c:if test="${not empty contract.assignedStaffName}">
+                                                                                <div class="small text-muted mt-1 mb-1">
+                                                                                    <i class="fas fa-user-check text-success"></i> Đã giao: <strong>${contract.assignedStaffName}</strong>
+                                                                                </div>
+                                                                            </c:if>
+ 
                                                                             <button type="button"
                                                                                 class="btn btn-primary btn-sm mb-1 ml-1"
                                                                                 onclick="openDetailModal('${contract.contractCode}', '${contract.sellerName}', '${contract.customerName}', '${contract.customerPhone}', '${contract.customerEmail}', '${contract.brand} ${contract.generatorName}', '${contract.serialNumber}', '${contract.rentalPrice}', '${contract.depositAmount}', '${contract.totalAmount}', '${contract.startDate}', '${contract.expectedReturnDate}', '${contract.status}', '${contract.note}', true, '${contract.rentalContractId}')"
                                                                                 title="Xem chi tiết và duyệt hợp đồng">
-                                                                                <i class="fas fa-check"></i> Duyệt hợp
-                                                                                đồng
+                                                                                <i class="fas fa-check"></i> Duyệt hợp đồng
                                                                             </button>
+                                                                            <form method="post"
+                                                                                action="${pageContext.request.contextPath}/warehouse/rentals/action?action=reject"
+                                                                                class="d-inline"
+                                                                                onsubmit="return confirm('Xác nhận từ chối hợp đồng này?');">
+                                                                                <input type="hidden" name="contractId"
+                                                                                    value="${contract.rentalContractId}">
+                                                                                <button type="submit"
+                                                                                    class="btn btn-danger btn-sm mb-1 ml-1"><i
+                                                                                        class="fas fa-times"></i> Từ chối</button>
+                                                                            </form>
                                                                         </c:when>
                                                                         <c:when test="${contract.status == 'APPROVED'}">
                                                                             <form method="post"
@@ -149,13 +172,11 @@
                                                                                     value="${contract.rentalContractId}">
                                                                                 <button type="submit"
                                                                                     class="btn btn-info btn-sm mb-1"><i
-                                                                                        class="fas fa-undo"></i> Xác
-                                                                                    nhận trả máy (Nhập kho)</button>
+                                                                                        class="fas fa-undo"></i> Xác nhận trả máy (Nhập kho)</button>
                                                                             </form>
                                                                         </c:when>
                                                                         <c:otherwise>
-                                                                            <span class="text-muted">Không có hành
-                                                                                động</span>
+                                                                            <span class="text-muted">Không có hành động</span>
                                                                         </c:otherwise>
                                                                     </c:choose>
                                                                 </td>
@@ -287,6 +308,13 @@
                                 <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Xác
                                     nhận duyệt hợp đồng</button>
                             </form>
+                            <form id="rejectContractForm" method="post"
+                                action="${pageContext.request.contextPath}/warehouse/rentals/action?action=reject"
+                                class="d-inline" style="display:none;"
+                                onsubmit="return confirm('Xác nhận từ chối yêu cầu thuê này?');">
+                                <input type="hidden" name="contractId" id="rejectContractId" value="">
+                                <button type="submit" class="btn btn-danger"><i class="fas fa-times-circle"></i> Từ chối</button>
+                            </form>
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                         </div>
                     </div>
@@ -336,6 +364,10 @@
                     } else if (status === 'COMPLETED') {
                         badgeClass = 'badge-success';
                         statusVn = 'Đã hoàn thành';
+                    } else if (status === 'REJECTED') {
+                        badgeClass = 'badge-danger';
+                        statusVn = 'Cá nhân từ chối';
+                        statusVn = 'Đã từ chối';
                     }
                     $('#detailStatusText').text(statusVn).attr('class', 'badge ' + badgeClass + ' p-2');
 
@@ -344,14 +376,70 @@
                     if (showApprove && contractId) {
                         $('#approveContractId').val(contractId);
                         $('#approveContractForm').show();
+                        $('#rejectContractId').val(contractId);
+                        $('#rejectContractForm').show();
                     } else {
                         $('#approveContractId').val('');
                         $('#approveContractForm').hide();
+                        $('#rejectContractId').val('');
+                        $('#rejectContractForm').hide();
                     }
 
                     $('#contractDetailModal').modal('show');
                 }
             </script>
+
+            <!-- Modal Phân công Staff -->
+            <div class="modal fade" id="assignStaffModal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content text-gray-900">
+                        <div class="modal-header bg-gradient-warning text-white">
+                            <h5 class="modal-title font-weight-bold"><i class="fas fa-user-plus mr-2"></i>Phân công Nhân viên Kỹ thuật</h5>
+                            <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                        </div>
+                        <form method="post" action="${pageContext.request.contextPath}/warehouse/rentals/action?action=assign-staff">
+                            <input type="hidden" name="contractId" value="${assignContractId}">
+                            <div class="modal-body text-left">
+                                <div class="mb-3">
+                                    <div class="small text-muted mb-1">Mã hợp đồng:</div>
+                                    <div class="font-weight-bold text-gray-900" style="font-size: 1.1rem;">${assignContract.contractCode}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="small text-muted mb-1">Khách hàng:</div>
+                                    <div class="font-weight-bold text-gray-900">${assignContract.customerName}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="small text-muted mb-1">Thiết bị:</div>
+                                    <div class="text-gray-900">${assignContract.brand} ${assignContract.generatorName} (Serial: <span class="font-weight-bold text-danger">${assignContract.serialNumber}</span>)</div>
+                                </div>
+                                <hr>
+                                <div class="form-group">
+                                    <label class="font-weight-bold text-gray-800">Chọn nhân viên kỹ thuật (Staff) <span class="text-danger">*</span></label>
+                                    <select name="staffId" class="form-control text-gray-900" required>
+                                        <option value="">-- Chọn nhân viên --</option>
+                                        <c:forEach var="s" items="${staffList}">
+                                            <option value="${s.userId}" ${s.userId == assignContract.assignedStaffId ? 'selected' : ''}>${s.fullName} (${s.email})</option>
+                                        </c:forEach>
+                                    </select>
+                                    <small class="form-text text-muted">Nhân viên được phân công sẽ nhận được thông báo thực hiện pre-delivery check-up.</small>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="submit" class="btn btn-warning font-weight-bold text-dark"><i class="fas fa-save mr-1"></i> Lưu phân công</button>
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <c:if test="${not empty assignContractId}">
+                <script>
+                    $(document).ready(function() {
+                        $('#assignStaffModal').modal('show');
+                    });
+                </script>
+            </c:if>
         </body>
 
         </html>

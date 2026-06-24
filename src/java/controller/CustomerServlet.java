@@ -16,7 +16,8 @@ import model.User;
     "/customers",
     "/customers/create",
     "/customers/update",
-    "/customers/status"
+    "/customers/status",
+    "/customers/delete"
 })
 public class CustomerServlet extends HttpServlet {
 
@@ -65,6 +66,8 @@ public class CustomerServlet extends HttpServlet {
                 updateCustomer(request, response);
             } else if ("/customers/status".equals(path)) {
                 updateCustomerStatus(request, response);
+            } else if ("/customers/delete".equals(path)) {
+                deleteCustomer(request, response);
             } else {
                 response.sendRedirect(request.getContextPath() + "/customers");
             }
@@ -181,6 +184,22 @@ public class CustomerServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/customers?success=status_updated");
         } else {
             response.sendRedirect(request.getContextPath() + "/customers?error=update_failed");
+        }
+    }
+
+    private void deleteCustomer(HttpServletRequest request, HttpServletResponse response)
+            throws Exception {
+        Integer customerId = parseInt(request.getParameter("customerId"));
+        if (customerId == null) {
+            response.sendRedirect(request.getContextPath() + "/customers");
+            return;
+        }
+
+        boolean success = customerDAO.delete(customerId);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/customers?success=deleted");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/customers?error=delete_failed");
         }
     }
 

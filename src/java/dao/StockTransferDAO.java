@@ -52,9 +52,14 @@ public class StockTransferDAO extends BaseDAO {
     }
 
     public int insert(StockTransfer item) throws Exception {
+        try (Connection conn = DBUtil.getConnection()) {
+            return insert(conn, item);
+        }
+    }
+
+    public int insert(Connection conn, StockTransfer item) throws Exception {
         String sql = "INSERT INTO stock_transfers (from_warehouse_id, to_warehouse_id, created_by, approved_by, status, approved_at) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getFromWarehouseId());
             ps.setInt(2, item.getToWarehouseId());
             ps.setInt(3, item.getCreatedBy());
@@ -75,9 +80,14 @@ public class StockTransferDAO extends BaseDAO {
     }
 
     public boolean update(StockTransfer item) throws Exception {
+        try (Connection conn = DBUtil.getConnection()) {
+            return update(conn, item);
+        }
+    }
+
+    public boolean update(Connection conn, StockTransfer item) throws Exception {
         String sql = "UPDATE stock_transfers SET from_warehouse_id = ?, to_warehouse_id = ?, created_by = ?, approved_by = ?, status = ?, approved_at = ? WHERE transfer_id = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getFromWarehouseId());
             ps.setInt(2, item.getToWarehouseId());
             ps.setInt(3, item.getCreatedBy());

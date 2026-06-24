@@ -6,11 +6,11 @@ import java.sql.SQLException;
 
 public class DBUtil {
 
-    private static final String DB_URL =
-            "jdbc:mysql://localhost:3306/swp391_generator_management"
-            + "?useSSL=false"
-            + "&serverTimezone=UTC"
-            + "&allowPublicKeyRetrieval=true";
+private static final String DB_URL =
+    "jdbc:mysql://127.0.0.1:3306/swp391_generator_management"
+    + "?useSSL=false"
+    + "&serverTimezone=UTC"
+    + "&allowPublicKeyRetrieval=true";
 
     private static final String DB_USER = "root";
     private static final String DB_PASS = "123456";

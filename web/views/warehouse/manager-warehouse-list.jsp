@@ -79,6 +79,37 @@
                     </div>
                 </c:if>
 
+                <c:if test="${param.success eq 'assigned'}">
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                        <i class="fas fa-check-circle"></i> Phân công nhân sự kho hàng thành công.
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                    </div>
+                </c:if>
+                <c:if test="${param.error eq 'warehouse_manager_assigned'}">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                        <i class="fas fa-exclamation-circle"></i> Nhân viên Quản lý kho (Warehouse Manager) này đã được gán quản lý một kho hoạt động khác!
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                    </div>
+                </c:if>
+                <c:if test="${param.error eq 'permission_denied'}">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                        <i class="fas fa-exclamation-circle"></i> Bạn không có quyền phân công nhân sự cho kho hàng này.
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                    </div>
+                </c:if>
+                <c:if test="${param.error eq 'invalid_warehouse'}">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                        <i class="fas fa-exclamation-circle"></i> Không tìm thấy thông tin kho hàng hợp lệ.
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                    </div>
+                </c:if>
+                <c:if test="${param.error eq 'system_error'}">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                        <i class="fas fa-exclamation-circle"></i> Lỗi hệ thống. Vui lòng thử lại sau.
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                    </div>
+                </c:if>
+
                 <!-- Search Filter Form -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
@@ -166,6 +197,39 @@
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </div>
+
+                                                    <!-- Staff and Sellers list -->
+                                                    <div class="mt-3 p-3 bg-light rounded border-left-primary">
+                                                        <h6 class="font-weight-bold text-gray-800 text-xs text-uppercase mb-2">
+                                                            <i class="fas fa-users text-primary mr-1"></i> Nhân sự kho hàng
+                                                        </h6>
+                                                        <div class="small mb-2">
+                                                            <strong class="text-gray-700">Kỹ thuật (Staff):</strong>
+                                                            <c:set var="hasStaff" value="false"/>
+                                                            <c:forEach var="s" items="${allStaff}">
+                                                                <c:if test="${s.warehouseId eq w.warehouseId}">
+                                                                    <span class="badge badge-info border mr-1 px-2 py-1"><i class="fas fa-user-cog mr-1"></i>${s.fullName}</span>
+                                                                    <c:set var="hasStaff" value="true"/>
+                                                                </c:if>
+                                                            </c:forEach>
+                                                            <c:if test="${not hasStaff}">
+                                                                <span class="text-muted font-italic">Chưa có</span>
+                                                            </c:if>
+                                                        </div>
+                                                        <div class="small">
+                                                            <strong class="text-gray-700">Bán hàng (Seller):</strong>
+                                                            <c:set var="hasSeller" value="false"/>
+                                                            <c:forEach var="sel" items="${allSellers}">
+                                                                <c:if test="${sel.warehouseId eq w.warehouseId}">
+                                                                    <span class="badge badge-success border mr-1 px-2 py-1"><i class="fas fa-store mr-1"></i>${sel.fullName}</span>
+                                                                    <c:set var="hasSeller" value="true"/>
+                                                                </c:if>
+                                                            </c:forEach>
+                                                            <c:if test="${not hasSeller}">
+                                                                <span class="text-muted font-italic">Chưa có</span>
+                                                            </c:if>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
                                                 <!-- Right side: Quick stats boxes -->
@@ -222,6 +286,10 @@
 
                                         <!-- Card Footer -->
                                         <div class="card-footer bg-white border-top-0 d-flex justify-content-end pb-3">
+                                            <button type="button" class="btn btn-sm btn-warning mr-2 shadow-sm font-weight-bold text-dark"
+                                                    onclick="openPersonnelModal(${w.warehouseId}, '${w.warehouseName.replace("'", "\\'")}', ${w.warehouseManagerId != null ? w.warehouseManagerId : 0})">
+                                                <i class="fas fa-users-cog mr-1"></i> Phân công nhân sự
+                                            </button>
                                             <a href="${pageContext.request.contextPath}/generators?warehouseId=${w.warehouseId}" class="btn btn-sm btn-primary mr-2 shadow-sm">
                                                 <i class="fas fa-bolt mr-1"></i> Xem máy phát
                                             </a>
@@ -245,8 +313,147 @@
         <%@ include file="/views/layout/footer.jsp" %>
     </div>
 </div>
+
+<%-- Personnel Assignment Modal --%>
+<div class="modal fade" id="personnelModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content border-left-warning shadow">
+            <form id="personnelForm" method="post" action="${pageContext.request.contextPath}/warehouses">
+                <input type="hidden" name="action" value="assignPersonnel">
+                <input type="hidden" id="modalWarehouseId" name="warehouseId">
+                
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title font-weight-bold" id="personnelModalTitle"><i class="fas fa-users-cog mr-2"></i>Phân công nhân sự</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="warehouseManagerId" class="font-weight-bold text-gray-800">Thủ kho phụ trách (Warehouse Manager)</label>
+                        <select id="warehouseManagerId" name="warehouseManagerId" class="form-control">
+                            <!-- Options filled dynamically -->
+                        </select>
+                        <small class="form-text text-muted">Mỗi Warehouse Manager chỉ có thể quản lý tối đa 1 kho hoạt động.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-gray-800">Phân công Nhân viên Kỹ thuật (STAFF)</label>
+                        <div id="staffContainer" class="border rounded p-3" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fc;">
+                            <!-- Staff checkboxes filled dynamically -->
+                        </div>
+                        <small class="form-text text-muted">Chọn nhân viên kỹ thuật làm việc tại kho này.</small>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-gray-800">Phân công Nhân viên Bán hàng (SELLER)</label>
+                        <div id="sellerContainer" class="border rounded p-3" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fc;">
+                            <!-- Seller checkboxes filled dynamically -->
+                        </div>
+                        <small class="form-text text-muted">Chọn nhân viên bán hàng làm việc tại kho này.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning text-dark font-weight-bold shadow-sm">
+                        <i class="fas fa-save mr-1"></i> Lưu phân công
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="${pageContext.request.contextPath}/assets/vendor/jquery/jquery.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/js/sb-admin-2.min.js"></script>
+
+<script>
+    const activeManagerAssignments = [
+        <c:forEach var="a" items="${activeManagerAssignments}" varStatus="loop">
+            { warehouseId: ${a.warehouseId}, managerId: ${a.warehouseManagerId} }${not loop.last ? ',' : ''}
+        </c:forEach>
+    ];
+
+    function isManagerAssignedToOtherWarehouse(managerId, currentWarehouseId) {
+        return activeManagerAssignments.some(function (assignment) {
+            return assignment.managerId === managerId && assignment.warehouseId !== currentWarehouseId;
+        });
+    }
+
+    const allWarehouseManagers = [
+        <c:forEach var="wm" items="${warehouseManagers}" varStatus="loop">
+            { id: ${wm.userId}, name: '${wm.fullName.replace("'", "\\'")} (${wm.username.replace("'", "\\'")})' }${not loop.last ? ',' : ''}
+        </c:forEach>
+    ];
+
+    const allStaff = [
+        <c:forEach var="s" items="${allStaff}" varStatus="loop">
+            { id: ${s.userId}, name: '${s.fullName.replace("'", "\\'")} (${s.username.replace("'", "\\'")})', warehouseId: ${s.warehouseId != null ? s.warehouseId : 'null'} }${not loop.last ? ',' : ''}
+        </c:forEach>
+    ];
+
+    const allSellers = [
+        <c:forEach var="sel" items="${allSellers}" varStatus="loop">
+            { id: ${sel.userId}, name: '${sel.fullName.replace("'", "\\'")} (${sel.username.replace("'", "\\'")})', warehouseId: ${sel.warehouseId != null ? sel.warehouseId : 'null'} }${not loop.last ? ',' : ''}
+        </c:forEach>
+    ];
+
+    function openPersonnelModal(warehouseId, warehouseName, warehouseManagerId) {
+        $('#modalWarehouseId').val(warehouseId);
+        $('#personnelModalTitle').html('<i class="fas fa-users-cog mr-2"></i>Phân công nhân sự - ' + warehouseName);
+
+        // 1. Build Warehouse Manager dropdown
+        const select = $('#warehouseManagerId');
+        select.empty();
+        select.append('<option value="">-- Chưa phân công --</option>');
+        allWarehouseManagers.forEach(function (wm) {
+            if (!isManagerAssignedToOtherWarehouse(wm.id, warehouseId)) {
+                select.append('<option value="' + wm.id + '">' + wm.name + '</option>');
+            }
+        });
+        select.val(warehouseManagerId > 0 ? warehouseManagerId : '');
+
+        // 2. Build Staff checkboxes
+        const staffContainer = $('#staffContainer');
+        staffContainer.empty();
+        let hasStaff = false;
+        allStaff.forEach(function (s) {
+            if (s.warehouseId === null || s.warehouseId === warehouseId) {
+                const checked = s.warehouseId === warehouseId ? 'checked' : '';
+                staffContainer.append(
+                    '<div class="form-check mb-1">' +
+                    '<input class="form-check-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '" ' + checked + '>' +
+                    '<label class="form-check-label ml-1 text-gray-800" for="staff_' + s.id + '">' + s.name + '</label>' +
+                    '</div>'
+                );
+                hasStaff = true;
+            }
+        });
+        if (!hasStaff) {
+            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF khả dụng.</p>');
+        }
+
+        // 3. Build Seller checkboxes
+        const sellerContainer = $('#sellerContainer');
+        sellerContainer.empty();
+        let hasSeller = false;
+        allSellers.forEach(function (sel) {
+            if (sel.warehouseId === null || sel.warehouseId === warehouseId) {
+                const checked = sel.warehouseId === warehouseId ? 'checked' : '';
+                sellerContainer.append(
+                    '<div class="form-check mb-1">' +
+                    '<input class="form-check-input" type="checkbox" name="sellerIds" value="' + sel.id + '" id="seller_' + sel.id + '" ' + checked + '>' +
+                    '<label class="form-check-label ml-1 text-gray-800" for="seller_' + sel.id + '">' + sel.name + '</label>' +
+                    '</div>'
+                );
+                hasSeller = true;
+            }
+        });
+        if (!hasSeller) {
+            sellerContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên SELLER khả dụng.</p>');
+        }
+
+        $('#personnelModal').modal('show');
+    }
+</script>
 </body>
 </html>

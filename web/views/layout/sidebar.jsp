@@ -240,6 +240,13 @@
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a class="nav-link" href="${pageContext.request.contextPath}/manager/employees">
+                                    <i class="fas fa-users"></i>
+                                    <span>Quản lý nhân viên</span>
+                                </a>
+                            </li>
+
                             <div class="sidebar-heading">
                                 Báo cáo
                             </div>
@@ -258,12 +265,7 @@
                                 </a>
                             </li>
 
-                            <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/reports?type=repair">
-                                    <i class="fas fa-wrench"></i>
-                                    <span>Báo cáo sửa chữa</span>
-                                </a>
-                            </li>
+
 
                             <hr class="sidebar-divider">
 
@@ -310,6 +312,14 @@
                                         <a class="nav-link" href="${pageContext.request.contextPath}/generators">
                                             <i class="fas fa-bolt"></i>
                                             <span>Quản lý máy phát điện</span>
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link pl-4" href="${pageContext.request.contextPath}/generators/barcodes"
+                                           style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                            <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
+                                            <span>Danh sách mã vạch</span>
                                         </a>
                                     </li>
 
@@ -413,6 +423,15 @@
                                             </li>
 
                                             <li class="nav-item">
+                                                <a class="nav-link pl-4"
+                                                    href="${pageContext.request.contextPath}/generators/barcodes"
+                                                    style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                                    <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
+                                                    <span>Danh sách mã vạch</span>
+                                                </a>
+                                            </li>
+
+                                            <li class="nav-item">
                                                 <a class="nav-link" href="${pageContext.request.contextPath}/parts">
                                                     <i class="fas fa-tools"></i>
                                                     <span>Danh sách phụ tùng</span>
@@ -439,6 +458,7 @@
                                                 </a>
                                             </li>
 
+                                            <% if (sidebarUser != null && (sidebarUser.isCanImportInventory() || sidebarUser.isCanExportInventory())) { %>
                                             <li class="nav-item">
                                                 <a class="nav-link"
                                                     href="${pageContext.request.contextPath}/inventory-transactions">
@@ -446,6 +466,7 @@
                                                     <span>Nhập kho / Xuất kho</span>
                                                 </a>
                                             </li>
+                                            <% } %>
 
                                             <hr class="sidebar-divider">
 
@@ -499,6 +520,15 @@
                                                             href="${pageContext.request.contextPath}/generators">
                                                             <i class="fas fa-bolt"></i>
                                                             <span>Tra cứu máy khả dụng</span>
+                                                        </a>
+                                                    </li>
+
+                                                    <li class="nav-item">
+                                                        <a class="nav-link pl-4"
+                                                            href="${pageContext.request.contextPath}/generators/barcodes"
+                                                            style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                                            <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
+                                                            <span>Danh sách mã vạch</span>
                                                         </a>
                                                     </li>
 

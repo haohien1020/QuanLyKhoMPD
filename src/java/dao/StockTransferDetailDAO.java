@@ -50,9 +50,14 @@ public class StockTransferDetailDAO extends BaseDAO {
     }
 
     public int insert(StockTransferDetail item) throws Exception {
+        try (Connection conn = DBUtil.getConnection()) {
+            return insert(conn, item);
+        }
+    }
+
+    public int insert(Connection conn, StockTransferDetail item) throws Exception {
         String sql = "INSERT INTO stock_transfer_details (transfer_id, item_type, generator_id, part_id, quantity) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getTransferId());
             ps.setString(2, item.getItemType());
             setNullableInt(ps, 3, item.getGeneratorId());
@@ -92,5 +97,20 @@ public class StockTransferDetailDAO extends BaseDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public List<StockTransferDetail> findDetailsByTransferId(int transferId) throws Exception {
+        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, part_id, quantity FROM stock_transfer_details WHERE transfer_id = ?";
+        List<StockTransferDetail> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, transferId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
     }
 }

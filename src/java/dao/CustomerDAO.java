@@ -26,7 +26,7 @@ public class CustomerDAO {
 
     public Customer findById(int customerId) throws Exception {
         String sql = "SELECT customer_id, customer_name, phone, email, address, status, created_at, updated_at "
-                + "FROM customers WHERE customer_id = ?";
+                + "FROM customers WHERE customer_id = ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -44,7 +44,7 @@ public class CustomerDAO {
     public List<Customer> findCustomers(String keyword, String statusFilter) throws Exception {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT customer_id, customer_name, phone, email, address, status, created_at, updated_at ")
-                .append("FROM customers WHERE 1 = 1 ");
+                .append("FROM customers WHERE is_deleted = 0 ");
 
         List<Object> params = new ArrayList<Object>();
 
@@ -140,7 +140,7 @@ public class CustomerDAO {
             return false;
         }
 
-        String sql = "SELECT COUNT(*) FROM customers WHERE LOWER(email) = LOWER(?) AND customer_id <> ?";
+        String sql = "SELECT COUNT(*) FROM customers WHERE LOWER(email) = LOWER(?) AND customer_id <> ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -154,5 +154,14 @@ public class CustomerDAO {
         }
 
         return false;
+    }
+
+    public boolean delete(int id) throws Exception {
+        String sql = "UPDATE customers SET is_deleted = 1, updated_at = NOW() WHERE customer_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        }
     }
 }

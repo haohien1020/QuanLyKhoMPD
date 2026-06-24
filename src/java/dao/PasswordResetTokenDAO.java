@@ -114,7 +114,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
     public PasswordResetToken findValidByToken(String token) throws Exception {
         String sql = "SELECT token_id, user_id, token, expired_at, is_used, created_at "
                 + "FROM password_reset_tokens "
-                + "WHERE token = ? AND is_used = 0 AND expired_at > UTC_TIMESTAMP()";
+                + "WHERE token = ? AND is_used = 0 AND expired_at > NOW()";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);

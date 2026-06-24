@@ -85,6 +85,16 @@
                     <i class="fas fa-check-circle"></i> Đã cập nhật trạng thái hoạt động nhà cung cấp.
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
+                <% } else if ("deleted".equals(successParam)) { %>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> Xóa nhà cung cấp thành công.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <% } else if ("delete_failed".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> Xóa nhà cung cấp thất bại.
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
                 <% } else if ("email_exists".equals(errorParam)) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
                     <i class="fas fa-exclamation-circle"></i> Email nhà cung cấp đã tồn tại.
@@ -205,6 +215,11 @@
                                                 <i class="fas <%= "ACTIVE".equals(status) ? "fa-ban" : "fa-check" %>"></i>
                                             </button>
                                         </form>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="openDeleteModal(<%= s.getSupplierId() %>, '<%= safeName %>')"
+                                                title="Xóa nhà cung cấp">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                     <% } %>
                                 </tr>
@@ -329,8 +344,38 @@
         $('#statusInput').val(status || 'ACTIVE');
         $('#supplierModal').modal('show');
     }
+    
+    function openDeleteModal(supplierId, supplierName) {
+        $('#deleteSupplierId').val(supplierId);
+        $('#deleteSupplierName').text(supplierName);
+        $('#deleteSupplierModal').modal('show');
+    }
     <% } %>
 </script>
+
+<% if (canManageSuppliers) { %>
+<div class="modal fade" id="deleteSupplierModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Xác nhận xóa nhà cung cấp</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa nhà cung cấp <strong id="deleteSupplierName"></strong>?</p>
+                <p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Lưu ý: Hành động này là xóa mềm, nhà cung cấp sẽ không xuất hiện trên hệ thống nhưng dữ liệu vẫn được lưu trữ.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <form id="deleteSupplierForm" action="${pageContext.request.contextPath}/suppliers/delete" method="post" class="d-inline">
+                    <input type="hidden" id="deleteSupplierId" name="supplierId">
+                    <button type="submit" class="btn btn-danger">Xóa nhà cung cấp</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<% } %>
 
 </body>
 </html>

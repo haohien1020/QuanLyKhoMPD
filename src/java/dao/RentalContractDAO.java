@@ -28,16 +28,58 @@ public class RentalContractDAO extends BaseDAO {
         item.setDepositAmount(rs.getBigDecimal("deposit_amount"));
         item.setTotalAmount(rs.getBigDecimal("total_amount"));
         item.setNote(rs.getString("note"));
+        
+        // Additional mapped columns with try-catch for optional selection in different queries
+        try {
+            item.setSellerName(rs.getString("seller_name"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setCustomerPhone(rs.getString("customer_phone"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setCustomerEmail(rs.getString("customer_email"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setGeneratorName(rs.getString("generator_name"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setSerialNumber(rs.getString("serial_number"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setBrand(rs.getString("brand"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setPowerValue(rs.getString("power_value"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setFuelType(rs.getString("fuel_type"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            item.setRentalPrice(rs.getBigDecimal("rental_price"));
+        } catch (java.sql.SQLException e) {}
+        try {
+            int staffId = rs.getInt("assigned_staff_id");
+            item.setAssignedStaffId(rs.wasNull() ? null : staffId);
+            item.setAssignedStaffName(rs.getString("assigned_staff_name"));
+        } catch (java.sql.SQLException e) {}
+        
         return item;
     }
 
     public List<CustomerRentalContract> findContractsByWarehouse(int warehouseId) throws Exception {
-        String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, w.warehouse_name, "
+        String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "g.generator_name, g.serial_number, g.brand, g.power_value, g.fuel_type, rcd.rental_price, "
+                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name "
                 + "FROM rental_contracts rc "
                 + "INNER JOIN customers c ON rc.customer_id = c.customer_id "
                 + "INNER JOIN warehouses w ON rc.warehouse_id = w.warehouse_id "
+                + "INNER JOIN users u ON rc.created_by = u.user_id "
+                + "LEFT JOIN users u2 ON rc.assigned_staff_id = u2.user_id "
+                + "LEFT JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
+                + "LEFT JOIN generators g ON rcd.generator_id = g.generator_id "
                 + "WHERE rc.warehouse_id = ? "
                 + "ORDER BY rc.rental_contract_id DESC";
 
@@ -56,12 +98,19 @@ public class RentalContractDAO extends BaseDAO {
     }
 
     public CustomerRentalContract findContractById(int contractId) throws Exception {
-        String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, w.warehouse_name, "
+        String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "g.generator_name, g.serial_number, g.brand, g.power_value, g.fuel_type, rcd.rental_price, "
+                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name "
                 + "FROM rental_contracts rc "
                 + "INNER JOIN customers c ON rc.customer_id = c.customer_id "
                 + "INNER JOIN warehouses w ON rc.warehouse_id = w.warehouse_id "
+                + "INNER JOIN users u ON rc.created_by = u.user_id "
+                + "LEFT JOIN users u2 ON rc.assigned_staff_id = u2.user_id "
+                + "LEFT JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
+                + "LEFT JOIN generators g ON rcd.generator_id = g.generator_id "
                 + "WHERE rc.rental_contract_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
@@ -122,55 +171,6 @@ public class RentalContractDAO extends BaseDAO {
         }
     }
 
-    public boolean assignStaffToCheck(int generatorId, int reportedBy, int assignedTo, String issueDescription) throws Exception {
-        Connection conn = null;
-        try {
-            conn = DBUtil.getConnection();
-            conn.setAutoCommit(false);
-
-            // 1. Check if generator is currently in stock
-            // 2. Create record in maintenance_repairs
-            String insertRepairSql = "INSERT INTO maintenance_repairs (generator_id, reported_by, assigned_to, issue_description, repair_status) VALUES (?, ?, ?, ?, 'IN_PROGRESS')";
-            int repairId = 0;
-            try (PreparedStatement ps = conn.prepareStatement(insertRepairSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setInt(1, generatorId);
-                ps.setInt(2, reportedBy);
-                setNullableInt(ps, 3, assignedTo);
-                ps.setString(4, issueDescription);
-                ps.executeUpdate();
-                try (ResultSet keys = ps.getGeneratedKeys()) {
-                    if (keys.next()) {
-                        repairId = keys.getInt(1);
-                    }
-                }
-            }
-
-            if (repairId <= 0) {
-                conn.rollback();
-                return false;
-            }
-
-            // 3. Update generator status to 'UNDER_REPAIR'
-            String updateGenSql = "UPDATE generators SET status = 'UNDER_REPAIR' WHERE generator_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateGenSql)) {
-                ps.setInt(1, generatorId);
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
-        } catch (Exception ex) {
-            if (conn != null) {
-                conn.rollback();
-            }
-            throw ex;
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
-        }
-    }
 
     public List<CustomerRentalContract> findAllContracts() throws Exception {
         String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, w.warehouse_name, "
@@ -305,6 +305,15 @@ public class RentalContractDAO extends BaseDAO {
                 conn.setAutoCommit(true);
                 conn.close();
             }
+        }
+    }
+    public boolean assignStaff(int contractId, int staffId) throws Exception {
+        String sql = "UPDATE rental_contracts SET assigned_staff_id = ?, updated_at = NOW() WHERE rental_contract_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, staffId);
+            ps.setInt(2, contractId);
+            return ps.executeUpdate() > 0;
         }
     }
 }

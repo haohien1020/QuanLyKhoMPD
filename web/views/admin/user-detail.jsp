@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ page import="model.User" %>
 
         <% User u=(User) request.getAttribute("viewUser"); String error=(String) request.getAttribute("error"); User
@@ -97,6 +97,10 @@
                                                                                                 class="alert alert-danger">
                                                                                                 Không thể cập nhật thông
                                                                                                 tin. Vui lòng thử lại.
+                                                                                            </div>
+                                                                                            <% } else if ("invalid_role".equals(errorParam)) { %>
+                                                                                            <div class="alert alert-danger">
+                                                                                                Vai trò được chọn không hợp lệ.
                                                                                             </div>
                                                                                             <% } %>
 
@@ -237,57 +241,23 @@
                                                                                                                                         trò
                                                                                                                                     </th>
                                                                                                                                     <td>
-                                                                                                                                        <% if
-                                                                                                                                            (u.getRoles()
-                                                                                                                                            !=null
-                                                                                                                                            &&
-                                                                                                                                            !u.getRoles().isEmpty())
-                                                                                                                                            {
-                                                                                                                                            for
-                                                                                                                                            (String
-                                                                                                                                            r
-                                                                                                                                            :
-                                                                                                                                            u.getRoles())
-                                                                                                                                            {
-                                                                                                                                            String
-                                                                                                                                            badgeClass="badge-secondary"
-                                                                                                                                            ;
-                                                                                                                                            if
-                                                                                                                                            ("ADMIN".equals(r))
-                                                                                                                                            badgeClass="badge-danger"
-                                                                                                                                            ;
-                                                                                                                                            else
-                                                                                                                                            if
-                                                                                                                                            ("ASSET_STAFF".equals(r))
-                                                                                                                                            badgeClass="badge-primary"
-                                                                                                                                            ;
-                                                                                                                                            else
-                                                                                                                                            if
-                                                                                                                                            ("TEACHER".equals(r))
-                                                                                                                                            badgeClass="badge-info"
-                                                                                                                                            ;
-                                                                                                                                            else
-                                                                                                                                            if
-                                                                                                                                            ("BOARD".equals(r))
-                                                                                                                                            badgeClass="badge-warning"
-                                                                                                                                            ;
+                                                                                                                                        <select name="role" class="form-control form-control-sm" required>
+                                                                                                                                            <%
+                                                                                                                                            java.util.List<String> allRoles = (java.util.List<String>) request.getAttribute("allRoles");
+                                                                                                                                            if (allRoles != null) {
+                                                                                                                                                for (String rName : allRoles) {
+                                                                                                                                                    boolean isSelected = u.getRoleName() != null && u.getRoleName().equalsIgnoreCase(rName);
                                                                                                                                             %>
-                                                                                                                                            <span
-                                                                                                                                                class="badge <%= badgeClass %>">
-                                                                                                                                                <%= r
-                                                                                                                                                    %>
-                                                                                                                                            </span>
-                                                                                                                                            <% } }
-                                                                                                                                                else
-                                                                                                                                                {
-                                                                                                                                                %>
-                                                                                                                                                <span
-                                                                                                                                                    class="text-muted">Chưa
-                                                                                                                                                    gán
-                                                                                                                                                    vai
-                                                                                                                                                    trò</span>
-                                                                                                                                                <% }
-                                                                                                                                                    %>
+                                                                                                                                                <option value="<%= rName %>" <%= isSelected ? "selected" : "" %>><%= rName %></option>
+                                                                                                                                            <%
+                                                                                                                                                }
+                                                                                                                                            } else {
+                                                                                                                                            %>
+                                                                                                                                                <option value="<%= u.getRoleName() %>" selected><%= u.getRoleName() %></option>
+                                                                                                                                            <%
+                                                                                                                                            }
+                                                                                                                                            %>
+                                                                                                                                        </select>
                                                                                                                                     </td>
                                                                                                                                 </tr>
                                                                                                                             </table>
@@ -365,6 +335,15 @@
                                                                                                                                 </button>
                                                                                                                                 <% } }
                                                                                                                                     %>
+                                                                                                                                    <% if (!isSelf) { %>
+                                                                                                                                    <button
+                                                                                                                                        type="button"
+                                                                                                                                        class="btn btn-danger btn-block mb-2"
+                                                                                                                                        onclick="showDeleteModal(<%= u.getUserId() %>, '<%= u.getUsername() %>')">
+                                                                                                                                        <i class="fas fa-trash"></i>
+                                                                                                                                        Xóa tài khoản
+                                                                                                                                    </button>
+                                                                                                                                    <% } %>
 
                                                                                                                                     <a href="${pageContext.request.contextPath}/admin/user"
                                                                                                                                         class="btn btn-secondary btn-block">
@@ -414,6 +393,29 @@
                     </div>
                 </div>
 
+                <!-- Modal xác nhận Xóa -->
+                <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title text-white">Xác nhận xóa tài khoản</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Bạn có chắc chắn muốn xóa tài khoản của người dùng <strong id="deleteUsername"></strong>?</p>
+                                <p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Lưu ý: Hành động này là xóa mềm, tài khoản sẽ không xuất hiện trên hệ thống nhưng dữ liệu vẫn được lưu trữ.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                                <form id="deleteUserForm" action="${pageContext.request.contextPath}/admin/user/delete" method="post" class="d-inline">
+                                    <input type="hidden" id="deleteUserId" name="userId">
+                                    <button type="submit" class="btn btn-danger">Xóa tài khoản</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <script src="${pageContext.request.contextPath}/assets/vendor/jquery/jquery.min.js"></script>
                 <script
                     src="${pageContext.request.contextPath}/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -435,6 +437,12 @@
                             $('#toggleConfirmBtn').removeClass('btn-success').addClass('btn-danger').text('Khóa');
                         }
                         $('#toggleModal').modal('show');
+                    }
+
+                    function showDeleteModal(userId, username) {
+                        $('#deleteUserId').val(userId);
+                        $('#deleteUsername').text(username);
+                        $('#deleteUserModal').modal('show');
                     }
                 </script>
 

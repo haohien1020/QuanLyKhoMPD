@@ -2,6 +2,7 @@ package dao;
 
 import util.DBUtil;
 import model.InventoryTransaction;
+import model.Generator;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -307,6 +308,238 @@ public class InventoryTransactionDAO extends BaseDAO {
                 ps.setInt(3, partId);
                 ps.setInt(4, quantity);
                 ps.setString(5, note);
+                int rows = ps.executeUpdate();
+                if (rows == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (Exception ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+            }
+            throw ex;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {}
+                conn.close();
+            }
+        }
+    }
+
+    public boolean importGenerator(int barcodeId, int warehouseId, Integer supplierId, int createdBy, String note) throws Exception {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+            
+            // 1. Get barcode details
+            String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status FROM generator_barcodes gb "
+                    + "JOIN generators g ON gb.generator_id = g.generator_id "
+                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ?";
+            int generatorId = 0;
+            String serialNumber = "";
+            try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                ps.setInt(1, barcodeId);
+                ps.setInt(2, warehouseId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        generatorId = rs.getInt("generator_id");
+                        serialNumber = rs.getString("serial_number");
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            // 2. Update specific generator barcode status to IN_STOCK
+            GeneratorDAO generatorDAO = new GeneratorDAO();
+            boolean ok = generatorDAO.updateBarcodeStatus(conn, barcodeId, "IN_STOCK");
+            if (!ok) {
+                conn.rollback();
+                return false;
+            }
+
+            // 3. Insert transaction log
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, NULL, 1, ?, 'COMPLETED')";
+            try (PreparedStatement ps = conn.prepareStatement(txSql)) {
+                ps.setInt(1, warehouseId);
+                setNullableInt(ps, 2, supplierId);
+                ps.setInt(3, createdBy);
+                ps.setInt(4, generatorId);
+                String fullNote = note;
+                if (fullNote == null || fullNote.trim().isEmpty()) {
+                    fullNote = "Nhap kho may phat - Serial: " + serialNumber;
+                } else if (!fullNote.contains(serialNumber)) {
+                    fullNote = fullNote + " (Serial: " + serialNumber + ")";
+                }
+                ps.setString(5, fullNote);
+                int rows = ps.executeUpdate();
+                if (rows == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (Exception ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+            }
+            throw ex;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {}
+                conn.close();
+            }
+        }
+    }
+
+    public boolean importGeneratorBatch(int templateGeneratorId, int quantity, int warehouseId, Integer supplierId, int createdBy, String note) throws Exception {
+        if (quantity <= 0) {
+            return false;
+        }
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            GeneratorDAO generatorDAO = new GeneratorDAO();
+            Generator template = generatorDAO.findById(templateGeneratorId);
+            if (template == null) {
+                conn.rollback();
+                return false;
+            }
+
+            Integer finalSupplierId = template.getSupplierId();
+
+            for (int i = 0; i < quantity; i++) {
+                String nextSerial = generatorDAO.generateNextSerialNumber(conn, template.getGeneratorName(), finalSupplierId);
+                String barcode = util.BarcodeGenerator.generateCode39(nextSerial);
+
+                int newBarcodeId = generatorDAO.insertBarcode(conn, templateGeneratorId, nextSerial, barcode, "IN_STOCK");
+                if (newBarcodeId <= 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            // Log ONE transaction record in inventory_transactions
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED')";
+            try (PreparedStatement ps = conn.prepareStatement(txSql)) {
+                ps.setInt(1, warehouseId);
+                setNullableInt(ps, 2, finalSupplierId);
+                ps.setInt(3, createdBy);
+                ps.setInt(4, templateGeneratorId);
+                ps.setInt(5, quantity);
+                
+                String batchNote = note;
+                if (batchNote == null || batchNote.trim().isEmpty()) {
+                    batchNote = "Nhập lô " + quantity + " máy mới theo mẫu: " + template.getGeneratorName();
+                } else {
+                    batchNote = batchNote + " (Lô " + quantity + " máy)";
+                }
+                ps.setString(6, batchNote);
+                
+                int rows = ps.executeUpdate();
+                if (rows == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (Exception ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+            }
+            throw ex;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {}
+                conn.close();
+            }
+        }
+    }
+
+    public boolean exportGenerator(int barcodeId, int warehouseId, String exportStatus, int createdBy, String note) throws Exception {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Check if generator barcode is currently IN_STOCK
+            String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status FROM generator_barcodes gb "
+                    + "JOIN generators g ON gb.generator_id = g.generator_id "
+                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ?";
+            int generatorId = 0;
+            String serialNumber = "";
+            String currentStatus = "";
+            try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                ps.setInt(1, barcodeId);
+                ps.setInt(2, warehouseId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        generatorId = rs.getInt("generator_id");
+                        serialNumber = rs.getString("serial_number");
+                        currentStatus = rs.getString("status");
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            if (!"IN_STOCK".equals(currentStatus)) {
+                conn.rollback();
+                return false; // Can only export generators that are in stock
+            }
+
+            // 2. Update specific generator barcode status
+            GeneratorDAO generatorDAO = new GeneratorDAO();
+            boolean ok = generatorDAO.updateBarcodeStatus(conn, barcodeId, exportStatus);
+            if (!ok) {
+                conn.rollback();
+                return false;
+            }
+
+            // 3. Insert transaction log
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, NULL, ?, 'EXPORT', 'GENERATOR', ?, NULL, 1, ?, 'COMPLETED')";
+            try (PreparedStatement ps = conn.prepareStatement(txSql)) {
+                ps.setInt(1, warehouseId);
+                ps.setInt(2, createdBy);
+                ps.setInt(3, generatorId);
+                String fullNote = note;
+                if (fullNote == null || fullNote.trim().isEmpty()) {
+                    fullNote = "Xuat kho may phat - Serial: " + serialNumber;
+                } else if (!fullNote.contains(serialNumber)) {
+                    fullNote = fullNote + " (Serial: " + serialNumber + ")";
+                }
+                ps.setString(4, fullNote);
                 int rows = ps.executeUpdate();
                 if (rows == 0) {
                     conn.rollback();

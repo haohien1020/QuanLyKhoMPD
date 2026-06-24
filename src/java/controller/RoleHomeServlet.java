@@ -64,8 +64,6 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("pendingPartRequests", dashboardDAO.countWhere("part_requests", "status = 'PENDING'"));
         request.setAttribute("pendingPurchaseRequests", dashboardDAO.countWhere("purchase_requests", "status = 'PENDING'"));
         request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
-        request.setAttribute("pendingRepairs", dashboardDAO.countWhere("maintenance_repairs", "repair_status = 'PENDING'"));
-        request.setAttribute("inProgressRepairs", dashboardDAO.countWhere("maintenance_repairs", "repair_status = 'IN_PROGRESS'"));
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
         request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
@@ -81,8 +79,6 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
         request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generators", "status = 'IN_STOCK'"));
-        request.setAttribute("maintenanceGenerators",
-                dashboardDAO.countWhere("generators", "status IN ('MAINTENANCE', 'UNDER_REPAIR')"));
         request.setAttribute("totalParts", dashboardDAO.count("parts"));
         request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));

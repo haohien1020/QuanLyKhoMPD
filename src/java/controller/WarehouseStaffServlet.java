@@ -15,7 +15,9 @@ import model.Warehouse;
 
 @WebServlet(name = "WarehouseStaffServlet", urlPatterns = {
     "/warehouse/staff",
-    "/warehouse/staff/toggle-import"
+    "/warehouse/staff/toggle-import",
+    "/warehouse/staff/toggle-import-inventory",
+    "/warehouse/staff/toggle-export-inventory"
 })
 public class WarehouseStaffServlet extends HttpServlet {
 
@@ -72,6 +74,10 @@ public class WarehouseStaffServlet extends HttpServlet {
 
             if ("/warehouse/staff/toggle-import".equals(path)) {
                 toggleImportPermission(request, response, warehouse);
+            } else if ("/warehouse/staff/toggle-import-inventory".equals(path)) {
+                toggleImportInventoryPermission(request, response, warehouse);
+            } else if ("/warehouse/staff/toggle-export-inventory".equals(path)) {
+                toggleExportInventoryPermission(request, response, warehouse);
             } else {
                 response.sendRedirect(request.getContextPath() + "/warehouse/staff");
             }
@@ -106,6 +112,54 @@ public class WarehouseStaffServlet extends HttpServlet {
         }
 
         boolean updated = userDAO.updateImportPermission(staffId, canImport);
+        if (updated) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?success=permission_updated");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=update_failed");
+        }
+    }
+
+    private void toggleImportInventoryPermission(HttpServletRequest request, HttpServletResponse response, Warehouse warehouse)
+            throws Exception {
+        Integer staffId = parseInt(request.getParameter("staffId"));
+        boolean canImportInventory = Boolean.parseBoolean(request.getParameter("canImportInventory"));
+
+        if (staffId == null) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=invalid_id");
+            return;
+        }
+
+        User viewUser = userDAO.findById(staffId);
+        if (viewUser == null || !"STAFF".equals(viewUser.getRoleName()) || viewUser.getWarehouseId() == null || viewUser.getWarehouseId() != warehouse.getWarehouseId()) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=invalid_user");
+            return;
+        }
+
+        boolean updated = userDAO.updateImportInventoryPermission(staffId, canImportInventory);
+        if (updated) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?success=permission_updated");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=update_failed");
+        }
+    }
+
+    private void toggleExportInventoryPermission(HttpServletRequest request, HttpServletResponse response, Warehouse warehouse)
+            throws Exception {
+        Integer staffId = parseInt(request.getParameter("staffId"));
+        boolean canExportInventory = Boolean.parseBoolean(request.getParameter("canExportInventory"));
+
+        if (staffId == null) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=invalid_id");
+            return;
+        }
+
+        User viewUser = userDAO.findById(staffId);
+        if (viewUser == null || !"STAFF".equals(viewUser.getRoleName()) || viewUser.getWarehouseId() == null || viewUser.getWarehouseId() != warehouse.getWarehouseId()) {
+            response.sendRedirect(request.getContextPath() + "/warehouse/staff?error=invalid_user");
+            return;
+        }
+
+        boolean updated = userDAO.updateExportInventoryPermission(staffId, canExportInventory);
         if (updated) {
             response.sendRedirect(request.getContextPath() + "/warehouse/staff?success=permission_updated");
         } else {
