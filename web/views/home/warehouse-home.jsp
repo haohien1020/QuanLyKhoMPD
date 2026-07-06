@@ -143,7 +143,7 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-contract text-danger"></i> Thuê & Trả máy phát điện</h6>
-                                <p class="small text-muted">Bàn giao máy phát, tiếp nhận hoàn trả, phân công Staff pre-delivery check-up.</p>
+                                <p class="small text-muted">Bàn giao máy phát, tiếp nhận hoàn trả, phân công nhân viên kiểm tra máy trước khi bàn giao.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/warehouse/rentals" class="btn btn-sm btn-danger">Yêu cầu thuê & Trả máy</a>
                                 </div>

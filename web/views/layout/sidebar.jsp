@@ -187,37 +187,9 @@
                                 </a>
                             </li>
 
-                            <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/part-requests">
-                                    <i class="fas fa-tools"></i>
-                                    <span>Yêu cầu phụ tùng</span>
-                                </a>
-                            </li>
-
-                            <!-- <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/purchase-requests">
-                                    <i class="fas fa-shopping-cart"></i>
-                                    <span>Yêu cầu mua hàng</span>
-                                </a>
-                            </li> -->
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/purchase-orders">
-                                    <i class="fas fa-file-invoice"></i>
-                                    <span>Đơn đặt hàng</span>
-                                </a>
-                            </li>
-
                             <div class="sidebar-heading">
-                                Kho & Điều chuyển
+                                Quản lý Vận hành
                             </div>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/stock-transfers">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    <span>Điều chuyển kho</span>
-                                </a>
-                            </li>
 
                             <li class="nav-item">
                                 <a class="nav-link" href="${pageContext.request.contextPath}/warehouses">
@@ -255,13 +227,6 @@
                                 <a class="nav-link" href="${pageContext.request.contextPath}/reports?type=inventory">
                                     <i class="fas fa-chart-bar"></i>
                                     <span>Báo cáo tồn kho</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="${pageContext.request.contextPath}/reports?type=purchase">
-                                    <i class="fas fa-file-invoice-dollar"></i>
-                                    <span>Báo cáo mua hàng</span>
                                 </a>
                             </li>
 
@@ -438,23 +403,11 @@
                                                 </a>
                                             </li>
 
-                                            <div class="sidebar-heading">
-                                                Yêu cầu
-                                            </div>
-
                                             <li class="nav-item">
                                                 <a class="nav-link"
-                                                    href="${pageContext.request.contextPath}/staff/part-request/create">
-                                                    <i class="fas fa-plus-circle"></i>
-                                                    <span>Tạo yêu cầu phụ tùng</span>
-                                                </a>
-                                            </li>
-
-                                            <li class="nav-item">
-                                                <a class="nav-link"
-                                                    href="${pageContext.request.contextPath}/staff/my-requests">
-                                                    <i class="fas fa-list"></i>
-                                                    <span>Yêu cầu của tôi</span>
+                                                    href="${pageContext.request.contextPath}/staff/home">
+                                                    <i class="fas fa-shipping-fast"></i>
+                                                    <span>Danh sách giao máy phát điện cho khách</span>
                                                 </a>
                                             </li>
 
