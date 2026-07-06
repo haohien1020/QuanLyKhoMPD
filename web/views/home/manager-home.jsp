@@ -89,10 +89,9 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-invoice text-primary"></i> Mua sắm & Nhà cung cấp</h6>
-                                <p class="small text-muted">Theo dõi các đơn đặt hàng và giữ cho quy trình mua sắm vận hành liên tục.</p>
+                                <p class="small text-muted">Quản lý thông tin và danh sách các nhà cung cấp thiết bị.</p>
                                 <div class="workflow-actions">
-                                    <a href="${pageContext.request.contextPath}/purchase-orders" class="btn btn-sm btn-primary">Đơn mua hàng</a>
-                                    <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-outline-primary">Nhà cung cấp</a>
+                                    <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-primary">Nhà cung cấp</a>
                                 </div>
                             </div>
                         </div>
@@ -104,6 +103,7 @@
                                 <p class="small text-muted">${totalWarehouses} kho hàng, ${totalGenerators} máy phát điện, ${lowStockParts} phụ tùng thiếu hụt.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/warehouses" class="btn btn-sm btn-success">Quản lý kho</a>
+                                    <a href="${pageContext.request.contextPath}/manager/employees" class="btn btn-sm btn-outline-success">Quản lý nhân viên</a>
                                     <a href="${pageContext.request.contextPath}/stock-transfers" class="btn btn-sm btn-outline-success">Điều chuyển kho</a>
                                 </div>
                             </div>

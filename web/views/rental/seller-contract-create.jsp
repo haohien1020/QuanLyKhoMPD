@@ -167,9 +167,11 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="font-weight-bold">Số Serial khả dụng <span class="text-danger">*</span></label>
-                                        <select name="generatorId" class="form-control" id="generatorId" required disabled>
-                                            <option value="">-- Chọn mẫu máy trước --</option>
-                                        </select>
+                                        <div id="serialCheckboxContainer" class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto; min-height: 38px;">
+                                            <span class="text-muted small" id="serialCheckboxPlaceholder">-- Chọn mẫu máy trước --</span>
+                                        </div>
+                                        <small class="form-text text-muted">Chọn các máy phát điện muốn cho thuê.</small>
+                                        <input type="hidden" name="serialNumber" id="serialNumberInput">
                                         <div id="locationInfo" class="small text-muted mt-1 font-italic" style="display:none;">
                                             <i class="fas fa-map-marker-alt"></i> Vị trí chi tiết: <span id="locationSpan" class="font-weight-bold text-dark"></span>
                                         </div>
@@ -263,14 +265,14 @@
         // Cascading logic for generator selection
         $('#generatorGroupSelect').on('change', function() {
             var groupKey = $(this).val();
-            var $serialSelect = $('#generatorId');
+            var $container = $('#serialCheckboxContainer');
             var $locInfo = $('#locationInfo');
             
-            $serialSelect.empty();
+            $container.empty();
             $locInfo.hide();
             
             if (!groupKey) {
-                $serialSelect.append('<option value="">-- Chọn mẫu máy trước --</option>').prop('disabled', true);
+                $container.append('<span class="text-muted small" id="serialCheckboxPlaceholder">-- Chọn mẫu máy trước --</span>');
                 return;
             }
             
@@ -285,13 +287,18 @@
             });
             
             if (filtered.length === 0) {
-                $serialSelect.append('<option value="">-- Không có máy sẵn có --</option>').prop('disabled', true);
+                $container.append('<span class="text-danger small font-weight-bold">-- Không có máy sẵn có trong kho --</span>');
             } else {
-                $serialSelect.append('<option value="">-- Chọn số Serial --</option>');
                 filtered.forEach(function(g) {
-                    $serialSelect.append('<option value="' + g.generatorId + '" data-location="' + g.location + '">' + g.serialNumber + '</option>');
+                    var checkboxHtml = '<div class="d-flex align-items-center my-2">' +
+                        '<input type="checkbox" class="serial-checkbox" name="generatorId" id="serialCheck_' + g.generatorId + '" value="' + g.generatorId + '" data-location="' + g.location + '" data-serial="' + g.serialNumber + '" style="width: 18px; height: 18px; cursor: pointer;">' +
+                        '<label class="font-weight-bold text-gray-900 mb-0 ml-2" style="cursor:pointer; user-select: none;" for="serialCheck_' + g.generatorId + '">' + g.serialNumber + '</label>' +
+                        '</div>';
+                    $container.append(checkboxHtml);
                 });
-                $serialSelect.prop('disabled', false);
+
+                // Bind change event to checkboxes inside container
+                $container.find('.serial-checkbox').on('change', onSerialCheckboxChange);
 
                 // Auto load rental price of this model
                 var modelPrice = filtered[0].rentalPrice || 0;
@@ -299,30 +306,46 @@
             }
         });
         
-        $('#generatorId').on('change', function() {
-            var selectedOption = $(this).find('option:selected');
-            var location = selectedOption.data('location');
+        function onSerialCheckboxChange() {
+            var selectedCheckboxes = $('.serial-checkbox:checked');
+            var locations = [];
+            var serials = [];
+            selectedCheckboxes.each(function() {
+                var loc = $(this).data('location');
+                var serial = $(this).data('serial');
+                if (loc) {
+                    locations.push(loc);
+                }
+                if (serial) {
+                    serials.push(serial);
+                }
+            });
             var $locInfo = $('#locationInfo');
             var $locSpan = $('#locationSpan');
             
-            if (location) {
-                $locSpan.text(location);
+            if (locations.length > 0) {
+                $locSpan.text(locations.join(', '));
                 $locInfo.show();
             } else {
                 $locInfo.hide();
             }
-        });
+
+            $('#serialNumberInput').val(serials.join(', '));
+            calcTotal();
+        }
     });
 
-    // Auto-calculate totalAmount = (rentalPrice * days) - depositAmount
+    // Auto-calculate totalAmount = (rentalPrice * days * selectedCount) - depositAmount
     function calcTotal() {
         var start = document.getElementById('startDate').value;
         var end = document.getElementById('expectedReturnDate').value;
         var price = parseFloat(document.getElementById('rentalPrice').value) || 0;
         var deposit = parseFloat(document.getElementById('depositAmount').value) || 0;
+        var selectedCount = $('.serial-checkbox:checked').length || 1;
+        if (selectedCount === 0) selectedCount = 1;
         if (start && end && price > 0) {
             var days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)));
-            var total = (price * days) - deposit;
+            var total = (price * days * selectedCount) - deposit;
             document.getElementById('totalAmount').value = Math.max(0, total);
         }
     }
@@ -359,6 +382,13 @@
                 alert('Ngày trả dự kiến không được nhỏ hơn ngày bắt đầu thuê!');
                 return false;
             }
+        }
+        
+        // Check if at least one serial is checked
+        if ($('.serial-checkbox:checked').length === 0) {
+            e.preventDefault();
+            alert('Vui lòng chọn ít nhất một Số Serial khả dụng!');
+            return false;
         }
     });
 </script>

@@ -9,6 +9,7 @@
     @SuppressWarnings("unchecked")
     List<User> warehouseManagers = (List<User>) request.getAttribute("warehouseManagers");
 
+    String selectedRole = (String) request.getAttribute("selectedRole");
     String error = (String) request.getAttribute("error");
     String successParam = request.getParameter("success");
     String errorParam = request.getParameter("error");
@@ -146,10 +147,18 @@
                 <% } %>
 
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
+                    <div class="card-header py-3 d-sm-flex align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">
                             <i class="fas fa-list mr-1"></i> Danh sách nhân sự chi nhánh của bạn
                         </h6>
+                        <form method="get" action="${pageContext.request.contextPath}/manager/employees" class="form-inline mt-2 mt-sm-0">
+                            <label for="roleFilter" class="mr-2 font-weight-bold text-gray-700 small">Lọc theo vai trò:</label>
+                            <select id="roleFilter" name="role" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="ALL" <%= "ALL".equals(selectedRole) || selectedRole == null ? "selected" : "" %>>Tất cả vai trò</option>
+                                <option value="STAFF" <%= "STAFF".equals(selectedRole) ? "selected" : "" %>>Nhân viên Kỹ thuật (Kỹ thuật)</option>
+                                <option value="SELLER" <%= "SELLER".equals(selectedRole) ? "selected" : "" %>>Nhân viên Bán hàng (Bán hàng)</option>
+                            </select>
+                        </form>
                     </div>
 
                     <div class="card-body">

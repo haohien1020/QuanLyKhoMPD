@@ -53,6 +53,9 @@
                                             nhận lại máy phát điện hoàn chỉnh. Trạng thái máy đã cập nhật về trong kho.
                                         </div>
                                     </c:if>
+                                    <c:if test="${param.error == 'no_staff_assigned'}">
+                                        <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Không thể duyệt hợp đồng! Vui lòng phân công nhân viên kỹ thuật trước khi duyệt.</div>
+                                    </c:if>
 
                                     <c:if test="${not empty error}">
                                         <div class="alert alert-danger">${error}</div>
@@ -134,8 +137,9 @@
  
                                                                             <button type="button"
                                                                                 class="btn btn-primary btn-sm mb-1 ml-1"
+                                                                                ${(empty contract.assignedStaffId || contract.assignedStaffId == 0) ? 'disabled' : ''}
                                                                                 onclick="openDetailModal('${contract.contractCode}', '${contract.sellerName}', '${contract.customerName}', '${contract.customerPhone}', '${contract.customerEmail}', '${contract.brand} ${contract.generatorName}', '${contract.serialNumber}', '${contract.rentalPrice}', '${contract.depositAmount}', '${contract.totalAmount}', '${contract.startDate}', '${contract.expectedReturnDate}', '${contract.status}', '${contract.note}', true, '${contract.rentalContractId}')"
-                                                                                title="Xem chi tiết và duyệt hợp đồng">
+                                                                                title="${(empty contract.assignedStaffId || contract.assignedStaffId == 0) ? 'Vui lòng phân công nhân viên kỹ thuật trước khi duyệt' : 'Xem chi tiết và duyệt hợp đồng'}">
                                                                                 <i class="fas fa-check"></i> Duyệt hợp đồng
                                                                             </button>
                                                                             <form method="post"
@@ -335,7 +339,19 @@
                     $('#detailCustomerEmail').text(email || '-');
 
                     $('#detailGeneratorName').text(genName || 'Chưa chọn máy');
-                    $('#detailSerialNumber').text(serial || '-');
+                    
+                    var serialEl = $('#detailSerialNumber');
+                    serialEl.empty();
+                    if (serial && serial !== 'Chưa cập nhật' && serial !== '-') {
+                        var serials = serial.split(', ');
+                        var html = '';
+                        serials.forEach(function(s) {
+                            html += '<div style="font-size: 0.78rem; font-weight: 600; line-height: 1.3; margin-bottom: 2px; color: #e74a3b;">- ' + s + '</div>';
+                        });
+                        serialEl.html(html);
+                    } else {
+                        serialEl.text(serial || '-');
+                    }
 
                     var formattedPrice = price ? parseFloat(price).toLocaleString('vi-VN') + ' VNĐ/ngày' : '0 VNĐ/ngày';
                     $('#detailRentalPrice').text(formattedPrice);
@@ -421,7 +437,7 @@
                                             <option value="${s.userId}" ${s.userId == assignContract.assignedStaffId ? 'selected' : ''}>${s.fullName} (${s.email})</option>
                                         </c:forEach>
                                     </select>
-                                    <small class="form-text text-muted">Nhân viên được phân công sẽ nhận được thông báo thực hiện pre-delivery check-up.</small>
+                                    <small class="form-text text-muted">Nhân viên được phân công sẽ nhận được thông báo thực hiện kiểm tra máy trước khi bàn giao.</small>
                                 </div>
                             </div>
                             <div class="modal-footer bg-light">

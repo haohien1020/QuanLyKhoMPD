@@ -643,13 +643,37 @@
                                                                             <input type="hidden" name="action"
                                                                                 value="export-generator">
 
+                                                                            <div class="form-group">
+                                                                                <label for="exportStatus"
+                                                                                    class="font-weight-bold text-gray-700">Mục đích / Trạng thái xuất kho <span
+                                                                                        class="text-danger">*</span></label>
+                                                                                <select id="exportStatus" name="exportStatus" class="form-control" required>
+                                                                                    <option value="EXPORTED">Xuất giao cho khách hàng (EXPORTED)</option>
+                                                                                    <c:if test="${isManager}">
+                                                                                        <option value="TRANSFERRED">Xuất sang kho khác (TRANSFERRED)</option>
+                                                                                    </c:if>
+                                                                                </select>
+                                                                            </div>
+
+                                                                            <div class="form-group" id="contractSelectContainer">
+                                                                                <label for="exportContractSelect" class="font-weight-bold text-gray-700">Chọn hợp đồng thuê được duyệt <span class="text-danger">*</span></label>
+                                                                                <select id="exportContractSelect" name="contractId" class="form-control" required style="width: 100%;">
+                                                                                    <option value="">-- Chọn hợp đồng thuê --</option>
+                                                                                    <c:forEach var="c" items="${approvedRentals}">
+                                                                                        <option value="${c.rentalContractId}" data-serial="${c.serialNumber}" data-generatorid="${c.generatorId}" data-code="${c.contractCode}">
+                                                                                            ${c.contractCode} - Khách hàng: ${c.customerName} (Serial chỉ định: ${c.serialNumber})
+                                                                                        </option>
+                                                                                    </c:forEach>
+                                                                                </select>
+                                                                            </div>
+
                                                                             <div id="exportBarcodeContainer">
                                                                                 <div class="form-group">
-                                                                                    <label for="exportGenSelect"
+                                                                                    <label for="exportGenSelect" id="exportGenSelectLabel"
                                                                                         class="font-weight-bold text-gray-700">Chọn máy phát điện cần xuất kho <span
                                                                                             class="text-danger">*</span></label>
-                                                                                    <select id="exportGenSelect" name="barcodeId"
-                                                                                        class="form-control select2" required
+                                                                                    <select id="exportGenSelect"
+                                                                                        class="form-control" required
                                                                                         style="width: 100%;">
                                                                                         <option value="">-- Chọn máy phát điện sẵn sàng trong kho --</option>
                                                                                         <c:forEach var="gb" items="${inStockBarcodes}">
@@ -658,6 +682,15 @@
                                                                                             </option>
                                                                                         </c:forEach>
                                                                                     </select>
+                                                                                    <input type="hidden" name="barcodeId" id="exportGenSelectHidden">
+                                                                                    
+                                                                                    <div class="form-group mt-3" id="exportBarcodeGroup" style="display:none;">
+                                                                                        <label class="font-weight-bold text-muted mb-1">Hình ảnh mã vạch (Barcode):</label>
+                                                                                        <div class="text-center p-2 bg-light rounded border" style="max-width: 320px;">
+                                                                                            <img id="exportBarcodeImg" src="" alt="Barcode" style="max-height: 55px; max-width: 100%;">
+                                                                                            <div class="text-muted mt-1" id="exportBarcodeLabelText" style="font-size: 0.75rem; font-family: monospace;"></div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
 
@@ -707,18 +740,6 @@
                                                                                         </select>
                                                                                     </div>
                                                                                 </div>
-                                                                            </div>
-
-                                                                            <div class="form-group">
-                                                                                <label for="exportStatus"
-                                                                                    class="font-weight-bold text-gray-700">Mục đích / Trạng thái xuất kho <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <select id="exportStatus" name="exportStatus" class="form-control" required>
-                                                                                    <option value="EXPORTED">Xuất giao cho khách hàng (EXPORTED)</option>
-                                                                                    <c:if test="${isManager}">
-                                                                                        <option value="TRANSFERRED">Xuất sang kho khác (TRANSFERRED)</option>
-                                                                                    </c:if>
-                                                                                </select>
                                                                             </div>
 
                                                                             <div class="form-group">
@@ -1010,6 +1031,17 @@
                             </c:forEach>
                         ];
 
+                        var inStockBarcodes = [
+                            <c:forEach var="gb" items="${inStockBarcodes}" varStatus="loop">
+                                {
+                                    barcodeId: ${gb.barcodeId},
+                                    generatorId: ${gb.generatorId},
+                                    generatorName: '${gb.generatorName.replace("'", "\\'")}',
+                                    serialNumber: '${gb.serialNumber.replace("'", "\\'")}'
+                                }${!loop.last ? ',' : ''}
+                            </c:forEach>
+                        ];
+
                         function getStatusLabel(status) {
                             if (status === 'IN_STOCK') return 'Trong kho';
                             if (status === 'EXPORTED') return 'Đã xuất kho (Cho thuê)';
@@ -1069,27 +1101,129 @@
                                 var count = 0;
                                 notInStockBarcodes.forEach(function(opt) {
                                     var match = (opt.status === 'EXPORTED');
-                                    
                                     if (match) {
-                                        var text = opt.generatorName + ' (Serial: ' + opt.serialNumber + ') - Trạng thái: ' + getStatusLabel(opt.status);
                                         selectEl.append($('<option>', {
                                             value: opt.barcodeId,
-                                            text: text
+                                            text: opt.generatorName + ' (Serial: ' + opt.serialNumber + ')'
                                         }));
                                         count++;
                                     }
                                 });
-                                
                                 if (count === 0) {
-                                    selectEl.append('<option value="" disabled>Không có máy phát điện nào phù hợp ở trạng thái này</option>');
+                                    selectEl.append('<option value="" disabled>Không có máy nào đang cho thuê để nhập lại</option>');
                                 }
-                                
-                                // Điền mẫu ghi chú
-                                var noteEl = $('#importGenNote');
-                                if (type === 'RENTAL_RETURN') {
-                                    noteEl.val('Nhập lại máy phát điện sau khi khách trả thuê.');
-                                }
+                                $('#importGenNote').val('Nhập lại máy phát điện sau khi kết thúc thuê.');
                             }
+                        });
+
+                        function renderBarcodeInAction(serial) {
+                            if (serial) {
+                                try {
+                                    var canvas = document.createElement('canvas');
+                                    JsBarcode(canvas, serial, {
+                                        format: 'CODE128',
+                                        width: 1.6,
+                                        height: 45,
+                                        displayValue: false,
+                                        margin: 2
+                                    });
+                                    $('#exportBarcodeImg').attr('src', canvas.toDataURL('image/png')).show();
+                                    $('#exportBarcodeLabelText').text(serial);
+                                    $('#exportBarcodeGroup').show();
+                                } catch(e) {
+                                    console.error('JsBarcode error:', e);
+                                    $('#exportBarcodeGroup').hide();
+                                }
+                            } else {
+                                $('#exportBarcodeGroup').hide();
+                            }
+                        }
+
+                        $('#exportGenSelect').on('change', function() {
+                            var barcodeId = $(this).val();
+                            if (barcodeId) {
+                                var match = inStockBarcodes.find(function(b) { return b.barcodeId == barcodeId; });
+                                if (match && match.serialNumber) {
+                                    renderBarcodeInAction(match.serialNumber);
+                                } else {
+                                    $('#exportBarcodeGroup').hide();
+                                }
+                            } else {
+                                $('#exportBarcodeGroup').hide();
+                            }
+                        });
+
+                        $('#exportContractSelect').on('change', function() {
+                            var selectedOpt = $(this).find('option:selected');
+                            var serial = selectedOpt.data('serial');
+                            var generatorId = selectedOpt.data('generatorid');
+                            var code = selectedOpt.data('code');
+                            
+                            var selectEl = $('#exportGenSelect');
+                            var hiddenEl = $('#exportGenSelectHidden');
+                            var labelEl = $('#exportGenSelectLabel');
+                            
+                            selectEl.empty();
+                            
+                            if (!$(this).val()) {
+                                labelEl.html('Chọn máy phát điện cần xuất kho <span class="text-danger">*</span>');
+                                selectEl.append('<option value="">-- Chọn máy phát điện sẵn sàng trong kho --</option>');
+                                inStockBarcodes.forEach(function(b) {
+                                    selectEl.append($('<option>', {
+                                        value: b.barcodeId,
+                                        text: b.generatorName + ' (Serial: ' + b.serialNumber + ')'
+                                    }));
+                                });
+                                selectEl.prop('disabled', false);
+                                selectEl.attr('name', 'barcodeId');
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+                                selectEl.trigger('change');
+                                return;
+                            }
+                            
+                            var exactMatch = null;
+                            if (serial) {
+                                exactMatch = inStockBarcodes.find(function(b) {
+                                    return b.serialNumber === serial;
+                                });
+                            }
+                            
+                            if (serial && exactMatch) {
+                                labelEl.html('Máy phát điện được chỉ định bàn giao (Theo Hợp đồng: ' + code + ') <span class="text-danger">*</span>');
+                                selectEl.append($('<option>', {
+                                    value: exactMatch.barcodeId,
+                                    text: exactMatch.generatorName + ' (Serial: ' + exactMatch.serialNumber + ')',
+                                    selected: true
+                                }));
+                                selectEl.prop('disabled', true);
+                                selectEl.removeAttr('name');
+                                hiddenEl.val(exactMatch.barcodeId);
+                                hiddenEl.prop('disabled', false);
+                            } else if (generatorId) {
+                                labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                selectEl.append('<option value="">-- Chọn máy phát điện cho mẫu này --</option>');
+                                var filtered = inStockBarcodes.filter(function(b) {
+                                    return b.generatorId == generatorId;
+                                });
+                                
+                                if (filtered.length === 0) {
+                                    selectEl.append('<option value="" disabled>Không có máy nào thuộc mẫu này sẵn sàng trong kho</option>');
+                                } else {
+                                    filtered.forEach(function(b) {
+                                        selectEl.append($('<option>', {
+                                            value: b.barcodeId,
+                                            text: b.generatorName + ' (Serial: ' + b.serialNumber + ')'
+                                        }));
+                                    });
+                                }
+                                selectEl.prop('disabled', false);
+                                selectEl.attr('name', 'barcodeId');
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+                            }
+                            
+                            selectEl.trigger('change');
                         });
 
                         // Generator Export Form Toggle Logic for Transfers
@@ -1098,6 +1232,8 @@
                             if (status === 'TRANSFERRED') {
                                 $('#exportBarcodeContainer').hide();
                                 $('#exportGenSelect').prop('required', false);
+                                $('#contractSelectContainer').hide();
+                                $('#exportContractSelect').prop('required', false).val('').trigger('change');
                                 
                                 $('#exportTransferContainer').show();
                                 $('#exportModelSelect').prop('required', true);
@@ -1109,10 +1245,15 @@
                                 $('#exportQuantity').prop('required', false);
                                 $('#exportDestWarehouse').prop('required', false);
                                 
+                                $('#contractSelectContainer').show();
+                                $('#exportContractSelect').prop('required', true);
                                 $('#exportBarcodeContainer').show();
                                 $('#exportGenSelect').prop('required', true);
                             }
                         });
+
+                        // Trigger on load
+                        $('#exportStatus').trigger('change');
 
                         $('#exportModelSelect').on('change', function() {
                             var selectedOpt = $(this).find('option:selected');
