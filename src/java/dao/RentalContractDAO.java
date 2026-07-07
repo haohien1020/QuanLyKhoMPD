@@ -43,8 +43,25 @@ public class RentalContractDAO extends BaseDAO {
             item.setGeneratorName(rs.getString("generator_name"));
         } catch (java.sql.SQLException e) {}
         try {
-            item.setSerialNumber(rs.getString("serial_number"));
-        } catch (java.sql.SQLException e) {}
+            String txNote = null;
+            try {
+                txNote = rs.getString("transaction_note");
+            } catch (java.sql.SQLException e) {}
+            
+            if (txNote != null && txNote.contains("Serial:")) {
+                int idx = txNote.indexOf("Serial:");
+                String sub = txNote.substring(idx + 7).trim();
+                if (sub.endsWith(")")) {
+                    sub = sub.substring(0, sub.length() - 1).trim();
+                }
+                item.setSerialNumber(sub);
+            } else {
+                String genSerial = rs.getString("serial_number");
+                item.setSerialNumber(genSerial != null && !genSerial.isEmpty() ? genSerial : "Chưa cập nhật");
+            }
+        } catch (java.sql.SQLException e) {
+            item.setSerialNumber("Chưa cập nhật");
+        }
         try {
             item.setBrand(rs.getString("brand"));
         } catch (java.sql.SQLException e) {}
@@ -62,6 +79,10 @@ public class RentalContractDAO extends BaseDAO {
             item.setAssignedStaffId(rs.wasNull() ? null : staffId);
             item.setAssignedStaffName(rs.getString("assigned_staff_name"));
         } catch (java.sql.SQLException e) {}
+        try {
+            int genId = rs.getInt("generator_id");
+            item.setGeneratorId(rs.wasNull() ? null : genId);
+        } catch (java.sql.SQLException e) {}
         
         return item;
     }
@@ -71,8 +92,16 @@ public class RentalContractDAO extends BaseDAO {
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
                 + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
-                + "g.generator_name, g.serial_number, g.brand, g.power_value, g.fuel_type, rcd.rental_price, "
-                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name "
+                + "MAX(g.generator_name) AS generator_name, "
+                + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
+                + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
+                + "MAX(rcd.rental_price) AS rental_price, MAX(rcd.generator_id) AS generator_id, "
+                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name, "
+                + "(SELECT t.note FROM inventory_transactions t "
+                + " WHERE t.transaction_type = 'EXPORT' "
+                + "   AND t.item_type = 'GENERATOR' "
+                + "   AND t.note LIKE CONCAT('%', rc.contract_code, '%') "
+                + " LIMIT 1) AS transaction_note "
                 + "FROM rental_contracts rc "
                 + "INNER JOIN customers c ON rc.customer_id = c.customer_id "
                 + "INNER JOIN warehouses w ON rc.warehouse_id = w.warehouse_id "
@@ -81,6 +110,11 @@ public class RentalContractDAO extends BaseDAO {
                 + "LEFT JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
                 + "LEFT JOIN generators g ON rcd.generator_id = g.generator_id "
                 + "WHERE rc.warehouse_id = ? "
+                + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone, c.email, w.warehouse_name, "
+                + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.assigned_staff_id, u2.full_name "
                 + "ORDER BY rc.rental_contract_id DESC";
 
         List<CustomerRentalContract> list = new ArrayList<>();
@@ -102,8 +136,16 @@ public class RentalContractDAO extends BaseDAO {
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
                 + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
-                + "g.generator_name, g.serial_number, g.brand, g.power_value, g.fuel_type, rcd.rental_price, "
-                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name "
+                + "MAX(g.generator_name) AS generator_name, "
+                + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
+                + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
+                + "MAX(rcd.rental_price) AS rental_price, MAX(rcd.generator_id) AS generator_id, "
+                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name, "
+                + "(SELECT t.note FROM inventory_transactions t "
+                + " WHERE t.transaction_type = 'EXPORT' "
+                + "   AND t.item_type = 'GENERATOR' "
+                + "   AND t.note LIKE CONCAT('%', rc.contract_code, '%') "
+                + " LIMIT 1) AS transaction_note "
                 + "FROM rental_contracts rc "
                 + "INNER JOIN customers c ON rc.customer_id = c.customer_id "
                 + "INNER JOIN warehouses w ON rc.warehouse_id = w.warehouse_id "
@@ -111,7 +153,12 @@ public class RentalContractDAO extends BaseDAO {
                 + "LEFT JOIN users u2 ON rc.assigned_staff_id = u2.user_id "
                 + "LEFT JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
                 + "LEFT JOIN generators g ON rcd.generator_id = g.generator_id "
-                + "WHERE rc.rental_contract_id = ?";
+                + "WHERE rc.rental_contract_id = ? "
+                + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone, c.email, w.warehouse_name, "
+                + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.assigned_staff_id, u2.full_name";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -126,7 +173,7 @@ public class RentalContractDAO extends BaseDAO {
     }
 
     public List<CustomerRentedGenerator> getGeneratorsForContract(int contractId) throws Exception {
-        String sql = "SELECT g.generator_id, g.generator_name, g.serial_number, g.brand, g.power_value, "
+        String sql = "SELECT g.generator_id, g.generator_name, COALESCE(rcd.serial_number, g.serial_number) AS serial_number, g.brand, g.power_value, "
                 + "g.fuel_type, g.status AS generator_status, rcd.rental_price "
                 + "FROM rental_contract_details rcd "
                 + "INNER JOIN generators g ON rcd.generator_id = g.generator_id "
@@ -195,7 +242,7 @@ public class RentalContractDAO extends BaseDAO {
 
     public int createContract(int customerId, int warehouseId, int createdBy, String contractCode, 
                               Timestamp startDate, Timestamp expectedReturnDate, double depositAmount, 
-                              double totalAmount, String note, int generatorId, double rentalPrice) throws Exception {
+                              double totalAmount, String note, String[] generatorIds, String serialNumbersStr, double rentalPrice) throws Exception {
         Connection conn = null;
         try {
             conn = DBUtil.getConnection();
@@ -231,13 +278,73 @@ public class RentalContractDAO extends BaseDAO {
                 return 0;
             }
 
-            String sqlDetail = "INSERT INTO rental_contract_details (rental_contract_id, generator_id, rental_price, note) VALUES (?, ?, ?, ?)";
+            String sqlDetail = "INSERT INTO rental_contract_details (rental_contract_id, generator_id, rental_price, serial_number, note) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sqlDetail)) {
-                ps.setInt(1, contractId);
-                ps.setInt(2, generatorId);
-                ps.setDouble(3, rentalPrice);
-                ps.setString(4, "Seller rental request");
-                ps.executeUpdate();
+                if (serialNumbersStr != null && !serialNumbersStr.trim().isEmpty()) {
+                    String[] serials = serialNumbersStr.split(",\\s*");
+                    for (String serial : serials) {
+                        if (serial == null || serial.trim().isEmpty()) continue;
+                        serial = serial.trim();
+                        
+                        // Find generator_id from generator_barcodes
+                        int genId = 0;
+                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ?";
+                        try (PreparedStatement psGen = conn.prepareStatement(sqlGetGenId)) {
+                            psGen.setString(1, serial);
+                            try (ResultSet rsGen = psGen.executeQuery()) {
+                                if (rsGen.next()) {
+                                    genId = rsGen.getInt("generator_id");
+                                }
+                            }
+                        }
+                        
+                        // If not found in barcodes (fallback), look up in generators table
+                        if (genId == 0) {
+                            String sqlGetGenIdFallback = "SELECT generator_id FROM generators WHERE serial_number = ?";
+                            try (PreparedStatement psGenFallback = conn.prepareStatement(sqlGetGenIdFallback)) {
+                                psGenFallback.setString(1, serial);
+                                try (ResultSet rsGenFallback = psGenFallback.executeQuery()) {
+                                    if (rsGenFallback.next()) {
+                                        genId = rsGenFallback.getInt("generator_id");
+                                    }
+                                }
+                            }
+                        }
+                        
+                        ps.setInt(1, contractId);
+                        ps.setInt(2, genId);
+                        ps.setDouble(3, rentalPrice);
+                        ps.setString(4, serial);
+                        ps.setString(5, "Seller rental request");
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                } else if (generatorIds != null) {
+                    for (String gIdStr : generatorIds) {
+                        if (gIdStr == null || gIdStr.trim().isEmpty()) continue;
+                        int genId = Integer.parseInt(gIdStr.trim());
+                        
+                        // Retrieve serial number for this generator
+                        String serialNumber = "";
+                        String sqlGetSerial = "SELECT serial_number FROM generators WHERE generator_id = ?";
+                        try (PreparedStatement psSerial = conn.prepareStatement(sqlGetSerial)) {
+                            psSerial.setInt(1, genId);
+                            try (ResultSet rsSerial = psSerial.executeQuery()) {
+                                if (rsSerial.next()) {
+                                    serialNumber = rsSerial.getString("serial_number");
+                                }
+                            }
+                        }
+                        
+                        ps.setInt(1, contractId);
+                        ps.setInt(2, genId);
+                        ps.setDouble(3, rentalPrice);
+                        ps.setString(4, serialNumber);
+                        ps.setString(5, "Seller rental request");
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
             }
 
             conn.commit();
@@ -257,7 +364,7 @@ public class RentalContractDAO extends BaseDAO {
 
     public boolean updateContract(int contractId, int customerId, int warehouseId, Timestamp startDate, 
                                   Timestamp expectedReturnDate, double depositAmount, double totalAmount, 
-                                  String note, int generatorId, double rentalPrice) throws Exception {
+                                  String note, String[] generatorIds, String serialNumbersStr, double rentalPrice) throws Exception {
         Connection conn = null;
         try {
             conn = DBUtil.getConnection();
@@ -284,13 +391,73 @@ public class RentalContractDAO extends BaseDAO {
                 ps.executeUpdate();
             }
 
-            String sqlDetail = "INSERT INTO rental_contract_details (rental_contract_id, generator_id, rental_price, note) VALUES (?, ?, ?, ?)";
+            String sqlDetail = "INSERT INTO rental_contract_details (rental_contract_id, generator_id, rental_price, serial_number, note) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sqlDetail)) {
-                ps.setInt(1, contractId);
-                ps.setInt(2, generatorId);
-                ps.setDouble(3, rentalPrice);
-                ps.setString(4, "Seller rental request updated");
-                ps.executeUpdate();
+                if (serialNumbersStr != null && !serialNumbersStr.trim().isEmpty()) {
+                    String[] serials = serialNumbersStr.split(",\\s*");
+                    for (String serial : serials) {
+                        if (serial == null || serial.trim().isEmpty()) continue;
+                        serial = serial.trim();
+                        
+                        // Find generator_id from generator_barcodes
+                        int genId = 0;
+                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ?";
+                        try (PreparedStatement psGen = conn.prepareStatement(sqlGetGenId)) {
+                            psGen.setString(1, serial);
+                            try (ResultSet rsGen = psGen.executeQuery()) {
+                                if (rsGen.next()) {
+                                    genId = rsGen.getInt("generator_id");
+                                }
+                            }
+                        }
+                        
+                        // If not found in barcodes (fallback), look up in generators table
+                        if (genId == 0) {
+                            String sqlGetGenIdFallback = "SELECT generator_id FROM generators WHERE serial_number = ?";
+                            try (PreparedStatement psGenFallback = conn.prepareStatement(sqlGetGenIdFallback)) {
+                                psGenFallback.setString(1, serial);
+                                try (ResultSet rsGenFallback = psGenFallback.executeQuery()) {
+                                    if (rsGenFallback.next()) {
+                                        genId = rsGenFallback.getInt("generator_id");
+                                    }
+                                }
+                            }
+                        }
+                        
+                        ps.setInt(1, contractId);
+                        ps.setInt(2, genId);
+                        ps.setDouble(3, rentalPrice);
+                        ps.setString(4, serial);
+                        ps.setString(5, "Seller rental request updated");
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                } else if (generatorIds != null) {
+                    for (String gIdStr : generatorIds) {
+                        if (gIdStr == null || gIdStr.trim().isEmpty()) continue;
+                        int genId = Integer.parseInt(gIdStr.trim());
+                        
+                        // Retrieve serial number for this generator
+                        String serialNumber = "";
+                        String sqlGetSerial = "SELECT serial_number FROM generators WHERE generator_id = ?";
+                        try (PreparedStatement psSerial = conn.prepareStatement(sqlGetSerial)) {
+                            psSerial.setInt(1, genId);
+                            try (ResultSet rsSerial = psSerial.executeQuery()) {
+                                if (rsSerial.next()) {
+                                    serialNumber = rsSerial.getString("serial_number");
+                                }
+                            }
+                        }
+                        
+                        ps.setInt(1, contractId);
+                        ps.setInt(2, genId);
+                        ps.setDouble(3, rentalPrice);
+                        ps.setString(4, serialNumber);
+                        ps.setString(5, "Seller rental request updated");
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
             }
 
             conn.commit();
@@ -315,5 +482,66 @@ public class RentalContractDAO extends BaseDAO {
             ps.setInt(2, contractId);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public List<Integer> findAssignedGeneratorIds(int staffId) throws Exception {
+        String sql = "SELECT rcd.generator_id FROM rental_contracts rc "
+                   + "JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
+                   + "WHERE rc.assigned_staff_id = ? AND rc.status = 'APPROVED'";
+        List<Integer> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, staffId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getInt("generator_id"));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<CustomerRentalContract> findContractsAssignedToStaff(int staffId) throws Exception {
+        String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
+                + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "MAX(g.generator_name) AS generator_name, "
+                + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
+                + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
+                + "MAX(rcd.rental_price) AS rental_price, MAX(rcd.generator_id) AS generator_id, "
+                + "rc.assigned_staff_id, u2.full_name AS assigned_staff_name, "
+                + "(SELECT t.note FROM inventory_transactions t "
+                + " WHERE t.transaction_type = 'EXPORT' "
+                + "   AND t.item_type = 'GENERATOR' "
+                + "   AND t.note LIKE CONCAT('%', rc.contract_code, '%') "
+                + " LIMIT 1) AS transaction_note "
+                + "FROM rental_contracts rc "
+                + "INNER JOIN customers c ON rc.customer_id = c.customer_id "
+                + "INNER JOIN warehouses w ON rc.warehouse_id = w.warehouse_id "
+                + "INNER JOIN users u ON rc.created_by = u.user_id "
+                + "LEFT JOIN users u2 ON rc.assigned_staff_id = u2.user_id "
+                + "LEFT JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
+                + "LEFT JOIN generators g ON rcd.generator_id = g.generator_id "
+                + "WHERE rc.assigned_staff_id = ? "
+                + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
+                + "c.phone, c.email, w.warehouse_name, "
+                + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.assigned_staff_id, u2.full_name "
+                + "ORDER BY rc.rental_contract_id DESC";
+
+        List<CustomerRentalContract> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, staffId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    CustomerRentalContract item = mapResultSet(rs);
+                    list.add(item);
+                }
+            }
+        }
+        return list;
     }
 }

@@ -201,4 +201,14 @@ public class Generator {
     public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
+
+    private int minStock;
+
+    public int getMinStock() {
+        return minStock;
+    }
+
+    public void setMinStock(int minStock) {
+        this.minStock = minStock;
+    }
 }

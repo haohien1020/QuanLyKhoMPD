@@ -28,11 +28,12 @@ public class InventoryTransactionDAO extends BaseDAO {
         item.setTransactionDate(rs.getTimestamp("transaction_date"));
         item.setNote(rs.getString("note"));
         item.setStatus(rs.getString("status"));
+        item.setTransferId(getNullableInt(rs, "transfer_id"));
         return item;
     }
 
     public InventoryTransaction findById(int id) throws Exception {
-        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status FROM inventory_transactions WHERE transaction_id = ?";
+        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions WHERE transaction_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -46,7 +47,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public List<InventoryTransaction> findAll() throws Exception {
-        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status FROM inventory_transactions ORDER BY transaction_id DESC";
+        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions ORDER BY transaction_id DESC";
         List<InventoryTransaction> list = new ArrayList<InventoryTransaction>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -59,9 +60,14 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public int insert(InventoryTransaction item) throws Exception {
-        String sql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = DBUtil.getConnection()) {
+            return insert(conn, item);
+        }
+    }
+
+    public int insert(Connection conn, InventoryTransaction item) throws Exception {
+        String sql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getWarehouseId());
             setNullableInt(ps, 2, item.getSupplierId());
             ps.setInt(3, item.getCreatedBy());
@@ -72,6 +78,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             ps.setInt(8, item.getQuantity());
             ps.setString(9, item.getNote());
             ps.setString(10, item.getStatus());
+            setNullableInt(ps, 11, item.getTransferId());
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
                 return 0;
@@ -86,7 +93,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public boolean update(InventoryTransaction item) throws Exception {
-        String sql = "UPDATE inventory_transactions SET warehouse_id = ?, supplier_id = ?, created_by = ?, transaction_type = ?, item_type = ?, generator_id = ?, part_id = ?, quantity = ?, transaction_date = ?, note = ?, status = ? WHERE transaction_id = ?";
+        String sql = "UPDATE inventory_transactions SET warehouse_id = ?, supplier_id = ?, created_by = ?, transaction_type = ?, item_type = ?, generator_id = ?, part_id = ?, quantity = ?, transaction_date = ?, note = ?, status = ?, transfer_id = ? WHERE transaction_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getWarehouseId());
@@ -100,7 +107,8 @@ public class InventoryTransactionDAO extends BaseDAO {
             ps.setTimestamp(9, item.getTransactionDate());
             ps.setString(10, item.getNote());
             ps.setString(11, item.getStatus());
-            ps.setInt(12, item.getTransactionId());
+            setNullableInt(ps, 12, item.getTransferId());
+            ps.setInt(13, item.getTransactionId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -116,7 +124,7 @@ public class InventoryTransactionDAO extends BaseDAO {
 
     public List<InventoryTransaction> findTransactions(Integer warehouseId, String transactionType, String itemType, String keyword, java.sql.Timestamp startDate, java.sql.Timestamp endDate) throws Exception {
         StringBuilder sql = new StringBuilder(
-            "SELECT t.transaction_id, t.warehouse_id, t.supplier_id, t.created_by, t.transaction_type, t.item_type, t.generator_id, t.part_id, t.quantity, t.transaction_date, t.note, t.status, " +
+            "SELECT t.transaction_id, t.warehouse_id, t.supplier_id, t.created_by, t.transaction_type, t.item_type, t.generator_id, t.part_id, t.quantity, t.transaction_date, t.note, t.status, t.transfer_id, " +
             "g.generator_name, g.serial_number, p.part_name, p.part_code, w.warehouse_name, s.supplier_name, u.full_name AS creator_name " +
             "FROM inventory_transactions t " +
             "LEFT JOIN generators g ON t.generator_id = g.generator_id " +
@@ -187,6 +195,7 @@ public class InventoryTransactionDAO extends BaseDAO {
                     item.setTransactionDate(rs.getTimestamp("transaction_date"));
                     item.setNote(rs.getString("note"));
                     item.setStatus(rs.getString("status"));
+                    item.setTransferId(getNullableInt(rs, "transfer_id"));
 
                     // Joined fields
                     item.setGeneratorName(rs.getString("generator_name"));
@@ -565,6 +574,57 @@ public class InventoryTransactionDAO extends BaseDAO {
                 } catch (SQLException ignored) {}
                 conn.close();
             }
+        }
+    }
+
+    public void createPendingTransactionsForTransfer(Connection conn, int transferId, int fromWarehouseId, int createdBy, List<model.StockTransferDetail> details) throws Exception {
+        for (model.StockTransferDetail detail : details) {
+            InventoryTransaction tx = new InventoryTransaction();
+            tx.setWarehouseId(fromWarehouseId);
+            tx.setCreatedBy(createdBy);
+            tx.setTransactionType("EXPORT");
+            tx.setItemType(detail.getItemType());
+            tx.setGeneratorId(detail.getGeneratorId());
+            tx.setPartId(detail.getPartId());
+            tx.setQuantity(detail.getQuantity());
+            tx.setTransferId(transferId);
+            tx.setStatus("PENDING");
+            
+            if ("GENERATOR".equals(detail.getItemType())) {
+                String genName = "";
+                String specSql = "SELECT generator_name FROM generators WHERE generator_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(specSql)) {
+                    ps.setInt(1, detail.getGeneratorId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            genName = rs.getString("generator_name");
+                        }
+                    }
+                }
+                tx.setNote("Yêu cầu điều chuyển máy phát điện '" + genName + "' (Phiếu TF-" + transferId + ")");
+            } else {
+                String partName = "";
+                String specSql = "SELECT part_name FROM parts WHERE part_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(specSql)) {
+                    ps.setInt(1, detail.getPartId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            partName = rs.getString("part_name");
+                        }
+                    }
+                }
+                tx.setNote("Yêu cầu điều chuyển " + detail.getQuantity() + " phụ tùng '" + partName + "' (Phiếu TF-" + transferId + ")");
+            }
+            insert(conn, tx);
+        }
+    }
+
+    public boolean updateStatusByTransferId(Connection conn, int transferId, String newStatus) throws Exception {
+        String sql = "UPDATE inventory_transactions SET status = ?, transaction_date = NOW() WHERE transfer_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newStatus);
+            ps.setInt(2, transferId);
+            return ps.executeUpdate() > 0;
         }
     }
 }

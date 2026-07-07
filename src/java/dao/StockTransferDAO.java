@@ -126,4 +126,20 @@ public class StockTransferDAO extends BaseDAO {
         }
         return list;
     }
+
+    public List<StockTransfer> findPendingTransfers() throws Exception {
+        String sql = "SELECT transfer_id, from_warehouse_id, to_warehouse_id, created_by, approved_by, status, created_at, approved_at "
+                + "FROM stock_transfers "
+                + "WHERE status = 'PENDING' "
+                + "ORDER BY transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapResultSet(rs));
+            }
+        }
+        return list;
+    }
 }
