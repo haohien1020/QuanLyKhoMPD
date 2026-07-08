@@ -216,6 +216,7 @@ public class CustomerRentalContract {
 
     private Integer assignedStaffId;
     private String assignedStaffName;
+    private Integer generatorId;
 
     public Integer getAssignedStaffId() {
         return assignedStaffId;
@@ -231,5 +232,13 @@ public class CustomerRentalContract {
 
     public void setAssignedStaffName(String assignedStaffName) {
         this.assignedStaffName = assignedStaffName;
+    }
+
+    public Integer getGeneratorId() {
+        return generatorId;
+    }
+
+    public void setGeneratorId(Integer generatorId) {
+        this.generatorId = generatorId;
     }
 }
