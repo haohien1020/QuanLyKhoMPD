@@ -100,10 +100,15 @@ public class WarehouseRentalServlet extends HttpServlet {
         try {
             if ("approve".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
+                model.CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                if (contract == null || contract.getAssignedStaffId() == null || contract.getAssignedStaffId() == 0) {
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=no_staff_assigned");
+                    return;
+                }
                 boolean success = rentalContractDAO.updateContractStatus(contractId, "APPROVED", currentUser.getUserId());
                 if (success) {
                     try {
-                        model.CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                        contract = rentalContractDAO.findContractById(contractId);
                         if (contract != null) {
                             model.Customer customer = new dao.CustomerDAO().findById(contract.getCustomerId());
                             List<model.CustomerRentedGenerator> gens = rentalContractDAO.getGeneratorsForContract(contractId);
@@ -203,8 +208,8 @@ public class WarehouseRentalServlet extends HttpServlet {
                         NotificationDAO notificationDAO = new NotificationDAO();
                         Notification notif = new Notification();
                         notif.setUserId(staffId);
-                        notif.setTitle("Phân công Pre-delivery Check-up");
-                        notif.setMessage("Bạn đã được phân công thực hiện pre-delivery check-up cho Hợp đồng: " 
+                        notif.setTitle("Phân công Kiểm tra & Bàn giao máy");
+                        notif.setMessage("Bạn đã được phân công thực hiện kiểm tra máy trước khi bàn giao và giao máy cho khách hàng theo Hợp đồng: " 
                                 + (contract != null ? contract.getContractCode() : ("ID " + contractId)));
                         notif.setType("RENTAL");
                         notif.setRead(false);
