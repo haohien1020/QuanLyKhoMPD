@@ -309,6 +309,12 @@ public class GeneratorDAO extends BaseDAO {
         }
     }
 
+    public boolean updateBarcodeStatus(String serialNumber, String status) throws Exception {
+        try (Connection conn = DBUtil.getConnection()) {
+            return updateBarcodeStatus(conn, serialNumber, status);
+        }
+    }
+
     public boolean updateBarcodeStatus(Connection conn, int barcodeId, String status) throws Exception {
         String sql = "UPDATE generator_barcodes SET status = ?, updated_at = NOW() WHERE barcode_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

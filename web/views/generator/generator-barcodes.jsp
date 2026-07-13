@@ -65,11 +65,18 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .barcode-img-cell img {
-            height: 38px;
-            max-width: 130px;
+        .barcode-img-cell img, img.barcode-render {
+            height: 42px;
+            max-width: 190px;
             display: block;
             margin: 0 auto;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            background-color: #ffffff;
+            padding: 3px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
         }
         .status-badge { font-size: 0.78rem; }
         .back-link {
@@ -247,7 +254,6 @@
                                             ? new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(gb.getCreatedAt()) : "-";
                                 %>
                                 <%
-                                        // Lookup generator detail for this barcode
                                         Generator genDetail = null;
                                         if (generators != null) {
                                             for (Generator gd : generators) {
@@ -267,7 +273,6 @@
                                         String priceStr       = genDetail != null && genDetail.getPurchasePrice() != null ? String.format("%,.0f", genDetail.getPurchasePrice()) : "-";
                                         String rentalPriceStr = genDetail != null && genDetail.getRentalPrice() != null ? String.format("%,.0f", genDetail.getRentalPrice()) : "-";
                                         String warehouseStr   = genDetail != null && genDetail.getWarehouseId() > 0 ? String.valueOf(genDetail.getWarehouseId()) : "-";
-                                        // Status badge for the barcode unit
                                         String unitStatusBadge;
                                         switch (gb.getStatus() != null ? gb.getStatus() : "") {
                                             case "IN_STOCK":     unitStatusBadge = "badge-success"; break;
@@ -289,9 +294,9 @@
                                     <td class="text-center">
                                         <code class="font-weight-bold text-gray-800"><%= gb.getSerialNumber() %></code>
                                     </td>
-                                    <td class="barcode-img-cell text-center">
+                                    <td class="barcode-img-cell text-center" style="cursor:pointer;" onclick="openBarcodeDetail('<%= safeGenName %>', '<%= safeSerial %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= priceStr %>', '<%= rentalPriceStr %>', '<%= safeLocation %>', '<%= safeNote %>', '<%= gb.getStatus() != null ? gb.getStatus() : "" %>', '<%= unitStatusBadge %>', '<%= createdStr %>')" title="Click để xem phóng to mã vạch">
                                         <img class="barcode-render" data-serial="<%= gb.getSerialNumber() %>" alt="<%= gb.getSerialNumber() %>">
-                                        <div class="text-muted mt-1" style="font-size:0.7rem;"><%= gb.getSerialNumber() %></div>
+                                        <div class="text-dark font-weight-bold mt-1" style="font-size:0.75rem; font-family: monospace; letter-spacing: 0.5px;"><%= gb.getSerialNumber() %></div>
                                     </td>
                                     <td class="text-center"><%=statusBadge%></td>
                                     <td class="text-center text-muted" style="font-size:0.82rem;"><%= createdStr %></td>
@@ -379,10 +384,10 @@
                             <code class="text-gray-800 font-weight-bold" id="mdSerial" style="font-size:1rem;"></code>
                         </div>
                         <div class="mb-3">
-                            <div class="small text-muted font-weight-bold mb-1">Mã vạch</div>
-                            <div class="text-center p-2 bg-light rounded border">
-                                <img id="mdBarcodeImg" src="" alt="Barcode" style="max-height:55px; max-width:100%;">
-                                <div class="text-muted mt-1" id="mdBarcodeLabel" style="font-size:0.7rem;"></div>
+                            <div class="small text-muted font-weight-bold mb-1">Mã vạch Barcode</div>
+                            <div class="text-center p-3 bg-light rounded border shadow-sm">
+                                <img id="mdBarcodeImg" src="" alt="Barcode" style="height: 60px; max-width: 100%; width: auto; display: block; margin: 0 auto; background: #ffffff; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; image-rendering: pixelated;">
+                                <div class="font-weight-bold text-dark mt-2" id="mdBarcodeLabel" style="font-size: 0.92rem; font-family: 'Courier New', monospace; letter-spacing: 1.2px; word-break: break-all; background: #fff; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; display: inline-block;"></div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -436,7 +441,7 @@ $(document).ready(function() {
         }
     });
 
-    // Render barcodes via JsBarcode
+    // Render barcodes in table cells with clear quiet zone & crisp resolution
     $('.barcode-render').each(function() {
         var serial = $(this).data('serial');
         if (serial) {
@@ -444,10 +449,12 @@ $(document).ready(function() {
                 var canvas = document.createElement('canvas');
                 JsBarcode(canvas, serial, {
                     format: 'CODE128',
-                    width: 1.4,
-                    height: 32,
+                    width: 1.3,
+                    height: 38,
                     displayValue: false,
-                    margin: 0
+                    margin: 8,
+                    background: '#ffffff',
+                    lineColor: '#000000'
                 });
                 $(this).attr('src', canvas.toDataURL('image/png'));
             } catch(e) {
@@ -508,16 +515,18 @@ function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPri
     var label = statusLabels[status] || status;
     $('#mdStatusBadge').html('<span class="badge ' + badgeClass + ' px-2 py-1" style="font-size:0.85rem;">' + label + '</span>');
 
-    // Render barcode
+    // Render barcode in detail modal with high-res crisp quiet zone
     if (serial) {
         try {
             var canvas = document.createElement('canvas');
             JsBarcode(canvas, serial, {
                 format: 'CODE128',
-                width: 1.6,
-                height: 45,
+                width: 1.5,
+                height: 60,
                 displayValue: false,
-                margin: 2
+                margin: 10,
+                background: '#ffffff',
+                lineColor: '#000000'
             });
             $('#mdBarcodeImg').attr('src', canvas.toDataURL('image/png')).show();
             $('#mdBarcodeLabel').text(serial);

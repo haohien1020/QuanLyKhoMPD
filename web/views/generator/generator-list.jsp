@@ -796,7 +796,7 @@
             }
         });
 
-        // Tạo mã vạch Code 128 đồng bộ bằng JsBarcode cho tất cả các dòng
+        // Tạo mã vạch Code 128 đồng bộ bằng JsBarcode cho tất cả các dòng (Có Quiet Zone để quét được)
         $('.barcode-render').each(function() {
             var serial = $(this).data('serial');
             if (serial) {
@@ -804,11 +804,15 @@
                     var canvas = document.createElement('canvas');
                     JsBarcode(canvas, serial, {
                         format: "CODE128",
-                        width: 1.5,
-                        height: 30,
+                        width: 2,
+                        height: 45,
                         displayValue: true,
-                        fontSize: 11,
-                        margin: 0
+                        font: "monospace",
+                        fontSize: 12,
+                        textMargin: 3,
+                        margin: 12,
+                        background: "#ffffff",
+                        lineColor: "#000000"
                     });
                     $(this).attr('src', canvas.toDataURL("image/png"));
                 } catch (e) {
@@ -1028,8 +1032,11 @@
                         width: 2,
                         height: 50,
                         displayValue: true,
+                        font: "monospace",
                         fontSize: 14,
-                        margin: 5
+                        margin: 12,
+                        background: "#ffffff",
+                        lineColor: "#000000"
                     });
                     var dataUrl = canvas.toDataURL("image/png");
                     var base64 = dataUrl.split(',')[1];
@@ -1157,7 +1164,10 @@
                         html += '<tr data-serial="' + item.serialNumber.toLowerCase() + '" data-status="' + item.status.toLowerCase() + '">';
                         html += '<td class="text-center align-middle text-muted" style="width:40px;">' + rowNum + '</td>';
                         html += '<td class="text-center align-middle"><code class="font-weight-bold" style="font-size: 0.8rem;">' + item.serialNumber + '</code></td>';
-                        html += '<td class="text-center align-middle"><img class="modal-barcode-render" data-serial="' + item.serialNumber + '" style="height: 35px; max-width: 120px;" alt="Barcode" /></td>';
+                        html += '<td class="text-center align-middle">'
+                             +  '<img class="modal-barcode-render" data-serial="' + item.serialNumber + '" style="height: 38px; max-width: 170px; display: block; margin: 0 auto; background: #fff; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; image-rendering: -webkit-optimize-contrast; image-rendering: pixelated;" alt="Barcode" />'
+                             +  '<div class="text-dark font-weight-bold mt-1" style="font-size: 0.72rem; font-family: monospace; letter-spacing: 0.5px;">' + item.serialNumber + '</div>'
+                             +  '</td>';
                         html += '<td class="text-center align-middle">' + statusBadge + '</td>';
                         html += '</tr>';
                     });
@@ -1175,10 +1185,12 @@
                                 var canvas = document.createElement('canvas');
                                 JsBarcode(canvas, s, {
                                     format: "CODE128",
-                                    width: 1.2,
-                                    height: 25,
+                                    width: 1.3,
+                                    height: 36,
                                     displayValue: false,
-                                    margin: 0
+                                    margin: 8,
+                                    background: "#ffffff",
+                                    lineColor: "#000000"
                                 });
                                 $(this).attr('src', canvas.toDataURL("image/png"));
                             } catch(e) {
