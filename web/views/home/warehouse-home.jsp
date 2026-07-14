@@ -38,7 +38,7 @@
                                     </c:otherwise>
                                 </c:choose>
                             </h1>
-                            <p class="mb-0 text-gray-700">Quản lý kho hàng, máy phát điện, phụ tùng linh kiện, điều chuyển kho và yêu cầu mua sắm.</p>
+                            <p class="mb-0 text-gray-700">Quản lý kho hàng, máy phát điện, phụ tùng linh kiện và điều chuyển kho.</p>
                         </div>
                         <div class="text-sm-right mt-3 mt-sm-0">
                             <div class="small text-muted">Vai trò hiện tại</div>
@@ -118,11 +118,10 @@
                     <div class="col-lg-6 mb-4">
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
-                                <h6 class="font-weight-bold text-gray-900"><i class="fas fa-shopping-cart text-success"></i> Yêu cầu mua sắm & Điều chuyển</h6>
-                                <p class="small text-muted">Có ${pendingPurchaseRequests} yêu cầu mua sắm và ${pendingTransfers} yêu cầu điều chuyển kho đang chờ duyệt.</p>
+                                <h6 class="font-weight-bold text-gray-900"><i class="fas fa-exchange-alt text-success"></i> Yêu cầu điều chuyển</h6>
+                                <p class="small text-muted">Có ${pendingTransfers} yêu cầu điều chuyển kho đang chờ duyệt.</p>
                                 <div class="workflow-actions">
-                                    <a href="${pageContext.request.contextPath}/purchase-requests" class="btn btn-sm btn-success">Yêu cầu mua sắm</a>
-                                    <a href="${pageContext.request.contextPath}/stock-transfers" class="btn btn-sm btn-outline-success">Điều chuyển kho</a>
+                                    <a href="${pageContext.request.contextPath}/stock-transfers" class="btn btn-sm btn-success">Yêu cầu điều chuyển</a>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +142,7 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-contract text-danger"></i> Thuê & Trả máy phát điện</h6>
-                                <p class="small text-muted">Bàn giao máy phát, tiếp nhận hoàn trả, phân công Staff pre-delivery check-up.</p>
+                                <p class="small text-muted">Bàn giao máy phát, tiếp nhận hoàn trả, phân công nhân viên kiểm tra máy trước khi bàn giao.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/warehouse/rentals" class="btn btn-sm btn-danger">Yêu cầu thuê & Trả máy</a>
                                 </div>
