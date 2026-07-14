@@ -100,6 +100,31 @@ public class CustomerRentalContract {
         this.status = status;
     }
 
+    public long getDaysRemaining() {
+        if (expectedReturnDate == null) {
+            return 0;
+        }
+        java.util.Calendar calNow = java.util.Calendar.getInstance();
+        calNow.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        calNow.set(java.util.Calendar.MINUTE, 0);
+        calNow.set(java.util.Calendar.SECOND, 0);
+        calNow.set(java.util.Calendar.MILLISECOND, 0);
+
+        java.util.Calendar calExp = java.util.Calendar.getInstance();
+        calExp.setTime(expectedReturnDate);
+        calExp.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        calExp.set(java.util.Calendar.MINUTE, 0);
+        calExp.set(java.util.Calendar.SECOND, 0);
+        calExp.set(java.util.Calendar.MILLISECOND, 0);
+
+        long diffMillis = calExp.getTimeInMillis() - calNow.getTimeInMillis();
+        return diffMillis / (24 * 60 * 60 * 1000L);
+    }
+
+    public boolean isDueOrOverdue() {
+        return getDaysRemaining() <= 0;
+    }
+
     public BigDecimal getDepositAmount() {
         return depositAmount;
     }

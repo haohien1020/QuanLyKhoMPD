@@ -131,9 +131,53 @@ public class WarehouseRentalServlet extends HttpServlet {
                 }
             } else if ("reject".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
-                boolean success = rentalContractDAO.updateContractStatus(contractId, "REJECTED", currentUser.getUserId());
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
+                CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                if (contract != null) {
+                    boolean success = rentalContractDAO.updateContractStatus(contractId, "REJECTED", currentUser.getUserId());
+                    if (success) {
+                        // Rollback generator barcode / unit statuses to IN_STOCK
+                        try {
+                            List<CustomerRentedGenerator> gens = rentalContractDAO.getGeneratorsForContract(contractId);
+                            for (CustomerRentedGenerator cg : gens) {
+                                if (cg.getSerialNumber() != null && !cg.getSerialNumber().isEmpty()) {
+                                    String[] serials = cg.getSerialNumber().split(",");
+                                    for (String s : serials) {
+                                        s = s.trim();
+                                        if (!s.isEmpty()) {
+                                            generatorDAO.updateBarcodeStatus(s, "IN_STOCK");
+                                        }
+                                    }
+                                }
+                                Generator g = generatorDAO.findById(cg.getGeneratorId());
+                                if (g != null && "EXPORTED".equals(g.getStatus())) {
+                                    g.setStatus("IN_STOCK");
+                                    generatorDAO.update(g);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Failed to rollback generator statuses on rejection: " + ex.getMessage());
+                        }
+
+                        // Send cancellation notification to assigned staff if any
+                        if (contract.getAssignedStaffId() != null && contract.getAssignedStaffId() > 0) {
+                            try {
+                                NotificationDAO notificationDAO = new NotificationDAO();
+                                Notification notif = new Notification();
+                                notif.setUserId(contract.getAssignedStaffId());
+                                notif.setTitle("Hủy hợp đồng thuê máy");
+                                notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã bị từ chối/hủy. Bạn không cần thực hiện bàn giao hợp đồng này nữa.");
+                                notif.setType("RENTAL");
+                                notif.setRead(false);
+                                notificationDAO.insert(notif);
+                            } catch (Exception ex) {
+                                System.err.println("Failed to send cancellation notification to staff: " + ex.getMessage());
+                            }
+                        }
+
+                        response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
+                    } else {
+                        response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
+                    }
                 } else {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
                 }

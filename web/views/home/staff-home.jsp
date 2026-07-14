@@ -405,7 +405,8 @@
                                 <p class="small text-muted">Kiểm tra nhanh thông tin thiết bị máy phát điện và linh kiện phụ tùng có sẵn tại chi nhánh.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/generators" class="btn btn-sm btn-primary px-3 mr-2">Máy phát điện</a>
-                                    <a href="${pageContext.request.contextPath}/parts" class="btn btn-sm btn-outline-primary px-3">Phụ tùng</a>
+                                    <a href="${pageContext.request.contextPath}/parts" class="btn btn-sm btn-outline-primary px-3 mr-2">Phụ tùng</a>
+                                    <a href="${pageContext.request.contextPath}/staff/rented-generators" class="btn btn-sm btn-info px-3">Máy khách đang thuê</a>
                                 </div>
                             </div>
                         </div>
@@ -601,10 +602,10 @@
                         <input type="hidden" name="barcodeId" id="exportBarcodeHidden">
                     </div>
                     <div class="form-group mb-3" id="exportBarcodeGroup" style="display:none;">
-                        <label class="font-weight-bold text-muted mb-1">Hình ảnh mã vạch (Barcode):</label>
-                        <div class="text-center p-2 bg-light rounded border">
-                            <img id="exportBarcodeImg" src="" alt="Barcode" style="max-height: 55px; max-width: 100%;">
-                            <div class="text-muted mt-1" id="exportBarcodeLabelText" style="font-size: 0.75rem; font-family: monospace;"></div>
+                        <label class="font-weight-bold text-muted mb-1">Mã vạch Barcode:</label>
+                        <div class="text-center p-3 bg-light rounded border shadow-sm">
+                            <img id="exportBarcodeImg" src="" alt="Barcode" style="height: 60px; max-width: 100%; width: auto; display: block; margin: 0 auto; background: #ffffff; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; image-rendering: -webkit-optimize-contrast; image-rendering: pixelated;">
+                            <div class="font-weight-bold text-dark mt-2" id="exportBarcodeLabelText" style="font-size: 0.92rem; font-family: 'Courier New', monospace; letter-spacing: 1.2px; word-break: break-all; background: #fff; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; display: inline-block;"></div>
                         </div>
                     </div>
                     <div class="form-group mb-3">
@@ -682,10 +683,12 @@
                 var canvas = document.createElement('canvas');
                 JsBarcode(canvas, serial, {
                     format: 'CODE128',
-                    width: 1.6,
-                    height: 45,
+                    width: 1.5,
+                    height: 60,
                     displayValue: false,
-                    margin: 2
+                    margin: 10,
+                    background: '#ffffff',
+                    lineColor: '#000000'
                 });
                 $('#exportBarcodeImg').attr('src', canvas.toDataURL('image/png')).show();
                 $('#exportBarcodeLabelText').text(serial);

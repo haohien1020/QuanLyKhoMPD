@@ -654,7 +654,6 @@
                                                                                     </c:if>
                                                                                 </select>
                                                                             </div>
-
                                                                             <div class="form-group" id="contractSelectContainer">
                                                                                 <label for="exportContractSelect" class="font-weight-bold text-gray-700">Chọn hợp đồng thuê được duyệt <span class="text-danger">*</span></label>
                                                                                 <select id="exportContractSelect" name="contractId" class="form-control" required style="width: 100%;">
@@ -685,11 +684,8 @@
                                                                                     <input type="hidden" name="barcodeId" id="exportGenSelectHidden">
                                                                                     
                                                                                     <div class="form-group mt-3" id="exportBarcodeGroup" style="display:none;">
-                                                                                        <label class="font-weight-bold text-muted mb-1">Hình ảnh mã vạch (Barcode):</label>
-                                                                                        <div class="text-center p-2 bg-light rounded border" style="max-width: 320px;">
-                                                                                            <img id="exportBarcodeImg" src="" alt="Barcode" style="max-height: 55px; max-width: 100%;">
-                                                                                            <div class="text-muted mt-1" id="exportBarcodeLabelText" style="font-size: 0.75rem; font-family: monospace;"></div>
-                                                                                        </div>
+                                                                                        <label class="font-weight-bold text-muted mb-2"><i class="fas fa-barcode mr-1"></i>Hình ảnh mã vạch Barcode các máy đã chọn:</label>
+                                                                                        <div id="exportBarcodeListContainer"></div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
@@ -1116,35 +1112,63 @@
                             }
                         });
 
-                        function renderBarcodeInAction(serial) {
-                            if (serial) {
+                        function renderBarcodeInAction(serials) {
+                            if (!serials) {
+                                $('#exportBarcodeGroup').hide();
+                                return;
+                            }
+                            var serialArray = Array.isArray(serials) ? serials : [serials];
+                            if (serialArray.length === 0) {
+                                $('#exportBarcodeGroup').hide();
+                                return;
+                            }
+
+                            var container = $('#exportBarcodeListContainer');
+                            container.empty();
+                            
+                            serialArray.forEach(function(s) {
+                                if (!s) return;
                                 try {
                                     var canvas = document.createElement('canvas');
-                                    JsBarcode(canvas, serial, {
+                                    JsBarcode(canvas, s, {
                                         format: 'CODE128',
-                                        width: 1.6,
-                                        height: 45,
+                                        width: 1.5,
+                                        height: 55,
                                         displayValue: false,
-                                        margin: 2
+                                        margin: 10,
+                                        background: '#ffffff',
+                                        lineColor: '#000000'
                                     });
-                                    $('#exportBarcodeImg').attr('src', canvas.toDataURL('image/png')).show();
-                                    $('#exportBarcodeLabelText').text(serial);
-                                    $('#exportBarcodeGroup').show();
+                                    
+                                    var cardHtml = '<div class="text-center p-3 bg-light rounded border shadow-sm mb-2" style="max-width: 360px;">'
+                                                 + '<img src="' + canvas.toDataURL('image/png') + '" alt="Barcode" style="height: 55px; max-width: 100%; display: block; margin: 0 auto; background: #ffffff; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; image-rendering: -webkit-optimize-contrast; image-rendering: pixelated;">'
+                                                 + '<div class="font-weight-bold text-dark mt-2" style="font-size: 0.9rem; font-family: monospace; letter-spacing: 1.2px; background: #fff; padding: 3px 8px; border-radius: 4px; border: 1px solid #e2e8f0; display: inline-block;">' + s + '</div>'
+                                                 + '</div>';
+                                    container.append(cardHtml);
                                 } catch(e) {
                                     console.error('JsBarcode error:', e);
-                                    $('#exportBarcodeGroup').hide();
                                 }
-                            } else {
-                                $('#exportBarcodeGroup').hide();
-                            }
+                            });
+                            
+                            $('#exportBarcodeGroup').show();
                         }
 
                         $('#exportGenSelect').on('change', function() {
-                            var barcodeId = $(this).val();
-                            if (barcodeId) {
-                                var match = inStockBarcodes.find(function(b) { return b.barcodeId == barcodeId; });
-                                if (match && match.serialNumber) {
-                                    renderBarcodeInAction(match.serialNumber);
+                            if ($(this).prop('disabled')) {
+                                return;
+                            }
+                            var vals = $(this).val();
+                            if (vals) {
+                                var valArray = Array.isArray(vals) ? vals : [vals];
+                                var serials = [];
+                                valArray.forEach(function(v) {
+                                    var match = inStockBarcodes.find(function(b) { return b.barcodeId == v; });
+                                    if (match && match.serialNumber) {
+                                        serials.push(match.serialNumber);
+                                    }
+                                });
+                                if (serials.length > 0) {
+                                    renderBarcodeInAction(serials);
                                 } else {
                                     $('#exportBarcodeGroup').hide();
                                 }
@@ -1164,6 +1188,9 @@
                             var labelEl = $('#exportGenSelectLabel');
                             
                             selectEl.empty();
+                            selectEl.removeAttr('multiple').removeAttr('size').css('min-height', '');
+                            
+                            $('#exportBarcodeContainer').find('.dynamic-barcode-hidden').remove();
                             
                             if (!$(this).val()) {
                                 labelEl.html('Chọn máy phát điện cần xuất kho <span class="text-danger">*</span>');
@@ -1182,30 +1209,64 @@
                                 return;
                             }
                             
-                            var exactMatch = null;
+                            var designatedSerials = [];
                             if (serial) {
-                                exactMatch = inStockBarcodes.find(function(b) {
-                                    return b.serialNumber === serial;
+                                var parts = serial.toString().split(/,\s*/);
+                                parts.forEach(function(p) {
+                                    p = p.trim();
+                                    if (p) designatedSerials.push(p);
                                 });
                             }
                             
-                            if (serial && exactMatch) {
-                                labelEl.html('Máy phát điện được chỉ định bàn giao (Theo Hợp đồng: ' + code + ') <span class="text-danger">*</span>');
-                                selectEl.append($('<option>', {
-                                    value: exactMatch.barcodeId,
-                                    text: exactMatch.generatorName + ' (Serial: ' + exactMatch.serialNumber + ')',
-                                    selected: true
-                                }));
+                            var matchingBarcodes = [];
+                            if (designatedSerials.length > 0) {
+                                designatedSerials.forEach(function(s) {
+                                    var match = inStockBarcodes.find(function(b) { return b.serialNumber === s; });
+                                    if (match) {
+                                        matchingBarcodes.push(match);
+                                    }
+                                });
+                            }
+                            
+                            if (matchingBarcodes.length > 0) {
+                                var isMulti = matchingBarcodes.length > 1;
+                                if (isMulti) {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.attr('multiple', 'multiple').css('min-height', '120px');
+                                } else {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                }
+                                
+                                matchingBarcodes.forEach(function(b) {
+                                    selectEl.append($('<option>', {
+                                        value: b.barcodeId,
+                                        text: b.generatorName + ' (Serial: ' + b.serialNumber + ')',
+                                        selected: true
+                                    }));
+                                    $('#exportBarcodeContainer').append('<input type="hidden" name="barcodeId" class="dynamic-barcode-hidden" value="' + b.barcodeId + '">');
+                                });
+                                
                                 selectEl.prop('disabled', true);
                                 selectEl.removeAttr('name');
-                                hiddenEl.val(exactMatch.barcodeId);
-                                hiddenEl.prop('disabled', false);
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+
+                                var selectedSerials = matchingBarcodes.map(function(b) { return b.serialNumber; });
+                                renderBarcodeInAction(selectedSerials);
                             } else if (generatorId) {
-                                labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
-                                selectEl.append('<option value="">-- Chọn máy phát điện cho mẫu này --</option>');
                                 var filtered = inStockBarcodes.filter(function(b) {
                                     return b.generatorId == generatorId;
                                 });
+                                
+                                var reqCount = designatedSerials.length > 0 ? designatedSerials.length : 1;
+                                if (reqCount > 1 || filtered.length > 1) {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.attr('multiple', 'multiple').css('min-height', '120px');
+                                    selectEl.append('<option value="" disabled>-- Chọn máy phát điện cho mẫu này --</option>');
+                                } else {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.append('<option value="">-- Chọn máy phát điện cho mẫu này --</option>');
+                                }
                                 
                                 if (filtered.length === 0) {
                                     selectEl.append('<option value="" disabled>Không có máy nào thuộc mẫu này sẵn sàng trong kho</option>');
@@ -1223,7 +1284,9 @@
                                 hiddenEl.prop('disabled', true);
                             }
                             
-                            selectEl.trigger('change');
+                            if (!selectEl.prop('disabled')) {
+                                selectEl.trigger('change');
+                            }
                         });
 
                         // Generator Export Form Toggle Logic for Transfers

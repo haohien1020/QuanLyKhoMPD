@@ -502,7 +502,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             conn.setAutoCommit(false);
 
             // 1. Check if generator barcode is currently IN_STOCK
-            String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status FROM generator_barcodes gb "
+            String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status AS barcode_status FROM generator_barcodes gb "
                     + "JOIN generators g ON gb.generator_id = g.generator_id "
                     + "WHERE gb.barcode_id = ? AND g.warehouse_id = ?";
             int generatorId = 0;
@@ -515,7 +515,7 @@ public class InventoryTransactionDAO extends BaseDAO {
                     if (rs.next()) {
                         generatorId = rs.getInt("generator_id");
                         serialNumber = rs.getString("serial_number");
-                        currentStatus = rs.getString("status");
+                        currentStatus = rs.getString("barcode_status");
                     } else {
                         conn.rollback();
                         return false;

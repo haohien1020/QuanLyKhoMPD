@@ -103,7 +103,7 @@
                 </div>
                 <% } else if ("missing_required".equals(errorParam)) { %>
                 <div class="alert alert-warning alert-dismissible fade show">
-                    <i class="fas fa-exclamation-triangle"></i> Vui lòng điền đầy đủ các thông tin bắt buộc (Tên khách hàng và Email).
+                    <i class="fas fa-exclamation-triangle"></i> Vui lòng điền đầy đủ tất cả các thông tin bắt buộc (Tên khách hàng, Email, Số điện thoại và Địa chỉ).
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
                 </div>
                 <% } else if ("invalid_email".equals(errorParam)) { %>
@@ -278,13 +278,13 @@
 
                     <div class="row">
                         <div class="form-group col-md-6">
-                            <label for="phone">Số điện thoại</label>
-                            <input type="text" id="phone" name="phone" class="form-control" maxlength="20">
+                            <label for="phone">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="text" id="phone" name="phone" class="form-control" required maxlength="20">
                             <div class="invalid-feedback" id="phoneFeedback"></div>
                         </div>
                         <div class="form-group col-md-6">
-                            <label for="statusInput">Trạng thái</label>
-                            <select id="statusInput" name="status" class="form-control">
+                            <label for="statusInput">Trạng thái <span class="text-danger">*</span></label>
+                            <select id="statusInput" name="status" class="form-control" required>
                                 <option value="ACTIVE">Đang hoạt động</option>
                                 <option value="INACTIVE">Ngừng hoạt động</option>
                             </select>
@@ -292,8 +292,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="address">Địa chỉ</label>
-                        <input type="text" id="address" name="address" class="form-control" maxlength="255">
+                        <label for="address">Địa chỉ <span class="text-danger">*</span></label>
+                        <input type="text" id="address" name="address" class="form-control" required maxlength="255">
+                        <div class="invalid-feedback" id="addressFeedback"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -418,15 +419,29 @@
                 isValid = false;
             }
 
-            // Validate Phone (optional)
+            // Validate Phone
             const phoneVal = $('#phone').val().trim();
-            if (phoneVal !== '') {
-                const phoneRegex = /^(\+84\s?\d{9}|84\d{9}|0\d{9})$/;
-                if (!phoneRegex.test(phoneVal)) {
-                    $('#phone').addClass('is-invalid');
-                    $('#phoneFeedback').text('Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).');
-                    isValid = false;
-                }
+            const phoneRegex = /^(\+84\s?\d{9}|84\d{9}|0\d{9})$/;
+            if (phoneVal === '') {
+                $('#phone').addClass('is-invalid');
+                $('#phoneFeedback').text('Số điện thoại không được để trống.');
+                isValid = false;
+            } else if (!phoneRegex.test(phoneVal)) {
+                $('#phone').addClass('is-invalid');
+                $('#phoneFeedback').text('Số điện thoại không đúng định dạng (VD: 09xxxxxxxx hoặc +84xxxxxxxxx).');
+                isValid = false;
+            }
+
+            // Validate Address
+            const addressVal = $('#address').val().trim();
+            if (addressVal === '') {
+                $('#address').addClass('is-invalid');
+                $('#addressFeedback').text('Địa chỉ không được để trống.');
+                isValid = false;
+            } else if (addressVal.length > 255) {
+                $('#address').addClass('is-invalid');
+                $('#addressFeedback').text('Địa chỉ không được vượt quá 255 ký tự.');
+                isValid = false;
             }
 
             if (!isValid) {

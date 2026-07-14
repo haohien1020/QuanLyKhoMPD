@@ -487,7 +487,7 @@ public class RentalContractDAO extends BaseDAO {
     public List<Integer> findAssignedGeneratorIds(int staffId) throws Exception {
         String sql = "SELECT rcd.generator_id FROM rental_contracts rc "
                    + "JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
-                   + "WHERE rc.assigned_staff_id = ? AND rc.status = 'APPROVED'";
+                   + "WHERE rc.assigned_staff_id = ? AND rc.status IN ('APPROVED', 'DELIVERED')";
         List<Integer> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

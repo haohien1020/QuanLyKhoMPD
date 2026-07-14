@@ -469,55 +469,86 @@ public class InventoryTransactionServlet extends HttpServlet {
                     }
                     return;
                 } else {
-                    int barcodeId = Integer.parseInt(request.getParameter("barcodeId"));
-                    if (isStaff) {
-                        model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
-                        if (gb == null) {
-                            response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=generator_export_failed");
-                            return;
+                    String[] barcodeIdStrs = request.getParameterValues("barcodeId");
+                    if (barcodeIdStrs == null || barcodeIdStrs.length == 0) {
+                        response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=invalid_barcode");
+                        return;
+                    }
+
+                    boolean allSuccess = true;
+                    for (String bIdStr : barcodeIdStrs) {
+                        if (bIdStr == null || bIdStr.trim().isEmpty()) continue;
+                        int barcodeId = Integer.parseInt(bIdStr.trim());
+
+                        if (isStaff) {
+                            model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
+                            if (gb != null) {
+                                List<Integer> assignedGenIds = rentalContractDAO.findAssignedGeneratorIds(currentUser.getUserId());
+                                if (assignedGenIds == null || !assignedGenIds.contains(gb.getGeneratorId())) {
+                                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không được phân công xuất máy phát điện này.");
+                                    return;
+                                }
+                            }
                         }
-                        List<Integer> assignedGenIds = rentalContractDAO.findAssignedGeneratorIds(currentUser.getUserId());
-                        if (assignedGenIds == null || !assignedGenIds.contains(gb.getGeneratorId())) {
-                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không được phân công xuất máy phát điện này.");
-                            return;
+
+                        model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
+                        if (gb != null) {
+                            List<model.GeneratorBarcode> allModelBarcodes = generatorDAO.findBarcodesByGeneratorId(gb.getGeneratorId());
+                            boolean hasRemainingInStock = false;
+                            for (model.GeneratorBarcode r : allModelBarcodes) {
+                                if ("IN_STOCK".equals(r.getStatus()) && r.getBarcodeId() != barcodeId) {
+                                    hasRemainingInStock = true;
+                                    break;
+                                }
+                            }
+                            if (!hasRemainingInStock) {
+                                model.Generator gen = generatorDAO.findById(gb.getGeneratorId());
+                                if (gen != null) {
+                                    gen.setStatus("EXPORTED");
+                                    generatorDAO.update(gen);
+                                }
+                            }
+                        }
+
+                        String exportNote = note;
+                        if (exportNote.isEmpty()) {
+                            exportNote = "Xuất kho máy phát điện";
+                        }
+                        boolean s = transactionDAO.exportGenerator(barcodeId, managedWarehouse.getWarehouseId(),
+                                exportStatus, currentUser.getUserId(), exportNote);
+                        if (!s) {
+                            allSuccess = false;
                         }
                     }
                     
-                    String contractIdStr = request.getParameter("contractId");
-                    if (contractIdStr != null && !contractIdStr.trim().isEmpty()) {
-                        int contractId = Integer.parseInt(contractIdStr.trim());
-                        rentalContractDAO.updateContractStatus(contractId, "DELIVERED", currentUser.getUserId());
-                        
-                        model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
-                        if (gb != null) {
-                            model.Generator gen = generatorDAO.findById(gb.getGeneratorId());
-                            if (gen != null) {
-                                gen.setStatus("EXPORTED");
-                                generatorDAO.update(gen);
-                            }
+                    if (allSuccess) {
+                        String contractIdStr = request.getParameter("contractId");
+                        if (contractIdStr != null && !contractIdStr.trim().isEmpty()) {
+                            int contractId = Integer.parseInt(contractIdStr.trim());
+                            rentalContractDAO.updateContractStatus(contractId, "DELIVERED", currentUser.getUserId());
                         }
                     }
-
-                    if (note.isEmpty()) {
-                        note = "Xuất kho máy phát điện";
-                    }
-                    success = transactionDAO.exportGenerator(barcodeId, managedWarehouse.getWarehouseId(),
-                            exportStatus, currentUser.getUserId(), note);
+                    success = allSuccess;
                     
                     String redirectUrl = request.getParameter("redirect");
                     if (success) {
                         if ("home".equals(redirectUrl)) {
                             response.sendRedirect(request.getContextPath() + "/staff/home?success=generator_export_success");
+                        } else if ("rented-generators".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/rented-generators?success=generator_export_success");
                         } else {
                             response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=generator_export_success");
                         }
                     } else {
                         if ("home".equals(redirectUrl)) {
                             response.sendRedirect(request.getContextPath() + "/staff/home?error=generator_export_failed");
+                        } else if ("rented-generators".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/rented-generators?error=generator_export_failed");
                         } else {
                             response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=generator_export_failed");
                         }
                     }
+                    return;
                 }
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
