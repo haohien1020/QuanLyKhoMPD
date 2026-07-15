@@ -78,7 +78,7 @@ public class CustomerPortalDAO extends BaseDAO {
     }
 
     public List<CustomerRentedGenerator> findActiveGeneratorsForCustomer(int customerId) throws Exception {
-        String sql = "SELECT g.generator_id, g.generator_name, g.serial_number, g.brand, g.power_value, "
+        String sql = "SELECT g.generator_id, g.generator_name, COALESCE(rcd.serial_number, g.serial_number) AS serial_number, g.brand, g.power_value, "
                 + "g.fuel_type, g.status AS generator_status, rc.contract_code, rc.rental_contract_id, "
                 + "rc.start_date, rc.expected_return_date, rcd.rental_price "
                 + "FROM rental_contracts rc "

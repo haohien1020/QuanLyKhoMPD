@@ -112,4 +112,20 @@ public class PurchaseRequestDAO extends BaseDAO {
         }
         return list;
     }
+
+    public List<PurchaseRequest> findPendingRequests() throws Exception {
+        String sql = "SELECT purchase_request_id, warehouse_id, requested_by, approved_by, reason, status, created_at, approved_at "
+                + "FROM purchase_requests "
+                + "WHERE status = 'PENDING' "
+                + "ORDER BY purchase_request_id DESC";
+        List<PurchaseRequest> list = new ArrayList<PurchaseRequest>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapResultSet(rs));
+            }
+        }
+        return list;
+    }
 }

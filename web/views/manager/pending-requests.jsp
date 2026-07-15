@@ -102,27 +102,7 @@
                 <!-- Unified Pending Requests Hub -->
                 <div class="row">
                     <div class="col-12">
-                        <!-- Navigation Tabs (Pills style) -->
-                        <ul class="nav nav-pills mb-4 p-2 bg-white rounded shadow-sm border" id="requestTabs" role="tablist">
-                            <li class="nav-item mr-2">
-                                <a class="nav-link active" id="transfer-tab" data-toggle="pill" href="#transfer-pane" role="tab" aria-controls="transfer-pane" aria-selected="true">
-                                    <i class="fas fa-exchange-alt tab-icon"></i>Điều chuyển kho
-                                    <span class="badge badge-danger badge-counter ml-1">${pendingTransfers.size()}</span>
-                                </a>
-                            </li>
-                            <li class="nav-item mr-2">
-                                <a class="nav-link" id="part-tab" data-toggle="pill" href="#part-pane" role="tab" aria-controls="part-pane" aria-selected="false">
-                                    <i class="fas fa-tools tab-icon"></i>Cấp phát phụ tùng
-                                    <span class="badge badge-success badge-counter ml-1">${pendingParts.size()}</span>
-                                </a>
-                            </li>
-                        </ul>
-
-                        <!-- Tab Content -->
-                        <div class="tab-content" id="requestTabContent">
-                            
-                            <!-- TAB 1: STOCK TRANSFERS -->
-                            <div class="tab-pane fade show active" id="transfer-pane" role="tabpanel" aria-labelledby="transfer-tab">
+                        <h4 class="h5 mb-3 font-weight-bold text-gray-800"><i class="fas fa-exchange-alt mr-2 text-info"></i>Yêu cầu điều chuyển kho chờ duyệt</h4>
                                 <c:choose>
                                     <c:when test="${empty pendingTransfers}">
                                         <div class="card shadow-sm border-0 py-5 text-center bg-white rounded">
@@ -218,90 +198,104 @@
                                         </c:forEach>
                                     </c:otherwise>
                                 </c:choose>
-                            </div>
 
-                            <!-- TAB 2: PART REQUESTS -->
-                            <div class="tab-pane fade" id="part-pane" role="tabpanel" aria-labelledby="part-tab">
-                                <c:choose>
-                                    <c:when test="${empty pendingParts}">
-                                        <div class="card shadow-sm border-0 py-5 text-center bg-white rounded">
-                                            <div class="card-body">
-                                                <i class="fas fa-tools fa-3x text-muted mb-3"></i>
-                                                <p class="text-gray-500 font-weight-bold mb-0">Không có yêu cầu cấp phát phụ tùng nào đang chờ duyệt.</p>
-                                            </div>
-                                        </div>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <c:forEach var="pt" items="${pendingParts}">
-                                            <div class="card request-card part shadow-sm mb-3 bg-white">
-                                                <div class="card-body">
-                                                    <div class="d-md-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                                        <div>
-                                                            <h5 class="font-weight-bold text-gray-900 mb-1">Yêu cầu Cấp phát Phụ tùng PR-${pt.requestId}</h5>
-                                                            <span class="small text-muted"><i class="far fa-clock mr-1"></i>Ngày tạo: <fmt:formatDate value="${pt.createdAt}" pattern="dd/MM/yyyy HH:mm"/></span>
-                                                        </div>
-                                                        <div class="text-md-right mt-2 mt-md-0">
-                                                            <span class="badge-status bg-success text-white font-weight-bold">Chờ phê duyệt</span>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="row mb-3">
-                                                        <div class="col-md-3">
-                                                            <div class="small font-weight-bold text-uppercase text-muted">Kho yêu cầu</div>
-                                                            <div class="text-gray-800 font-weight-bold">${warehouseMap[pt.warehouseId]}</div>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <div class="small font-weight-bold text-uppercase text-muted">Tên phụ tùng</div>
-                                                            <div class="text-gray-800 font-weight-bold">${partMap[pt.partId].partName} (Mã: ${partMap[pt.partId].partCode})</div>
-                                                        </div>
-                                                        <div class="col-md-2 text-center">
-                                                            <div class="small font-weight-bold text-uppercase text-muted">Số lượng yêu cầu</div>
-                                                            <div class="text-danger font-weight-bold" style="font-size: 1.1rem;">${pt.quantity} ${partMap[pt.partId].unit}</div>
-                                                        </div>
-                                                        <div class="col-md-2 text-center">
-                                                            <div class="small font-weight-bold text-uppercase text-muted">Tồn kho hiện tại</div>
-                                                            <div class="text-info font-weight-bold" style="font-size: 1.1rem;">${partMap[pt.partId].quantity} ${partMap[pt.partId].unit}</div>
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <div class="small font-weight-bold text-uppercase text-muted">Nhân viên kỹ thuật</div>
-                                                            <div class="text-gray-800">${userMap[pt.requestedBy]}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    <c:if test="${not empty pt.reason}">
-                                                        <div class="p-3 bg-light rounded border mb-3">
-                                                            <div class="small font-weight-bold text-muted text-uppercase mb-1"><i class="fas fa-comment-alt mr-1"></i>Lý do yêu cầu:</div>
-                                                            <div class="text-gray-800" style="font-style: italic;">"${pt.reason}"</div>
-                                                        </div>
-                                                    </c:if>
-
-                                                    <!-- Action buttons -->
-                                                    <div class="text-right">
-                                                        <form method="post" action="${pageContext.request.contextPath}/manager/pending-requests/reject" class="d-inline">
-                                                            <input type="hidden" name="type" value="part">
-                                                            <input type="hidden" name="id" value="${pt.requestId}">
-                                                            <button type="submit" class="btn btn-outline-danger btn-sm font-weight-bold mr-2" onclick="return confirm('Bạn chắc chắn muốn Từ chối yêu cầu cấp phát PR-${pt.requestId}?')">
-                                                                <i class="fas fa-times-circle mr-1"></i>Từ chối
-                                                            </button>
-                                                        </form>
-                                                        <form method="post" action="${pageContext.request.contextPath}/manager/pending-requests/approve" class="d-inline">
-                                                            <input type="hidden" name="type" value="part">
-                                                            <input type="hidden" name="id" value="${pt.requestId}">
-                                                            <button type="submit" class="btn btn-primary btn-sm font-weight-bold" ${partMap[pt.partId].quantity < pt.quantity ? 'disabled' : ''} onclick="return confirm('Bạn chắc chắn muốn Phê duyệt yêu cầu cấp phát PR-${pt.requestId}?')">
-                                                                <i class="fas fa-check-circle mr-1"></i>Phê duyệt
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                        <!-- Yêu cầu xác nhận nhận kho điều chuyển -->
+                        <h4 class="h5 mt-4 mb-3 font-weight-bold text-gray-800"><i class="fas fa-arrow-circle-down mr-2 text-success"></i>Yêu cầu xác nhận nhận kho điều chuyển</h4>
+                        <c:choose>
+                            <c:when test="${empty pendingReceiveTransfers}">
+                                <div class="card shadow-sm border-0 py-5 text-center bg-white rounded">
+                                    <div class="card-body">
+                                        <i class="fas fa-arrow-circle-down fa-3x text-muted mb-3"></i>
+                                        <p class="text-gray-500 font-weight-bold mb-0">Không có yêu cầu xác nhận nhận kho nào.</p>
+                                    </div>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <c:forEach var="st" items="${pendingReceiveTransfers}">
+                                    <div class="card request-card transfer shadow-sm mb-3 bg-white" style="border-left-color: #1cc88a;">
+                                        <div class="card-body">
+                                            <div class="d-md-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                                <div>
+                                                    <h5 class="font-weight-bold text-gray-900 mb-1">Yêu cầu Nhận Điều chuyển TF-${st.transferId}</h5>
+                                                    <span class="small text-muted"><i class="far fa-clock mr-1"></i>Ngày tạo: <fmt:formatDate value="${st.createdAt}" pattern="dd/MM/yyyy HH:mm"/></span>
+                                                </div>
+                                                <div class="text-md-right mt-2 mt-md-0">
+                                                    <span class="badge-status bg-warning text-white font-weight-bold">Chờ xác nhận nhập kho</span>
                                                 </div>
                                             </div>
-                                        </c:forEach>
-                                    </c:otherwise>
-                                </c:choose>
-                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="small font-weight-bold text-uppercase text-muted">Kho gửi</div>
+                                                    <div class="text-gray-800 font-weight-bold"><i class="fas fa-arrow-circle-up text-danger mr-1"></i>${warehouseMap[st.fromWarehouseId]}</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="small font-weight-bold text-uppercase text-muted">Kho nhận</div>
+                                                    <div class="text-gray-800 font-weight-bold"><i class="fas fa-arrow-circle-down text-success mr-1"></i>${warehouseMap[st.toWarehouseId]}</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="small font-weight-bold text-uppercase text-muted">Người yêu cầu</div>
+                                                    <div class="text-gray-800">${userMap[st.createdBy]}</div>
+                                                </div>
+                                            </div>
 
+                                            <!-- Details List of Transfer -->
+                                            <div class="table-responsive mb-3 bg-light p-2 rounded">
+                                                <table class="table table-bordered table-sm mb-0 bg-white">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th>Loại</th>
+                                                            <th>Tên sản phẩm</th>
+                                                            <th class="text-center" style="width: 100px;">Số lượng</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <c:forEach var="det" items="${transferDetailsMap[st.transferId]}">
+                                                            <tr>
+                                                                <td>
+                                                                    <span class="badge ${det.itemType eq 'GENERATOR' ? 'badge-primary' : 'badge-success'}">
+                                                                        ${det.itemType eq 'GENERATOR' ? 'Máy phát điện' : 'Phụ tùng'}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <c:choose>
+                                                                        <c:when test="${det.itemType eq 'GENERATOR'}">
+                                                                            ${genMap[det.generatorId].generatorName} (Mẫu: [${genMap[det.generatorId].brand}] ${genMap[det.generatorId].powerValue})
+                                                                        </c:when>
+                                                                        <c:otherwise>
+                                                                            ${partMap[det.partId].partName} (Mã: ${partMap[det.partId].partCode})
+                                                                        </c:otherwise>
+                                                                    </c:choose>
+                                                                </td>
+                                                                <td class="text-center font-weight-bold text-gray-900">${det.quantity}</td>
+                                                            </tr>
+                                                        </c:forEach>
+                                                    </tbody>
+                                                </table>
+                                            </div>
 
-
-                        </div>
+                                            <!-- Action buttons -->
+                                            <div class="text-right">
+                                                <form method="post" action="${pageContext.request.contextPath}/manager/pending-requests/reject" class="d-inline">
+                                                    <input type="hidden" name="type" value="transfer-receive">
+                                                    <input type="hidden" name="id" value="${st.transferId}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm font-weight-bold mr-2" onclick="return confirm('Bạn chắc chắn muốn Từ chối nhận yêu cầu điều chuyển TF-${st.transferId}?')">
+                                                        <i class="fas fa-times-circle mr-1"></i>Từ chối nhận
+                                                    </button>
+                                                </form>
+                                                <form method="post" action="${pageContext.request.contextPath}/manager/pending-requests/approve" class="d-inline">
+                                                    <input type="hidden" name="type" value="transfer-receive">
+                                                    <input type="hidden" name="id" value="${st.transferId}">
+                                                    <button type="submit" class="btn btn-success btn-sm font-weight-bold" onclick="return confirm('Bạn chắc chắn muốn Xác nhận nhập kho yêu cầu điều chuyển TF-${st.transferId}?')">
+                                                        <i class="fas fa-check-circle mr-1"></i>Xác nhận nhập kho
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </c:forEach>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </div>
 

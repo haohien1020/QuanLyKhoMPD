@@ -126,4 +126,79 @@ public class StockTransferDAO extends BaseDAO {
         }
         return list;
     }
+
+    public List<StockTransfer> findPendingTransfers() throws Exception {
+        String sql = "SELECT transfer_id, from_warehouse_id, to_warehouse_id, created_by, approved_by, status, created_at, approved_at "
+                + "FROM stock_transfers "
+                + "WHERE status = 'PENDING' "
+                + "ORDER BY transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapResultSet(rs));
+            }
+        }
+        return list;
+    }
+
+    public List<StockTransfer> findPendingTransfersByManager(int managerId) throws Exception {
+        String sql = "SELECT st.transfer_id, st.from_warehouse_id, st.to_warehouse_id, st.created_by, st.approved_by, st.status, st.created_at, st.approved_at "
+                + "FROM stock_transfers st "
+                + "INNER JOIN warehouses w ON st.from_warehouse_id = w.warehouse_id "
+                + "WHERE st.status = 'PENDING' AND w.manager_id = ? "
+                + "ORDER BY st.transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<StockTransfer> findPendingReceiveTransfersByManager(int managerId) throws Exception {
+        String sql = "SELECT st.transfer_id, st.from_warehouse_id, st.to_warehouse_id, st.created_by, st.approved_by, st.status, st.created_at, st.approved_at "
+                + "FROM stock_transfers st "
+                + "INNER JOIN warehouses w ON st.to_warehouse_id = w.warehouse_id "
+                + "WHERE st.status = 'PENDING_RECEIVE' AND w.manager_id = ? "
+                + "ORDER BY st.transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<StockTransfer> findTransfersByManager(int managerId) throws Exception {
+        String sql = "SELECT DISTINCT st.transfer_id, st.from_warehouse_id, st.to_warehouse_id, st.created_by, st.approved_by, st.status, st.created_at, st.approved_at "
+                + "FROM stock_transfers st "
+                + "INNER JOIN warehouses w1 ON st.from_warehouse_id = w1.warehouse_id "
+                + "INNER JOIN warehouses w2 ON st.to_warehouse_id = w2.warehouse_id "
+                + "WHERE w1.manager_id = ? OR w2.manager_id = ? "
+                + "ORDER BY st.transfer_id DESC";
+        List<StockTransfer> list = new ArrayList<StockTransfer>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            ps.setInt(2, managerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
 }

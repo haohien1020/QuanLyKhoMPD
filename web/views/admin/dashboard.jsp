@@ -186,7 +186,7 @@
                                             <div class="card-body">
                                                 <div class="mb-2"><span class="module-index">2</span></div>
                                                 <h6 class="font-weight-bold text-gray-900">Kho hàng & Tồn kho</h6>
-                                                <p class="small text-muted mb-3">${totalWarehouses} kho hàng, ${totalParts} loại phụ tùng (${lowStockParts} loại cần bổ sung).</p>
+                                                <p class="small text-muted mb-3">${totalWarehouses} kho hàng.</p>
                                                 <div class="module-actions">
                                                     <a href="${pageContext.request.contextPath}/admin/warehouses" class="btn btn-sm btn-outline-success">Quản lý kho</a>
                                                 </div>
@@ -202,7 +202,6 @@
                                                 <p class="small text-muted mb-3">Đang quản lý ${totalGenerators} máy phát điện (${damagedGenerators} máy bị hỏng).</p>
                                                 <div class="module-actions">
                                                     <a href="${pageContext.request.contextPath}/generators" class="btn btn-sm btn-outline-info">Máy phát điện</a>
-                                                    <a href="${pageContext.request.contextPath}/parts" class="btn btn-sm btn-outline-info">Linh kiện</a>
                                                 </div>
                                             </div>
                                         </div>

@@ -18,7 +18,8 @@ import model.User;
 
 @WebServlet(name = "StaffServlet", urlPatterns = {
     "/staff/part-request/create",
-    "/staff/my-requests"
+    "/staff/my-requests",
+    "/staff/rented-generators"
 })
 public class StaffServlet extends HttpServlet {
 
@@ -40,6 +41,8 @@ public class StaffServlet extends HttpServlet {
                 showPartRequestForm(request, response);
             } else if ("/staff/my-requests".equals(path)) {
                 showMyPartRequests(request, response, currentUser);
+            } else if ("/staff/rented-generators".equals(path)) {
+                showRentedGenerators(request, response, currentUser);
             } else {
                 response.sendRedirect(request.getContextPath() + "/staff/home");
             }
@@ -92,6 +95,20 @@ public class StaffServlet extends HttpServlet {
         request.setAttribute("warehouses", warehouses);
         request.setAttribute("parts", parts);
         request.getRequestDispatcher("/views/staff/my-requests.jsp").forward(request, response);
+    }
+
+    private void showRentedGenerators(HttpServletRequest request, HttpServletResponse response, User currentUser)
+            throws Exception {
+        dao.RentalContractDAO rentalContractDAO = new dao.RentalContractDAO();
+        List<model.CustomerRentalContract> assignedContracts = rentalContractDAO.findContractsAssignedToStaff(currentUser.getUserId());
+        request.setAttribute("assignedContracts", assignedContracts);
+
+        dao.GeneratorDAO generatorDAO = new dao.GeneratorDAO();
+        if (currentUser.getWarehouseId() != null) {
+            List<model.GeneratorBarcode> staffBarcodes = generatorDAO.findBarcodes(currentUser.getWarehouseId(), "IN_STOCK");
+            request.setAttribute("staffBarcodes", staffBarcodes);
+        }
+        request.getRequestDispatcher("/views/staff/rented-generators.jsp").forward(request, response);
     }
 
     private void createPartRequest(HttpServletRequest request, HttpServletResponse response, User currentUser)

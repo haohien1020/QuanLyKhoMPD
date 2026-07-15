@@ -85,7 +85,10 @@ public class CustomerServlet extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        if (customerName == null || customerName.isEmpty() || email == null || email.isEmpty()) {
+        if (customerName == null || customerName.isEmpty()
+                || email == null || email.isEmpty()
+                || phone == null || phone.isEmpty()
+                || address == null || address.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/customers?error=missing_required");
             return;
         }
@@ -129,7 +132,10 @@ public class CustomerServlet extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        if (customerId == null || customerName == null || customerName.isEmpty() || email == null || email.isEmpty()) {
+        if (customerId == null || customerName == null || customerName.isEmpty()
+                || email == null || email.isEmpty()
+                || phone == null || phone.isEmpty()
+                || address == null || address.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/customers?error=missing_required");
             return;
         }

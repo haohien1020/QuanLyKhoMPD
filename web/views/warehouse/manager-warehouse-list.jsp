@@ -233,51 +233,16 @@
                                                 </div>
 
                                                 <!-- Right side: Quick stats boxes -->
-                                                <div class="col-md-5 d-flex flex-column justify-content-between">
-                                                    <div class="row h-100">
+                                                <div class="col-md-5 d-flex flex-column justify-content-center">
+                                                    <div class="row">
                                                         <!-- Generators Count -->
-                                                        <div class="col-6 mb-2">
+                                                        <div class="col-12">
                                                             <a href="${pageContext.request.contextPath}/generators?warehouseId=${w.warehouseId}" 
-                                                               class="stat-box stat-box-primary d-flex flex-column align-items-center justify-content-center shadow-sm">
-                                                                <i class="fas fa-bolt fa-2x mb-2"></i>
-                                                                <span class="h5 mb-0 font-weight-bold">${w.totalGenerators}</span>
-                                                                <span class="text-xs text-gray-800">Máy phát điện</span>
+                                                               class="stat-box stat-box-primary d-flex flex-column align-items-center justify-content-center shadow-sm py-4">
+                                                                <i class="fas fa-bolt fa-3x mb-2"></i>
+                                                                <span class="h4 mb-0 font-weight-bold">${w.totalGenerators}</span>
+                                                                <span class="text-xs text-gray-800 font-weight-bold">Máy phát điện trong kho</span>
                                                             </a>
-                                                        </div>
-
-                                                        <!-- Parts Count -->
-                                                        <div class="col-6 mb-2">
-                                                            <a href="${pageContext.request.contextPath}/parts?warehouseId=${w.warehouseId}" 
-                                                               class="stat-box stat-box-info d-flex flex-column align-items-center justify-content-center shadow-sm">
-                                                                <i class="fas fa-cogs fa-2x mb-2"></i>
-                                                                <span class="h5 mb-0 font-weight-bold">${w.totalParts}</span>
-                                                                <span class="text-xs text-gray-800">Phụ tùng</span>
-                                                            </a>
-                                                        </div>
-
-                                                        <!-- Low Stock Warnings -->
-                                                        <div class="col-12 mt-1">
-                                                            <c:choose>
-                                                                <c:when test="${w.lowStockParts > 0}">
-                                                                    <a href="${pageContext.request.contextPath}/parts?warehouseId=${w.warehouseId}" 
-                                                                       class="stat-box stat-box-danger d-flex align-items-center justify-content-around shadow-sm">
-                                                                        <div class="text-left py-1">
-                                                                            <span class="h5 mb-0 font-weight-bold d-block">${w.lowStockParts}</span>
-                                                                            <span class="text-xs text-gray-900 font-weight-bold">Cảnh báo thiếu hụt</span>
-                                                                        </div>
-                                                                        <i class="fas fa-exclamation-triangle fa-2x"></i>
-                                                                    </a>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <div class="stat-box stat-box-success d-flex align-items-center justify-content-around shadow-sm" style="cursor: default;">
-                                                                        <div class="text-left py-1">
-                                                                            <span class="h6 mb-0 font-weight-bold d-block text-success">An toàn</span>
-                                                                            <span class="text-xs text-muted">Đủ mức tồn kho tối thiểu</span>
-                                                                        </div>
-                                                                        <i class="fas fa-check-circle fa-2x"></i>
-                                                                    </div>
-                                                                </c:otherwise>
-                                                            </c:choose>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -292,9 +257,6 @@
                                             </button>
                                             <a href="${pageContext.request.contextPath}/generators?warehouseId=${w.warehouseId}" class="btn btn-sm btn-primary mr-2 shadow-sm">
                                                 <i class="fas fa-bolt mr-1"></i> Xem máy phát
-                                            </a>
-                                            <a href="${pageContext.request.contextPath}/parts?warehouseId=${w.warehouseId}" class="btn btn-sm btn-info mr-2 shadow-sm">
-                                                <i class="fas fa-cogs mr-1"></i> Xem phụ tùng
                                             </a>
                                             <a href="${pageContext.request.contextPath}/stock-transfers" class="btn btn-sm btn-success shadow-sm">
                                                 <i class="fas fa-exchange-alt mr-1"></i> Xem điều chuyển

@@ -288,12 +288,6 @@
                                         </a>
                                     </li>
 
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="${pageContext.request.contextPath}/parts">
-                                            <i class="fas fa-cogs"></i>
-                                            <span>Quản lý phụ tùng</span>
-                                        </a>
-                                    </li>
 
                                     <div class="sidebar-heading">
                                         Tồn kho
@@ -389,12 +383,6 @@
                                                 </a>
                                             </li>
 
-                                            <li class="nav-item">
-                                                <a class="nav-link" href="${pageContext.request.contextPath}/parts">
-                                                    <i class="fas fa-tools"></i>
-                                                    <span>Danh sách phụ tùng</span>
-                                                </a>
-                                            </li>
 
                                             <li class="nav-item">
                                                 <a class="nav-link"

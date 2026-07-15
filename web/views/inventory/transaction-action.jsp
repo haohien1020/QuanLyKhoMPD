@@ -351,193 +351,12 @@
                                             <!-- Left Column: Transactions -->
                                             <div class="col-lg-7 mb-4">
                                                 <div class="card premium-card shadow mb-4">
-                                                    <div class="card-header py-2 bg-white border-bottom">
-                                                        <ul class="nav nav-tabs card-header-tabs" id="main-tx-tabs" role="tablist">
-                                                            <li class="nav-item">
-                                                                <a class="nav-link active font-weight-bold" id="generator-tx-tab" data-toggle="tab" href="#generator-tx-pane" role="tab" aria-controls="generator-tx-pane" aria-selected="true">
-                                                                    <i class="fas fa-bolt mr-1"></i> Giao dịch Máy phát điện
-                                                                </a>
-                                                            </li>
-                                                            <li class="nav-item">
-                                                                <a class="nav-link font-weight-bold" id="parts-tx-tab" data-toggle="tab" href="#parts-tx-pane" role="tab" aria-controls="parts-tx-pane" aria-selected="false">
-                                                                    <i class="fas fa-tools mr-1"></i> Giao dịch Phụ tùng / Linh kiện
-                                                                </a>
-                                                            </li>
-                                                        </ul>
+                                                    <div class="card-header py-3 bg-white border-bottom">
+                                                        <h6 class="m-0 font-weight-bold text-primary">
+                                                            <i class="fas fa-bolt mr-1"></i> Giao dịch Máy phát điện
+                                                        </h6>
                                                     </div>
                                                     <div class="card-body">
-                                                        <div class="tab-content" id="main-tx-tabsContent">
-                                                            <!-- Pane 1: Parts Transactions -->
-                                                            <div class="tab-pane fade" id="parts-tx-pane" role="tabpanel" aria-labelledby="parts-tx-tab">
-                                                                <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
-                                                                    <c:if test="${canImport}">
-                                                                    <li class="nav-item" role="presentation">
-                                                                        <a class="nav-link ${canImport ? 'active' : ''} mr-2" id="pills-import-tab"
-                                                                            data-toggle="pill" href="#pills-import" role="tab"
-                                                                            aria-controls="pills-import" aria-selected="${canImport}">
-                                                                            <i class="fas fa-download mr-1"></i> Nhập kho phụ tùng mới
-                                                                        </a>
-                                                                    </li>
-                                                                    </c:if>
-                                                                    <c:if test="${canExport}">
-                                                                    <li class="nav-item" role="presentation">
-                                                                        <a class="nav-link ${not canImport ? 'active' : ''}" id="pills-export-tab"
-                                                                            data-toggle="pill" href="#pills-export" role="tab"
-                                                                            aria-controls="pills-export" aria-selected="${not canImport}">
-                                                                            <i class="fas fa-upload mr-1"></i> Xuất phụ tùng sửa chữa
-                                                                        </a>
-                                                                    </li>
-                                                                    </c:if>
-                                                                </ul>
-
-                                                                <div class="tab-content" id="pills-tabContent">
-                                                                    <!-- TAB 1: IMPORT PART -->
-                                                                    <c:if test="${canImport}">
-                                                                    <div class="tab-pane fade ${canImport ? 'show active' : ''}" id="pills-import"
-                                                                        role="tabpanel" aria-labelledby="pills-import-tab">
-                                                                        <form method="post"
-                                                                            action="${pageContext.request.contextPath}/inventory-transactions">
-                                                                            <input type="hidden" name="action"
-                                                                                value="import-part">
-
-                                                                            <div class="form-group">
-                                                                                <label for="importPartSelect"
-                                                                                    class="font-weight-bold text-gray-700">Chọn
-                                                                                    phụ tùng cần nhập <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <select id="importPartSelect" name="partId"
-                                                                                    class="form-control select2" required
-                                                                                    style="width: 100%;">
-                                                                                    <option value="">-- Chọn phụ tùng từ danh
-                                                                                        sách --</option>
-                                                                                    <c:forEach var="part" items="${parts}">
-                                                                                        <option value="${part.partId}">
-                                                                                            ${part.partName} (${part.partCode})
-                                                                                            - Tồn kho: ${part.quantity}
-                                                                                            ${part.unit}</option>
-                                                                                    </c:forEach>
-                                                                                </select>
-                                                                                <small class="text-muted">Nếu phụ tùng chưa được
-                                                                                    khai báo bao giờ, hãy vào <a
-                                                                                        href="${pageContext.request.contextPath}/parts">Quản
-                                                                                        lý phụ tùng</a> để khai báo
-                                                                                    trước.</small>
-                                                                            </div>
-
-                                                                            <div class="row">
-                                                                                <div class="form-group col-md-6">
-                                                                                    <label for="importQty"
-                                                                                        class="font-weight-bold text-gray-700">Số
-                                                                                        lượng nhập thêm <span
-                                                                                            class="text-danger">*</span></label>
-                                                                                    <input type="number" id="importQty"
-                                                                                        name="quantity" class="form-control"
-                                                                                        min="1" required
-                                                                                        placeholder="Ví dụ: 10">
-                                                                                </div>
-                                                                                <div class="form-group col-md-6">
-                                                                                    <label for="importSupplier"
-                                                                                        class="font-weight-bold text-gray-700">Nhà
-                                                                                        cung cấp (Tùy chọn)</label>
-                                                                                    <select id="importSupplier"
-                                                                                        name="supplierId" class="form-control">
-                                                                                        <option value="">-- Không chỉ định --
-                                                                                        </option>
-                                                                                        <c:forEach var="sup"
-                                                                                            items="${suppliers}">
-                                                                                            <option value="${sup.supplierId}">
-                                                                                                ${sup.supplierName}</option>
-                                                                                        </c:forEach>
-                                                                                    </select>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div class="form-group">
-                                                                                <label for="importNote"
-                                                                                    class="font-weight-bold text-gray-700">Ghi
-                                                                                    chú / Lý do nhập kho</label>
-                                                                                <textarea id="importNote" name="note"
-                                                                                    class="form-control" rows="3"
-                                                                                    placeholder="Nhập lý do ví dụ: 'Nhập bổ sung lọc nhớt theo hóa đơn mua sắm sê-ri 9028'"></textarea>
-                                                                            </div>
-
-                                                                            <div class="text-right">
-                                                                                <button type="submit"
-                                                                                    class="btn btn-success font-weight-bold px-4 shadow">
-                                                                                    <i class="fas fa-check-circle mr-1"></i> Xác
-                                                                                    nhận Nhập Kho
-                                                                                </button>
-                                                                            </div>
-                                                                        </form>
-                                                                    </div>
-                                                                    </c:if>
-
-                                                                    <!-- TAB 2: EXPORT PART -->
-                                                                    <c:if test="${canExport}">
-                                                                    <div class="tab-pane fade ${not canImport ? 'show active' : ''}" id="pills-export" role="tabpanel"
-                                                                        aria-labelledby="pills-export-tab">
-                                                                        <form method="post"
-                                                                            action="${pageContext.request.contextPath}/inventory-transactions">
-                                                                            <input type="hidden" name="action"
-                                                                                value="export-part">
-
-                                                                            <div class="form-group">
-                                                                                <label for="exportPartSelect"
-                                                                                    class="font-weight-bold text-gray-700">Chọn
-                                                                                    phụ tùng cần xuất <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <select id="exportPartSelect" name="partId"
-                                                                                    class="form-control select2" required
-                                                                                    style="width: 100%;">
-                                                                                    <option value="">-- Chọn phụ tùng từ danh
-                                                                                        sách --</option>
-                                                                                    <c:forEach var="part" items="${parts}">
-                                                                                        <c:if test="${part.quantity > 0}">
-                                                                                            <option value="${part.partId}">
-                                                                                                ${part.partName}
-                                                                                                (${part.partCode}) - Hiện có:
-                                                                                                ${part.quantity} ${part.unit}
-                                                                                            </option>
-                                                                                        </c:if>
-                                                                                    </c:forEach>
-                                                                                </select>
-                                                                            </div>
-
-                                                                            <div class="form-group">
-                                                                                <label for="exportQty"
-                                                                                    class="font-weight-bold text-gray-700">Số
-                                                                                    lượng cần xuất <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <input type="number" id="exportQty"
-                                                                                    name="quantity" class="form-control" min="1"
-                                                                                    required placeholder="Ví dụ: 2">
-                                                                            </div>
-
-                                                                            <div class="form-group">
-                                                                                <label for="exportNote"
-                                                                                    class="font-weight-bold text-gray-700">Lý do
-                                                                                    xuất phụ tùng / Giao cho ai <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <textarea id="exportNote" name="note"
-                                                                                    class="form-control" rows="3" required
-                                                                                    placeholder="Ví dụ: 'Cấp phát 2 lọc gió Honda cho kỹ thuật viên Nguyễn Văn A đi sửa chữa máy phát Honda Serial HD-123'"></textarea>
-                                                                            </div>
-
-                                                                            <div class="text-right">
-                                                                                <button type="submit"
-                                                                                    class="btn btn-danger font-weight-bold px-4 shadow">
-                                                                                    <i class="fas fa-check-circle mr-1"></i> Xác
-                                                                                    nhận Xuất Kho
-                                                                                </button>
-                                                                            </div>
-                                                                        </form>
-                                                                    </div>
-                                                                    </c:if>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Pane 2: Generator Transactions -->
-                                                            <div class="tab-pane fade show active" id="generator-tx-pane" role="tabpanel" aria-labelledby="generator-tx-tab">
                                                                 <ul class="nav nav-pills mb-4" id="pills-gen-tab" role="tablist">
                                                                     <c:if test="${canImport}">
                                                                     <li class="nav-item" role="presentation">
@@ -643,13 +462,36 @@
                                                                             <input type="hidden" name="action"
                                                                                 value="export-generator">
 
+                                                                            <div class="form-group">
+                                                                                <label for="exportStatus"
+                                                                                    class="font-weight-bold text-gray-700">Mục đích / Trạng thái xuất kho <span
+                                                                                        class="text-danger">*</span></label>
+                                                                                <select id="exportStatus" name="exportStatus" class="form-control" required>
+                                                                                    <option value="EXPORTED">Xuất giao cho khách hàng (EXPORTED)</option>
+                                                                                    <c:if test="${isManager}">
+                                                                                        <option value="TRANSFERRED">Xuất sang kho khác (TRANSFERRED)</option>
+                                                                                    </c:if>
+                                                                                </select>
+                                                                            </div>
+                                                                            <div class="form-group" id="contractSelectContainer">
+                                                                                <label for="exportContractSelect" class="font-weight-bold text-gray-700">Chọn hợp đồng thuê được duyệt <span class="text-danger">*</span></label>
+                                                                                <select id="exportContractSelect" name="contractId" class="form-control" required style="width: 100%;">
+                                                                                    <option value="">-- Chọn hợp đồng thuê --</option>
+                                                                                    <c:forEach var="c" items="${approvedRentals}">
+                                                                                        <option value="${c.rentalContractId}" data-serial="${c.serialNumber}" data-generatorid="${c.generatorId}" data-code="${c.contractCode}">
+                                                                                            ${c.contractCode} - Khách hàng: ${c.customerName} (Serial chỉ định: ${c.serialNumber})
+                                                                                        </option>
+                                                                                    </c:forEach>
+                                                                                </select>
+                                                                            </div>
+
                                                                             <div id="exportBarcodeContainer">
                                                                                 <div class="form-group">
-                                                                                    <label for="exportGenSelect"
+                                                                                    <label for="exportGenSelect" id="exportGenSelectLabel"
                                                                                         class="font-weight-bold text-gray-700">Chọn máy phát điện cần xuất kho <span
                                                                                             class="text-danger">*</span></label>
-                                                                                    <select id="exportGenSelect" name="barcodeId"
-                                                                                        class="form-control select2" required
+                                                                                    <select id="exportGenSelect"
+                                                                                        class="form-control" required
                                                                                         style="width: 100%;">
                                                                                         <option value="">-- Chọn máy phát điện sẵn sàng trong kho --</option>
                                                                                         <c:forEach var="gb" items="${inStockBarcodes}">
@@ -658,6 +500,12 @@
                                                                                             </option>
                                                                                         </c:forEach>
                                                                                     </select>
+                                                                                    <input type="hidden" name="barcodeId" id="exportGenSelectHidden">
+                                                                                    
+                                                                                    <div class="form-group mt-3" id="exportBarcodeGroup" style="display:none;">
+                                                                                        <label class="font-weight-bold text-muted mb-2"><i class="fas fa-barcode mr-1"></i>Hình ảnh mã vạch Barcode các máy đã chọn:</label>
+                                                                                        <div id="exportBarcodeListContainer"></div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
 
@@ -710,18 +558,6 @@
                                                                             </div>
 
                                                                             <div class="form-group">
-                                                                                <label for="exportStatus"
-                                                                                    class="font-weight-bold text-gray-700">Mục đích / Trạng thái xuất kho <span
-                                                                                        class="text-danger">*</span></label>
-                                                                                <select id="exportStatus" name="exportStatus" class="form-control" required>
-                                                                                    <option value="EXPORTED">Xuất giao cho khách hàng (EXPORTED)</option>
-                                                                                    <c:if test="${isManager}">
-                                                                                        <option value="TRANSFERRED">Xuất sang kho khác (TRANSFERRED)</option>
-                                                                                    </c:if>
-                                                                                </select>
-                                                                            </div>
-
-                                                                            <div class="form-group">
                                                                                 <label for="exportGenNote"
                                                                                     class="font-weight-bold text-gray-700">Ghi chú / Lý do xuất kho <span
                                                                                         class="text-danger">*</span></label>
@@ -741,8 +577,6 @@
                                                                     </c:if>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </div>
 
@@ -845,72 +679,7 @@
                             dateInput.value = today;
                         }
 
-                        // 2. Tự xử lý chuyển đổi Tab ngoài bằng Vanilla JS để tránh xung đột thư viện
-                        var tabLinks = document.querySelectorAll('#main-tx-tabs .nav-link');
-                        tabLinks.forEach(function(link) {
-                            link.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                
-                                // Hủy kích hoạt tất cả các tab links
-                                tabLinks.forEach(function(l) {
-                                    l.classList.remove('active');
-                                    l.setAttribute('aria-selected', 'false');
-                                });
-                                
-                                // Kích hoạt tab link hiện tại
-                                this.classList.add('active');
-                                this.setAttribute('aria-selected', 'true');
-                                
-                                // Ẩn tất cả các tab panes ngoài
-                                var panes = document.querySelectorAll('#main-tx-tabsContent > .tab-pane');
-                                panes.forEach(function(pane) {
-                                    pane.classList.remove('show', 'active');
-                                });
-                                
-                                // Hiển thị tab pane tương ứng
-                                var targetId = this.getAttribute('href');
-                                var targetPane = document.querySelector(targetId);
-                                if (targetPane) {
-                                    targetPane.classList.add('show', 'active');
-                                }
-                                
-                                // Cập nhật URL Hash để giữ lại tab khi tải lại
-                                if (history.pushState) {
-                                    history.pushState(null, null, targetId);
-                                } else {
-                                    window.location.hash = targetId;
-                                }
-                            });
-                        });
-
-                        // 3. Tự xử lý chuyển đổi Pills con (Phần phụ tùng) bằng Vanilla JS
-                        var pillLinks = document.querySelectorAll('#pills-tab .nav-link');
-                        pillLinks.forEach(function(link) {
-                            link.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                
-                                pillLinks.forEach(function(l) {
-                                    l.classList.remove('active');
-                                    l.setAttribute('aria-selected', 'false');
-                                });
-                                
-                                this.classList.add('active');
-                                this.setAttribute('aria-selected', 'true');
-                                
-                                var panes = document.querySelectorAll('#pills-tabContent > .tab-pane');
-                                panes.forEach(function(pane) {
-                                    pane.classList.remove('show', 'active');
-                                });
-                                
-                                var targetId = this.getAttribute('href');
-                                var targetPane = document.querySelector(targetId);
-                                if (targetPane) {
-                                    targetPane.classList.add('show', 'active');
-                                }
-                            });
-                        });
-
-                        // 3b. Tự xử lý chuyển đổi Pills con (Phần máy phát điện) bằng Vanilla JS
+                        // 2. Tự xử lý chuyển đổi Pills con (Phần máy phát điện) bằng Vanilla JS
                         var genPillLinks = document.querySelectorAll('#pills-gen-tab .nav-link');
                         genPillLinks.forEach(function(link) {
                             link.addEventListener('click', function(e) {
@@ -937,50 +706,18 @@
                             });
                         });
 
-                        // 4. Kích hoạt tab dựa trên Hash trên URL khi tải trang
-                        var hash = window.location.hash;
-                        if (hash) {
-                            var initialLink = document.querySelector('#main-tx-tabs .nav-link[href="' + hash + '"]');
-                            if (initialLink) {
-                                initialLink.click();
-                            }
-                        }
-
-                        // 5. Kích hoạt tab tự động dựa trên kết quả phản hồi (Query Parameters)
+                        // 3. Kích hoạt tab tự động dựa trên kết quả phản hồi (Query Parameters)
                         var urlParams = new URLSearchParams(window.location.search);
                         var successParam = urlParams.get('success');
                         var errorParam = urlParams.get('error');
                         
-                        if (successParam === 'generator_import_success' || 
-                            successParam === 'generator_export_success' || 
+                        if (successParam === 'generator_export_success' || 
                             successParam === 'generator_transfer_created' || 
-                            errorParam === 'serial_exists' || 
-                            errorParam === 'generator_import_failed' ||
-                            errorParam === 'generator_export_failed' ||
+                            errorParam === 'generator_export_failed' || 
                             errorParam === 'generator_transfer_failed') {
-                            
-                            var genLink = document.getElementById('generator-tx-tab');
-                            if (genLink) {
-                                genLink.click();
-                            }
-
-                            if (successParam === 'generator_export_success' || 
-                                successParam === 'generator_transfer_created' || 
-                                errorParam === 'generator_export_failed' || 
-                                errorParam === 'generator_transfer_failed') {
-                                var genExportPill = document.getElementById('pills-gen-export-tab');
-                                if (genExportPill) {
-                                    genExportPill.click();
-                                }
-                            }
-                        } else if (successParam === 'import_success' || 
-                                   successParam === 'export_success' || 
-                                   errorParam === 'invalid_quantity' || 
-                                   errorParam === 'insufficient_stock') {
-                            
-                            var partsLink = document.getElementById('parts-tx-tab');
-                            if (partsLink) {
-                                partsLink.click();
+                            var genExportPill = document.getElementById('pills-gen-export-tab');
+                            if (genExportPill) {
+                                genExportPill.click();
                             }
                         }
 
@@ -1006,6 +743,17 @@
                                     generatorName: '${gb.generatorName.replace("'", "\\'")}',
                                     serialNumber: '${gb.serialNumber.replace("'", "\\'")}',
                                     status: '${gb.status != null ? gb.status.replace("'", "\\'") : ""}'
+                                }${!loop.last ? ',' : ''}
+                            </c:forEach>
+                        ];
+
+                        var inStockBarcodes = [
+                            <c:forEach var="gb" items="${inStockBarcodes}" varStatus="loop">
+                                {
+                                    barcodeId: ${gb.barcodeId},
+                                    generatorId: ${gb.generatorId},
+                                    generatorName: '${gb.generatorName.replace("'", "\\'")}',
+                                    serialNumber: '${gb.serialNumber.replace("'", "\\'")}'
                                 }${!loop.last ? ',' : ''}
                             </c:forEach>
                         ];
@@ -1069,26 +817,195 @@
                                 var count = 0;
                                 notInStockBarcodes.forEach(function(opt) {
                                     var match = (opt.status === 'EXPORTED');
-                                    
                                     if (match) {
-                                        var text = opt.generatorName + ' (Serial: ' + opt.serialNumber + ') - Trạng thái: ' + getStatusLabel(opt.status);
                                         selectEl.append($('<option>', {
                                             value: opt.barcodeId,
-                                            text: text
+                                            text: opt.generatorName + ' (Serial: ' + opt.serialNumber + ')'
                                         }));
                                         count++;
                                     }
                                 });
-                                
                                 if (count === 0) {
-                                    selectEl.append('<option value="" disabled>Không có máy phát điện nào phù hợp ở trạng thái này</option>');
+                                    selectEl.append('<option value="" disabled>Không có máy nào đang cho thuê để nhập lại</option>');
+                                }
+                                $('#importGenNote').val('Nhập lại máy phát điện sau khi kết thúc thuê.');
+                            }
+                        });
+
+                        function renderBarcodeInAction(serials) {
+                            if (!serials) {
+                                $('#exportBarcodeGroup').hide();
+                                return;
+                            }
+                            var serialArray = Array.isArray(serials) ? serials : [serials];
+                            if (serialArray.length === 0) {
+                                $('#exportBarcodeGroup').hide();
+                                return;
+                            }
+
+                            var container = $('#exportBarcodeListContainer');
+                            container.empty();
+                            
+                            serialArray.forEach(function(s) {
+                                if (!s) return;
+                                try {
+                                    var canvas = document.createElement('canvas');
+                                    JsBarcode(canvas, s, {
+                                        format: 'CODE128',
+                                        width: 1.5,
+                                        height: 55,
+                                        displayValue: false,
+                                        margin: 10,
+                                        background: '#ffffff',
+                                        lineColor: '#000000'
+                                    });
+                                    
+                                    var cardHtml = '<div class="text-center p-3 bg-light rounded border shadow-sm mb-2" style="max-width: 360px;">'
+                                                 + '<img src="' + canvas.toDataURL('image/png') + '" alt="Barcode" style="height: 55px; max-width: 100%; display: block; margin: 0 auto; background: #ffffff; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; image-rendering: -webkit-optimize-contrast; image-rendering: pixelated;">'
+                                                 + '<div class="font-weight-bold text-dark mt-2" style="font-size: 0.9rem; font-family: monospace; letter-spacing: 1.2px; background: #fff; padding: 3px 8px; border-radius: 4px; border: 1px solid #e2e8f0; display: inline-block;">' + s + '</div>'
+                                                 + '</div>';
+                                    container.append(cardHtml);
+                                } catch(e) {
+                                    console.error('JsBarcode error:', e);
+                                }
+                            });
+                            
+                            $('#exportBarcodeGroup').show();
+                        }
+
+                        $('#exportGenSelect').on('change', function() {
+                            if ($(this).prop('disabled')) {
+                                return;
+                            }
+                            var vals = $(this).val();
+                            if (vals) {
+                                var valArray = Array.isArray(vals) ? vals : [vals];
+                                var serials = [];
+                                valArray.forEach(function(v) {
+                                    var match = inStockBarcodes.find(function(b) { return b.barcodeId == v; });
+                                    if (match && match.serialNumber) {
+                                        serials.push(match.serialNumber);
+                                    }
+                                });
+                                if (serials.length > 0) {
+                                    renderBarcodeInAction(serials);
+                                } else {
+                                    $('#exportBarcodeGroup').hide();
+                                }
+                            } else {
+                                $('#exportBarcodeGroup').hide();
+                            }
+                        });
+
+                        $('#exportContractSelect').on('change', function() {
+                            var selectedOpt = $(this).find('option:selected');
+                            var serial = selectedOpt.data('serial');
+                            var generatorId = selectedOpt.data('generatorid');
+                            var code = selectedOpt.data('code');
+                            
+                            var selectEl = $('#exportGenSelect');
+                            var hiddenEl = $('#exportGenSelectHidden');
+                            var labelEl = $('#exportGenSelectLabel');
+                            
+                            selectEl.empty();
+                            selectEl.removeAttr('multiple').removeAttr('size').css('min-height', '');
+                            
+                            $('#exportBarcodeContainer').find('.dynamic-barcode-hidden').remove();
+                            
+                            if (!$(this).val()) {
+                                labelEl.html('Chọn máy phát điện cần xuất kho <span class="text-danger">*</span>');
+                                selectEl.append('<option value="">-- Chọn máy phát điện sẵn sàng trong kho --</option>');
+                                inStockBarcodes.forEach(function(b) {
+                                    selectEl.append($('<option>', {
+                                        value: b.barcodeId,
+                                        text: b.generatorName + ' (Serial: ' + b.serialNumber + ')'
+                                    }));
+                                });
+                                selectEl.prop('disabled', false);
+                                selectEl.attr('name', 'barcodeId');
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+                                selectEl.trigger('change');
+                                return;
+                            }
+                            
+                            var designatedSerials = [];
+                            if (serial) {
+                                var parts = serial.toString().split(/,\s*/);
+                                parts.forEach(function(p) {
+                                    p = p.trim();
+                                    if (p) designatedSerials.push(p);
+                                });
+                            }
+                            
+                            var matchingBarcodes = [];
+                            if (designatedSerials.length > 0) {
+                                designatedSerials.forEach(function(s) {
+                                    var match = inStockBarcodes.find(function(b) { return b.serialNumber === s; });
+                                    if (match) {
+                                        matchingBarcodes.push(match);
+                                    }
+                                });
+                            }
+                            
+                            if (matchingBarcodes.length > 0) {
+                                var isMulti = matchingBarcodes.length > 1;
+                                if (isMulti) {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.attr('multiple', 'multiple').css('min-height', '120px');
+                                } else {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
                                 }
                                 
-                                // Điền mẫu ghi chú
-                                var noteEl = $('#importGenNote');
-                                if (type === 'RENTAL_RETURN') {
-                                    noteEl.val('Nhập lại máy phát điện sau khi khách trả thuê.');
+                                matchingBarcodes.forEach(function(b) {
+                                    selectEl.append($('<option>', {
+                                        value: b.barcodeId,
+                                        text: b.generatorName + ' (Serial: ' + b.serialNumber + ')',
+                                        selected: true
+                                    }));
+                                    $('#exportBarcodeContainer').append('<input type="hidden" name="barcodeId" class="dynamic-barcode-hidden" value="' + b.barcodeId + '">');
+                                });
+                                
+                                selectEl.prop('disabled', true);
+                                selectEl.removeAttr('name');
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+
+                                var selectedSerials = matchingBarcodes.map(function(b) { return b.serialNumber; });
+                                renderBarcodeInAction(selectedSerials);
+                            } else if (generatorId) {
+                                var filtered = inStockBarcodes.filter(function(b) {
+                                    return b.generatorId == generatorId;
+                                });
+                                
+                                var reqCount = designatedSerials.length > 0 ? designatedSerials.length : 1;
+                                if (reqCount > 1 || filtered.length > 1) {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.attr('multiple', 'multiple').css('min-height', '120px');
+                                    selectEl.append('<option value="" disabled>-- Chọn máy phát điện cho mẫu này --</option>');
+                                } else {
+                                    labelEl.html('Chọn máy phát điện của mẫu theo Hợp đồng: ' + code + ' <span class="text-danger">*</span>');
+                                    selectEl.append('<option value="">-- Chọn máy phát điện cho mẫu này --</option>');
                                 }
+                                
+                                if (filtered.length === 0) {
+                                    selectEl.append('<option value="" disabled>Không có máy nào thuộc mẫu này sẵn sàng trong kho</option>');
+                                } else {
+                                    filtered.forEach(function(b) {
+                                        selectEl.append($('<option>', {
+                                            value: b.barcodeId,
+                                            text: b.generatorName + ' (Serial: ' + b.serialNumber + ')'
+                                        }));
+                                    });
+                                }
+                                selectEl.prop('disabled', false);
+                                selectEl.attr('name', 'barcodeId');
+                                hiddenEl.val('');
+                                hiddenEl.prop('disabled', true);
+                            }
+                            
+                            if (!selectEl.prop('disabled')) {
+                                selectEl.trigger('change');
                             }
                         });
 
@@ -1098,6 +1015,8 @@
                             if (status === 'TRANSFERRED') {
                                 $('#exportBarcodeContainer').hide();
                                 $('#exportGenSelect').prop('required', false);
+                                $('#contractSelectContainer').hide();
+                                $('#exportContractSelect').prop('required', false).val('').trigger('change');
                                 
                                 $('#exportTransferContainer').show();
                                 $('#exportModelSelect').prop('required', true);
@@ -1109,10 +1028,15 @@
                                 $('#exportQuantity').prop('required', false);
                                 $('#exportDestWarehouse').prop('required', false);
                                 
+                                $('#contractSelectContainer').show();
+                                $('#exportContractSelect').prop('required', true);
                                 $('#exportBarcodeContainer').show();
                                 $('#exportGenSelect').prop('required', true);
                             }
                         });
+
+                        // Trigger on load
+                        $('#exportStatus').trigger('change');
 
                         $('#exportModelSelect').on('change', function() {
                             var selectedOpt = $(this).find('option:selected');

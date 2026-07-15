@@ -1,6 +1,7 @@
 package dao;
 
 import util.DBUtil;
+import util.HashUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -69,7 +70,7 @@ public class UserDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
-            ps.setString(2, password);
+            ps.setString(2, HashUtil.hashPassword(password));
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -185,7 +186,7 @@ public class UserDAO {
             ps.setString(2, fullName);
             ps.setString(3, email);
             ps.setString(4, username);
-            ps.setString(5, password);
+            ps.setString(5, HashUtil.hashPassword(password));
             ps.setString(6, phone);
             ps.setString(7, status);
             if (warehouseId != null) {
@@ -307,7 +308,7 @@ public class UserDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
-            ps.setString(2, oldPassword);
+            ps.setString(2, HashUtil.hashPassword(oldPassword));
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -330,7 +331,7 @@ public class UserDAO {
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, newPassword);
+            ps.setString(1, HashUtil.hashPassword(newPassword));
             ps.setInt(2, userId);
 
             return ps.executeUpdate() > 0;

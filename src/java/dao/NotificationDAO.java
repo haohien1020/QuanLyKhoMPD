@@ -94,4 +94,61 @@ public class NotificationDAO extends BaseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    public List<Notification> findNotificationsForUser(int userId) throws Exception {
+        String sql = "SELECT notification_id, user_id, title, message, type, is_read, created_at "
+                + "FROM notifications WHERE user_id = ? ORDER BY notification_id DESC";
+        List<Notification> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countUnreadNotifications(int userId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = false";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    public boolean markAsRead(int notificationId) throws Exception {
+        String sql = "UPDATE notifications SET is_read = true WHERE notification_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notificationId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public boolean markAllAsRead(int userId) throws Exception {
+        String sql = "UPDATE notifications SET is_read = true WHERE user_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public boolean deleteAllForUser(int userId) throws Exception {
+        String sql = "DELETE FROM notifications WHERE user_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }

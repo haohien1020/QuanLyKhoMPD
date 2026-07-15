@@ -144,9 +144,21 @@ public class InventoryTransactionServlet extends HttpServlet {
                 List<model.GeneratorBarcode> allBarcodes = generatorDAO.findBarcodes(managedWarehouse.getWarehouseId(), null);
                 List<model.GeneratorBarcode> inStockBarcodes = new java.util.ArrayList<>();
                 List<model.GeneratorBarcode> notInStockBarcodes = new java.util.ArrayList<>();
+                
+                List<Integer> assignedGenIds = null;
+                if (isStaff) {
+                    assignedGenIds = rentalContractDAO.findAssignedGeneratorIds(currentUser.getUserId());
+                }
+
                 for (model.GeneratorBarcode gb : allBarcodes) {
                     if ("IN_STOCK".equals(gb.getStatus())) {
-                        inStockBarcodes.add(gb);
+                        if (isStaff) {
+                            if (assignedGenIds != null && assignedGenIds.contains(gb.getGeneratorId())) {
+                                inStockBarcodes.add(gb);
+                            }
+                        } else {
+                            inStockBarcodes.add(gb);
+                        }
                     } else {
                         notInStockBarcodes.add(gb);
                     }
@@ -156,12 +168,31 @@ public class InventoryTransactionServlet extends HttpServlet {
                 List<CustomerRentalContract> pendingRentals = rentalContractDAO
                         .findContractsByWarehouse(managedWarehouse.getWarehouseId());
 
+                List<CustomerRentalContract> approvedRentals = new java.util.ArrayList<>();
+                if (isStaff) {
+                    List<CustomerRentalContract> staffContracts = rentalContractDAO.findContractsAssignedToStaff(currentUser.getUserId());
+                    if (staffContracts != null) {
+                        for (CustomerRentalContract c : staffContracts) {
+                            if ("APPROVED".equals(c.getStatus())) {
+                                approvedRentals.add(c);
+                            }
+                        }
+                    }
+                } else {
+                    for (CustomerRentalContract c : pendingRentals) {
+                        if ("APPROVED".equals(c.getStatus())) {
+                            approvedRentals.add(c);
+                        }
+                    }
+                }
+
                 request.setAttribute("parts", parts);
                 request.setAttribute("suppliers", suppliers);
                 request.setAttribute("generators", generators);
                 request.setAttribute("inStockBarcodes", inStockBarcodes);
                 request.setAttribute("notInStockBarcodes", notInStockBarcodes);
                 request.setAttribute("pendingRentals", pendingRentals);
+                request.setAttribute("approvedRentals", approvedRentals);
 
                 request.getRequestDispatcher("/views/inventory/transaction-action.jsp").forward(request, response);
             }
@@ -394,8 +425,29 @@ public class InventoryTransactionServlet extends HttpServlet {
                             // Lock barcodes
                             generatorDAO.lockBarcodesForTransfer(conn, generatorId, quantity, transferId);
 
-                            conn.commit();
-                            success = true;
+                            // Create pending EXPORT transaction in inventory_transactions
+                            List<model.StockTransferDetail> detailsList = new java.util.ArrayList<>();
+                            detailsList.add(std);
+                            transactionDAO.createPendingTransactionsForTransfer(conn, transferId, managedWarehouse.getWarehouseId(), currentUser.getUserId(), detailsList);
+
+                             conn.commit();
+                             success = true;
+
+                             // Send notification to the manager supervising this warehouse
+                             try {
+                                 if (managedWarehouse.getManagerId() != null) {
+                                     model.Notification notif = new model.Notification();
+                                     notif.setUserId(managedWarehouse.getManagerId());
+                                     notif.setTitle("Yêu cầu điều chuyển kho mới");
+                                     notif.setMessage("Yêu cầu điều chuyển mới TF-" + transferId + " từ kho " + managedWarehouse.getWarehouseName() + " đang chờ bạn phê duyệt.");
+                                     notif.setRead(false);
+                                     notif.setType("SYSTEM");
+                                     notif.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                                     new dao.NotificationDAO().insert(notif);
+                                 }
+                             } catch (Exception ex) {
+                                 ex.printStackTrace();
+                             }
                         } else {
                             conn.rollback();
                         }
@@ -417,17 +469,86 @@ public class InventoryTransactionServlet extends HttpServlet {
                     }
                     return;
                 } else {
-                    int barcodeId = Integer.parseInt(request.getParameter("barcodeId"));
-                    if (note.isEmpty()) {
-                        note = "Xuất kho máy phát điện";
+                    String[] barcodeIdStrs = request.getParameterValues("barcodeId");
+                    if (barcodeIdStrs == null || barcodeIdStrs.length == 0) {
+                        response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=invalid_barcode");
+                        return;
                     }
-                    success = transactionDAO.exportGenerator(barcodeId, managedWarehouse.getWarehouseId(),
-                            exportStatus, currentUser.getUserId(), note);
+
+                    boolean allSuccess = true;
+                    for (String bIdStr : barcodeIdStrs) {
+                        if (bIdStr == null || bIdStr.trim().isEmpty()) continue;
+                        int barcodeId = Integer.parseInt(bIdStr.trim());
+
+                        if (isStaff) {
+                            model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
+                            if (gb != null) {
+                                List<Integer> assignedGenIds = rentalContractDAO.findAssignedGeneratorIds(currentUser.getUserId());
+                                if (assignedGenIds == null || !assignedGenIds.contains(gb.getGeneratorId())) {
+                                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không được phân công xuất máy phát điện này.");
+                                    return;
+                                }
+                            }
+                        }
+
+                        model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
+                        if (gb != null) {
+                            List<model.GeneratorBarcode> allModelBarcodes = generatorDAO.findBarcodesByGeneratorId(gb.getGeneratorId());
+                            boolean hasRemainingInStock = false;
+                            for (model.GeneratorBarcode r : allModelBarcodes) {
+                                if ("IN_STOCK".equals(r.getStatus()) && r.getBarcodeId() != barcodeId) {
+                                    hasRemainingInStock = true;
+                                    break;
+                                }
+                            }
+                            if (!hasRemainingInStock) {
+                                model.Generator gen = generatorDAO.findById(gb.getGeneratorId());
+                                if (gen != null) {
+                                    gen.setStatus("EXPORTED");
+                                    generatorDAO.update(gen);
+                                }
+                            }
+                        }
+
+                        String exportNote = note;
+                        if (exportNote.isEmpty()) {
+                            exportNote = "Xuất kho máy phát điện";
+                        }
+                        boolean s = transactionDAO.exportGenerator(barcodeId, managedWarehouse.getWarehouseId(),
+                                exportStatus, currentUser.getUserId(), exportNote);
+                        if (!s) {
+                            allSuccess = false;
+                        }
+                    }
+                    
+                    if (allSuccess) {
+                        String contractIdStr = request.getParameter("contractId");
+                        if (contractIdStr != null && !contractIdStr.trim().isEmpty()) {
+                            int contractId = Integer.parseInt(contractIdStr.trim());
+                            rentalContractDAO.updateContractStatus(contractId, "DELIVERED", currentUser.getUserId());
+                        }
+                    }
+                    success = allSuccess;
+                    
+                    String redirectUrl = request.getParameter("redirect");
                     if (success) {
-                        response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=generator_export_success");
+                        if ("home".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/home?success=generator_export_success");
+                        } else if ("rented-generators".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/rented-generators?success=generator_export_success");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=generator_export_success");
+                        }
                     } else {
-                        response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=generator_export_failed");
+                        if ("home".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/home?error=generator_export_failed");
+                        } else if ("rented-generators".equals(redirectUrl)) {
+                            response.sendRedirect(request.getContextPath() + "/staff/rented-generators?error=generator_export_failed");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=generator_export_failed");
+                        }
                     }
+                    return;
                 }
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);

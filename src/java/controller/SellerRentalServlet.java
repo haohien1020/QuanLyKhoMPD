@@ -156,23 +156,27 @@ public class SellerRentalServlet extends HttpServlet {
             groupedInventories = generatorDAO.findGroupedInventory(sellerWarehouseId);
         }
 
-        // Include current generator in option list even if it is not IN_STOCK
+        // Include current generators in option list even if they are not IN_STOCK
+        java.util.List<Integer> currentGenIds = new java.util.ArrayList<>();
         if (!currentGenerators.isEmpty()) {
-            int currentGenId = currentGenerators.get(0).getGeneratorId();
-            boolean exists = false;
-            for (Generator g : generators) {
-                if (g.getGeneratorId() == currentGenId) {
-                    exists = true;
-                    break;
+            for (CustomerRentedGenerator cg : currentGenerators) {
+                int currentGenId = cg.getGeneratorId();
+                currentGenIds.add(currentGenId);
+                boolean exists = false;
+                for (Generator g : generators) {
+                    if (g.getGeneratorId() == currentGenId) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    Generator currentGen = generatorDAO.findById(currentGenId);
+                    if (currentGen != null) {
+                        generators.add(0, currentGen);
+                    }
                 }
             }
-            if (!exists) {
-                Generator currentGen = generatorDAO.findById(currentGenId);
-                if (currentGen != null) {
-                    generators.add(0, currentGen);
-                }
-            }
-            request.setAttribute("currentGenId", currentGenId);
+            request.setAttribute("currentGenIds", currentGenIds);
             request.setAttribute("rentalPrice", currentGenerators.get(0).getRentalPrice());
         }
 
@@ -187,7 +191,7 @@ public class SellerRentalServlet extends HttpServlet {
     private void createContract(HttpServletRequest request, HttpServletResponse response, User currentUser) throws Exception {
         int customerId = Integer.parseInt(request.getParameter("customerId"));
         int warehouseId = Integer.parseInt(request.getParameter("warehouseId"));
-        int generatorId = Integer.parseInt(request.getParameter("generatorId"));
+        String[] generatorIds = request.getParameterValues("generatorId");
         Timestamp startDate = parseDate(request.getParameter("startDate"));
         Timestamp expectedReturnDate = parseDate(request.getParameter("expectedReturnDate"));
         double depositAmount = parseDouble(request.getParameter("depositAmount"));
@@ -202,18 +206,21 @@ public class SellerRentalServlet extends HttpServlet {
         }
 
         String contractCode = "CTR-SEL-" + System.currentTimeMillis();
+        String serialNumberStr = request.getParameter("serialNumber");
 
         int contractId = rentalContractDAO.createContract(customerId, warehouseId, currentUser.getUserId(),
-                contractCode, startDate, expectedReturnDate, depositAmount, totalAmount, note, generatorId, rentalPrice);
+                contractCode, startDate, expectedReturnDate, depositAmount, totalAmount, note, generatorIds, serialNumberStr, rentalPrice);
 
         if (contractId > 0) {
             try {
                 Customer customer = customerDAO.findById(customerId);
-                Generator generator = generatorDAO.findById(generatorId);
                 Warehouse warehouse = warehouseDAO.findById(warehouseId);
                 CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
                 
-                if (customer != null && customer.getEmail() != null && !customer.getEmail().trim().isEmpty()) {
+                int firstGenId = (generatorIds != null && generatorIds.length > 0) ? Integer.parseInt(generatorIds[0]) : 0;
+                Generator generator = generatorDAO.findById(firstGenId);
+                
+                if (customer != null && customer.getEmail() != null && !customer.getEmail().trim().isEmpty() && generator != null) {
                     util.EmailUtil.sendContractEmailAsync(customer, generator, warehouse, contract, currentUser, rentalPrice);
                 }
             } catch (Exception ex) {
@@ -230,7 +237,7 @@ public class SellerRentalServlet extends HttpServlet {
         int contractId = Integer.parseInt(request.getParameter("contractId"));
         int customerId = Integer.parseInt(request.getParameter("customerId"));
         int warehouseId = Integer.parseInt(request.getParameter("warehouseId"));
-        int generatorId = Integer.parseInt(request.getParameter("generatorId"));
+        String[] generatorIds = request.getParameterValues("generatorId");
         Timestamp startDate = parseDate(request.getParameter("startDate"));
         Timestamp expectedReturnDate = parseDate(request.getParameter("expectedReturnDate"));
         double depositAmount = parseDouble(request.getParameter("depositAmount"));
@@ -244,8 +251,9 @@ public class SellerRentalServlet extends HttpServlet {
             return;
         }
 
+        String serialNumberStr = request.getParameter("serialNumber");
         boolean success = rentalContractDAO.updateContract(contractId, customerId, warehouseId, startDate,
-                expectedReturnDate, depositAmount, totalAmount, note, generatorId, rentalPrice);
+                expectedReturnDate, depositAmount, totalAmount, note, generatorIds, serialNumberStr, rentalPrice);
 
         if (success) {
             response.sendRedirect(request.getContextPath() + "/seller/contracts?success=updated");
