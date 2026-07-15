@@ -16,6 +16,7 @@ public class InventoryTransaction {
     private Timestamp transactionDate;
     private String note;
     private String status;
+    private Integer transferId;
 
     public InventoryTransaction() {
     }
@@ -129,6 +130,14 @@ public class InventoryTransaction {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Integer getTransferId() {
+        return transferId;
+    }
+
+    public void setTransferId(Integer transferId) {
+        this.transferId = transferId;
     }
 
     // Helper fields for display

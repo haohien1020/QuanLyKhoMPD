@@ -6,21 +6,22 @@ import java.sql.SQLException;
 
 public class DBUtil {
 
-private static final String DB_URL =
-    "jdbc:mysql://127.0.0.1:3306/swp391_generator_management"
-    + "?useSSL=false"
-    + "&serverTimezone=UTC"
-    + "&allowPublicKeyRetrieval=true";
+    private static final String DB_URL = "jdbc:mysql://127.0.0.1:3306/SWP391_Generator_Management"
+            + "?useUnicode=true"
+            + "&characterEncoding=UTF-8"
+            + "&useSSL=false"
+            + "&serverTimezone=Asia/Ho_Chi_Minh"
+            + "&allowPublicKeyRetrieval=true";
 
     private static final String DB_USER = "root";
+
+    // Nhập đúng password root MySQL của bạn
     private static final String DB_PASS = "123456";
 
     static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("MySQL JDBC Driver loaded successfully!");
         } catch (ClassNotFoundException e) {
-            System.out.println("MySQL JDBC Driver not found!");
             e.printStackTrace();
         }
     }

@@ -27,7 +27,8 @@ import model.Warehouse;
     "/stock-transfers",
     "/stock-transfers/create",
     "/stock-transfers/approve",
-    "/stock-transfers/reject"
+    "/stock-transfers/reject",
+    "/stock-transfers/cancel"
 })
 public class StockTransferServlet extends HttpServlet {
 
@@ -36,6 +37,7 @@ public class StockTransferServlet extends HttpServlet {
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
     private final GeneratorDAO generatorDAO = new GeneratorDAO();
     private final PartDAO partDAO = new PartDAO();
+    private final dao.InventoryTransactionDAO inventoryTransactionDAO = new dao.InventoryTransactionDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -89,6 +91,8 @@ public class StockTransferServlet extends HttpServlet {
                 List<StockTransfer> list;
                 if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
                     list = stockTransferDAO.findTransfersByWarehouse(managedWarehouse.getWarehouseId());
+                } else if (currentUser.hasRole("MANAGER")) {
+                    list = stockTransferDAO.findTransfersByManager(currentUser.getUserId());
                 } else {
                     list = stockTransferDAO.findAll();
                 }
@@ -133,6 +137,7 @@ public class StockTransferServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 return;
             }
+            java.sql.Connection conn = null;
             try {
                 Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
                 if (managedWarehouse == null) {
@@ -143,27 +148,51 @@ public class StockTransferServlet extends HttpServlet {
                 int toWarehouseId = Integer.parseInt(request.getParameter("toWarehouseId"));
                 String itemType = request.getParameter("itemType"); // GENERATOR or PART
 
+                conn = util.DBUtil.getConnection();
+                conn.setAutoCommit(false);
+
                 StockTransfer st = new StockTransfer();
                 st.setFromWarehouseId(managedWarehouse.getWarehouseId());
                 st.setToWarehouseId(toWarehouseId);
                 st.setCreatedBy(currentUser.getUserId());
                 st.setStatus("PENDING");
 
-                int transferId = stockTransferDAO.insert(st);
+                int transferId = stockTransferDAO.insert(conn, st);
                 if (transferId > 0) {
+                    List<StockTransferDetail> detailsList = new ArrayList<>();
                     if ("GENERATOR".equals(itemType)) {
                         String[] generatorIds = request.getParameterValues("generatorId");
                         if (generatorIds != null) {
                             for (String gIdStr : generatorIds) {
                                 if (gIdStr.isEmpty()) continue;
                                 int gId = Integer.parseInt(gIdStr);
+
+                                // Check stock in source warehouse
+                                List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodes(managedWarehouse.getWarehouseId(), "IN_STOCK");
+                                int avail = 0;
+                                for (model.GeneratorBarcode gb : barcodes) {
+                                    if (gb.getGeneratorId() == gId) {
+                                        avail++;
+                                    }
+                                }
+                                if (avail < 1) {
+                                    throw new Exception("Không đủ máy phát điện trong kho để thực hiện điều chuyển.");
+                                }
+
                                 StockTransferDetail std = new StockTransferDetail();
                                 std.setTransferId(transferId);
                                 std.setItemType("GENERATOR");
                                 std.setGeneratorId(gId);
                                 std.setPartId(null);
                                 std.setQuantity(1);
-                                stockTransferDetailDAO.insert(std);
+                                stockTransferDetailDAO.insert(conn, std);
+                                detailsList.add(std);
+
+                                // Lock barcode
+                                boolean locked = generatorDAO.lockBarcodesForTransfer(conn, gId, 1, transferId);
+                                if (!locked) {
+                                    throw new Exception("Không thể khóa máy phát điện để chuyển.");
+                                }
                             }
                         }
                     } else {
@@ -174,6 +203,12 @@ public class StockTransferServlet extends HttpServlet {
                                 if (partIds[i].isEmpty()) continue;
                                 int pId = Integer.parseInt(partIds[i]);
                                 int qty = Integer.parseInt(quantities[i]);
+                                if (qty <= 0) continue;
+
+                                Part part = partDAO.findById(pId);
+                                if (part == null || part.getWarehouseId() != managedWarehouse.getWarehouseId() || part.getQuantity() < qty) {
+                                    throw new Exception("Không đủ phụ tùng trong kho để thực hiện điều chuyển.");
+                                }
 
                                 StockTransferDetail std = new StockTransferDetail();
                                 std.setTransferId(transferId);
@@ -181,20 +216,52 @@ public class StockTransferServlet extends HttpServlet {
                                 std.setGeneratorId(null);
                                 std.setPartId(pId);
                                 std.setQuantity(qty);
-                                stockTransferDetailDAO.insert(std);
+                                stockTransferDetailDAO.insert(conn, std);
+                                detailsList.add(std);
                             }
                         }
                     }
-                    response.sendRedirect(request.getContextPath() + "/stock-transfers?success=created");
+
+                    if (!detailsList.isEmpty()) {
+                        inventoryTransactionDAO.createPendingTransactionsForTransfer(conn, transferId, managedWarehouse.getWarehouseId(), currentUser.getUserId(), detailsList);
+                        conn.commit();
+
+                        // Send notification to the manager supervising this warehouse
+                        try {
+                            if (managedWarehouse.getManagerId() != null) {
+                                model.Notification notif = new model.Notification();
+                                notif.setUserId(managedWarehouse.getManagerId());
+                                notif.setTitle("Yêu cầu điều chuyển kho mới");
+                                notif.setMessage("Yêu cầu điều chuyển mới TF-" + transferId + " từ kho " + managedWarehouse.getWarehouseName() + " đang chờ bạn phê duyệt.");
+                                notif.setRead(false);
+                                notif.setType("SYSTEM");
+                                notif.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                                new dao.NotificationDAO().insert(notif);
+                            }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+
+                        response.sendRedirect(request.getContextPath() + "/stock-transfers?success=created");
+                    } else {
+                        throw new Exception("Chưa chọn sản phẩm nào để điều chuyển.");
+                    }
                 } else {
                     response.sendRedirect(request.getContextPath() + "/stock-transfers/create?error=failed");
                 }
             } catch (Exception e) {
+                if (conn != null) {
+                    try { conn.rollback(); } catch (Exception ignored) {}
+                }
                 e.printStackTrace();
-                response.sendRedirect(request.getContextPath() + "/stock-transfers/create?error=system_error");
+                response.sendRedirect(request.getContextPath() + "/stock-transfers/create?error=system_error&message=" + java.net.URLEncoder.encode(e.getMessage(), "UTF-8"));
+            } finally {
+                if (conn != null) {
+                    try { conn.setAutoCommit(true); conn.close(); } catch (Exception ignored) {}
+                }
             }
-        } else if ("/stock-transfers/approve".equals(path) || "/stock-transfers/reject".equals(path)) {
-            if (!currentUser.hasRole("MANAGER")) {
+        } else if ("/stock-transfers/cancel".equals(path)) {
+            if (!currentUser.hasRole("WAREHOUSE_MANAGER")) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 return;
             }
@@ -212,10 +279,102 @@ public class StockTransferServlet extends HttpServlet {
                     return;
                 }
 
+                Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+                if (managedWarehouse == null || st.getFromWarehouseId() != managedWarehouse.getWarehouseId()) {
+                    conn.rollback();
+                    response.sendRedirect(request.getContextPath() + "/stock-transfers?error=forbidden");
+                    return;
+                }
+
+                // Rollback / Cancel logic:
+                // 1. Release barcodes (change status back to 'IN_STOCK', transfer_id = null)
+                generatorDAO.releaseBarcodes(conn, transferId);
+
+                // 2. Set pending export transactions to 'CANCELLED'
+                inventoryTransactionDAO.updateStatusByTransferId(conn, transferId, "CANCELLED");
+
+                // 3. Set the transfer status to 'CANCELLED'
+                st.setStatus("CANCELLED");
+                st.setApprovedBy(currentUser.getUserId()); // warehouse manager who cancelled it
+                st.setApprovedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                stockTransferDAO.update(conn, st);
+
+                conn.commit();
+                response.sendRedirect(request.getContextPath() + "/stock-transfers?success=cancelled");
+            } catch (Exception e) {
+                if (conn != null) {
+                    try { conn.rollback(); } catch (Exception ignored) {}
+                }
+                e.printStackTrace();
+                response.sendRedirect(request.getContextPath() + "/stock-transfers?error=cancel_error");
+            } finally {
+                if (conn != null) {
+                    try { conn.setAutoCommit(true); conn.close(); } catch (Exception ignored) {}
+                }
+            }
+        } else if ("/stock-transfers/approve".equals(path) || "/stock-transfers/reject".equals(path)) {
+            if (!currentUser.hasRole("MANAGER")) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
+
+            int transferId = Integer.parseInt(request.getParameter("transferId"));
+            java.sql.Connection conn = null;
+            try {
+                conn = util.DBUtil.getConnection();
+                conn.setAutoCommit(false);
+
+                StockTransfer st = stockTransferDAO.findById(transferId);
+                if (st == null || (!"PENDING".equals(st.getStatus()) && !"PENDING_RECEIVE".equals(st.getStatus()))) {
+                    conn.rollback();
+                    response.sendRedirect(request.getContextPath() + "/stock-transfers?error=invalid_transfer");
+                    return;
+                }
+
+                Warehouse fromWh = warehouseDAO.findById(st.getFromWarehouseId());
+                Warehouse toWh = warehouseDAO.findById(st.getToWarehouseId());
+
                 if ("/stock-transfers/approve".equals(path)) {
-                    // Approve logic
+                    if ("PENDING".equals(st.getStatus())) {
+                        // Check if the destination warehouse belongs to a different manager
+                        if (fromWh != null && toWh != null && fromWh.getManagerId() != null && toWh.getManagerId() != null 
+                                && !fromWh.getManagerId().equals(toWh.getManagerId())) {
+                            
+                            // Set status to PENDING_RECEIVE
+                            st.setStatus("PENDING_RECEIVE");
+                            st.setApprovedBy(currentUser.getUserId());
+                            st.setApprovedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                            stockTransferDAO.update(conn, st);
+
+                            // Send notification to Manager B
+                            try {
+                                model.Notification notif = new model.Notification();
+                                notif.setUserId(toWh.getManagerId());
+                                notif.setTitle("Yêu cầu nhận điều chuyển kho");
+                                notif.setMessage("Yêu cầu điều chuyển TF-" + transferId + " từ kho " + fromWh.getWarehouseName() + " đang chờ bạn xác nhận nhận kho.");
+                                notif.setRead(false);
+                                notif.setType("SYSTEM");
+                                notif.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                                new dao.NotificationDAO().insert(notif);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+
+                            conn.commit();
+                            response.sendRedirect(request.getContextPath() + "/stock-transfers?success=approved");
+                            return;
+                        }
+                    } else if ("PENDING_RECEIVE".equals(st.getStatus())) {
+                        // Must be destination manager to approve receipt
+                        if (toWh == null || toWh.getManagerId() == null || !toWh.getManagerId().equals(currentUser.getUserId())) {
+                            conn.rollback();
+                            response.sendRedirect(request.getContextPath() + "/stock-transfers?error=forbidden");
+                            return;
+                        }
+                    }
+
+                    // Run transfer logic
                     List<StockTransferDetail> details = stockTransferDetailDAO.findDetailsByTransferId(transferId);
-                    
                     for (StockTransferDetail detail : details) {
                         if ("GENERATOR".equals(detail.getItemType())) {
                             int sourceGeneratorId = detail.getGeneratorId();
@@ -264,35 +423,106 @@ public class StockTransferServlet extends HttpServlet {
                                 throw new Exception("Lỗi tạo mẫu máy phát điện mới tại kho đích.");
                             }
 
-                            // 2. Move barcodes
+                            // Move barcodes
                             generatorDAO.transferBarcodes(conn, transferId, destGeneratorId);
 
-                            // 3. Log transactions in inventory_transactions for EXPORT and IMPORT
-                            // Source EXPORT transaction
-                            String exportSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) "
-                                             + "VALUES (?, NULL, ?, 'EXPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED')";
-                            try (PreparedStatement ps = conn.prepareStatement(exportSql)) {
-                                ps.setInt(1, st.getFromWarehouseId());
-                                ps.setInt(2, st.getCreatedBy());
-                                ps.setInt(3, sourceGeneratorId);
-                                ps.setInt(4, quantity);
-                                ps.setString(5, "Chuyển kho sang kho ID " + st.getToWarehouseId() + " (Phiếu điều chuyển TF-" + transferId + ")");
-                                ps.executeUpdate();
-                            }
-
-                            // Destination IMPORT transaction
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED')";
+                            // Log IMPORT transaction in inventory_transactions for destination warehouse
+                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
+                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED', ?)";
                             try (PreparedStatement ps = conn.prepareStatement(importSql)) {
                                 ps.setInt(1, st.getToWarehouseId());
                                 ps.setInt(2, currentUser.getUserId());
                                 ps.setInt(3, destGeneratorId);
                                 ps.setInt(4, quantity);
                                 ps.setString(5, "Nhận điều chuyển từ kho ID " + st.getFromWarehouseId() + " (Phiếu điều chuyển TF-" + transferId + ")");
+                                ps.setInt(6, transferId);
+                                ps.executeUpdate();
+                            }
+                        } else if ("PART".equals(detail.getItemType())) {
+                            int sourcePartId = detail.getPartId();
+                            int quantity = detail.getQuantity();
+
+                            // Load source part details
+                            Part sourcePart = partDAO.findById(sourcePartId);
+                            if (sourcePart == null) {
+                                throw new Exception("Không tìm thấy thông tin phụ tùng nguồn.");
+                            }
+
+                            // Check if destination warehouse already has a matching part (by part_code)
+                            String checkDestSql = "SELECT part_id FROM parts WHERE warehouse_id = ? AND LOWER(part_code) = LOWER(?) AND is_deleted = 0";
+                            int destPartId = 0;
+                            try (PreparedStatement ps = conn.prepareStatement(checkDestSql)) {
+                                ps.setInt(1, st.getToWarehouseId());
+                                ps.setString(2, sourcePart.getPartCode());
+                                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        destPartId = rs.getInt("part_id");
+                                    }
+                                }
+                            }
+
+                            // Subtract quantity from source warehouse
+                            String subQtySql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ?";
+                            try (PreparedStatement ps = conn.prepareStatement(subQtySql)) {
+                                ps.setInt(1, quantity);
+                                ps.setInt(2, sourcePartId);
+                                int rows = ps.executeUpdate();
+                                if (rows == 0) {
+                                    throw new Exception("Lỗi trừ số lượng phụ tùng tại kho nguồn.");
+                                }
+                            }
+
+                            if (destPartId > 0) {
+                                // Add quantity to destination part
+                                String addQtySql = "UPDATE parts SET quantity = quantity + ?, updated_at = NOW() WHERE part_id = ?";
+                                try (PreparedStatement ps = conn.prepareStatement(addQtySql)) {
+                                    ps.setInt(1, quantity);
+                                    ps.setInt(2, destPartId);
+                                    int rows = ps.executeUpdate();
+                                    if (rows == 0) {
+                                        throw new Exception("Lỗi cộng số lượng phụ tùng tại kho đích.");
+                                    }
+                                }
+                            } else {
+                                // Create new part record in destination warehouse
+                                String insertPartSql = "INSERT INTO parts (warehouse_id, part_name, part_code, quantity, min_quantity, unit, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                                try (PreparedStatement ps = conn.prepareStatement(insertPartSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                                    ps.setInt(1, st.getToWarehouseId());
+                                    ps.setString(2, sourcePart.getPartName());
+                                    ps.setString(3, sourcePart.getPartCode());
+                                    ps.setInt(4, quantity);
+                                    ps.setInt(5, sourcePart.getMinQuantity());
+                                    ps.setString(6, sourcePart.getUnit());
+                                    ps.setString(7, sourcePart.getStatus());
+                                    int affectedRows = ps.executeUpdate();
+                                    if (affectedRows == 0) {
+                                        throw new Exception("Lỗi tạo mới phụ tùng tại kho đích.");
+                                    }
+                                    try (java.sql.ResultSet keys = ps.getGeneratedKeys()) {
+                                        if (keys.next()) {
+                                            destPartId = keys.getInt(1);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Insert destination IMPORT transaction (with transfer_id)
+                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
+                                             + "VALUES (?, NULL, ?, 'IMPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED', ?)";
+                            try (PreparedStatement ps = conn.prepareStatement(importSql)) {
+                                ps.setInt(1, st.getToWarehouseId());
+                                ps.setInt(2, currentUser.getUserId());
+                                ps.setInt(3, destPartId);
+                                ps.setInt(4, quantity);
+                                ps.setString(5, "Nhận điều chuyển phụ tùng từ kho ID " + st.getFromWarehouseId() + " (Phiếu điều chuyển TF-" + transferId + ")");
+                                ps.setInt(6, transferId);
                                 ps.executeUpdate();
                             }
                         }
                     }
+
+                    // Update pending EXPORT transactions to COMPLETED
+                    inventoryTransactionDAO.updateStatusByTransferId(conn, transferId, "COMPLETED");
 
                     // Update transfer status
                     st.setStatus("APPROVED");
@@ -303,8 +533,20 @@ public class StockTransferServlet extends HttpServlet {
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/stock-transfers?success=approved");
                 } else if ("/stock-transfers/reject".equals(path)) {
+                    if ("PENDING_RECEIVE".equals(st.getStatus())) {
+                        // Must be destination manager to reject receipt
+                        if (toWh == null || toWh.getManagerId() == null || !toWh.getManagerId().equals(currentUser.getUserId())) {
+                            conn.rollback();
+                            response.sendRedirect(request.getContextPath() + "/stock-transfers?error=forbidden");
+                            return;
+                        }
+                    }
+
                     // Reject logic - Release barcodes
                     generatorDAO.releaseBarcodes(conn, transferId);
+
+                    // Update pending EXPORT transactions to CANCELLED
+                    inventoryTransactionDAO.updateStatusByTransferId(conn, transferId, "CANCELLED");
 
                     // Update transfer status
                     st.setStatus("REJECTED");

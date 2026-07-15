@@ -100,10 +100,27 @@ public class WarehouseRentalServlet extends HttpServlet {
         try {
             if ("approve".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
+                model.CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                if (contract == null || contract.getAssignedStaffId() == null || contract.getAssignedStaffId() == 0) {
+                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=no_staff_assigned");
+                    return;
+                }
                 boolean success = rentalContractDAO.updateContractStatus(contractId, "APPROVED", currentUser.getUserId());
                 if (success) {
+                    // Auto-grant Import Inventory permission to the assigned staff if they don't have it
                     try {
-                        model.CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                        int staffId = contract.getAssignedStaffId();
+                        User staff = userDAO.findById(staffId);
+                        if (staff != null && !staff.isCanImportInventory()) {
+                            userDAO.updateImportInventoryPermission(staffId, true);
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Failed to auto-grant Import Inventory permission to staff " + contract.getAssignedStaffId() + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
+
+                    try {
+                        contract = rentalContractDAO.findContractById(contractId);
                         if (contract != null) {
                             model.Customer customer = new dao.CustomerDAO().findById(contract.getCustomerId());
                             List<model.CustomerRentedGenerator> gens = rentalContractDAO.getGeneratorsForContract(contractId);
@@ -126,9 +143,53 @@ public class WarehouseRentalServlet extends HttpServlet {
                 }
             } else if ("reject".equals(action)) {
                 int contractId = Integer.parseInt(request.getParameter("contractId"));
-                boolean success = rentalContractDAO.updateContractStatus(contractId, "REJECTED", currentUser.getUserId());
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
+                CustomerRentalContract contract = rentalContractDAO.findContractById(contractId);
+                if (contract != null) {
+                    boolean success = rentalContractDAO.updateContractStatus(contractId, "REJECTED", currentUser.getUserId());
+                    if (success) {
+                        // Rollback generator barcode / unit statuses to IN_STOCK
+                        try {
+                            List<CustomerRentedGenerator> gens = rentalContractDAO.getGeneratorsForContract(contractId);
+                            for (CustomerRentedGenerator cg : gens) {
+                                if (cg.getSerialNumber() != null && !cg.getSerialNumber().isEmpty()) {
+                                    String[] serials = cg.getSerialNumber().split(",");
+                                    for (String s : serials) {
+                                        s = s.trim();
+                                        if (!s.isEmpty()) {
+                                            generatorDAO.updateBarcodeStatus(s, "IN_STOCK");
+                                        }
+                                    }
+                                }
+                                Generator g = generatorDAO.findById(cg.getGeneratorId());
+                                if (g != null && "EXPORTED".equals(g.getStatus())) {
+                                    g.setStatus("IN_STOCK");
+                                    generatorDAO.update(g);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Failed to rollback generator statuses on rejection: " + ex.getMessage());
+                        }
+
+                        // Send cancellation notification to assigned staff if any
+                        if (contract.getAssignedStaffId() != null && contract.getAssignedStaffId() > 0) {
+                            try {
+                                NotificationDAO notificationDAO = new NotificationDAO();
+                                Notification notif = new Notification();
+                                notif.setUserId(contract.getAssignedStaffId());
+                                notif.setTitle("Hủy hợp đồng thuê máy");
+                                notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã bị từ chối/hủy. Bạn không cần thực hiện bàn giao hợp đồng này nữa.");
+                                notif.setType("RENTAL");
+                                notif.setRead(false);
+                                notificationDAO.insert(notif);
+                            } catch (Exception ex) {
+                                System.err.println("Failed to send cancellation notification to staff: " + ex.getMessage());
+                            }
+                        }
+
+                        response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
+                    } else {
+                        response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
+                    }
                 } else {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
                 }
@@ -203,8 +264,8 @@ public class WarehouseRentalServlet extends HttpServlet {
                         NotificationDAO notificationDAO = new NotificationDAO();
                         Notification notif = new Notification();
                         notif.setUserId(staffId);
-                        notif.setTitle("Phân công Pre-delivery Check-up");
-                        notif.setMessage("Bạn đã được phân công thực hiện pre-delivery check-up cho Hợp đồng: " 
+                        notif.setTitle("Phân công Kiểm tra & Bàn giao máy");
+                        notif.setMessage("Bạn đã được phân công thực hiện kiểm tra máy trước khi bàn giao và giao máy cho khách hàng theo Hợp đồng: " 
                                 + (contract != null ? contract.getContractCode() : ("ID " + contractId)));
                         notif.setType("RENTAL");
                         notif.setRead(false);

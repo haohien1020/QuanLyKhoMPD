@@ -53,6 +53,9 @@
                                             nhận lại máy phát điện hoàn chỉnh. Trạng thái máy đã cập nhật về trong kho.
                                         </div>
                                     </c:if>
+                                    <c:if test="${param.error == 'no_staff_assigned'}">
+                                        <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Không thể duyệt hợp đồng! Vui lòng phân công nhân viên kỹ thuật trước khi duyệt.</div>
+                                    </c:if>
 
                                     <c:if test="${not empty error}">
                                         <div class="alert alert-danger">${error}</div>
@@ -121,10 +124,19 @@
                                                                         <i class="fas fa-eye"></i> Chi tiết
                                                                     </button>
 
+                                                                    <c:if test="${contract.status == 'PENDING' || contract.status == 'APPROVED'}">
+                                                                        <form method="post" action="${pageContext.request.contextPath}/warehouse/rentals/action?action=reject" class="d-inline" onsubmit="return confirm('Xác nhận từ chối / hủy hợp đồng này và hoàn tác trạng thái thiết bị?');">
+                                                                            <input type="hidden" name="contractId" value="${contract.rentalContractId}">
+                                                                            <button type="submit" class="btn btn-outline-danger btn-sm mr-1 mb-1" title="Từ chối / Hủy hợp đồng">
+                                                                                <i class="fas fa-times"></i> Từ chối
+                                                                            </button>
+                                                                        </form>
+                                                                    </c:if>
+
                                                                     <c:choose>
                                                                         <c:when test="${contract.status == 'PENDING'}">
                                                                             <a href="${pageContext.request.contextPath}/warehouse/rentals/action?action=assign-staff&contractId=${contract.rentalContractId}"
-                                                                                class="btn btn-warning btn-sm mb-1"><i
+                                                                                class="btn btn-warning btn-sm mb-1 mr-1"><i
                                                                                     class="fas fa-user-plus"></i> Phân công Staff</a>
                                                                             <c:if test="${not empty contract.assignedStaffName}">
                                                                                 <div class="small text-muted mt-1 mb-1">
@@ -133,47 +145,38 @@
                                                                             </c:if>
  
                                                                             <button type="button"
-                                                                                class="btn btn-primary btn-sm mb-1 ml-1"
+                                                                                class="btn btn-primary btn-sm mb-1"
+                                                                                ${(empty contract.assignedStaffId || contract.assignedStaffId == 0) ? 'disabled' : ''}
                                                                                 onclick="openDetailModal('${contract.contractCode}', '${contract.sellerName}', '${contract.customerName}', '${contract.customerPhone}', '${contract.customerEmail}', '${contract.brand} ${contract.generatorName}', '${contract.serialNumber}', '${contract.rentalPrice}', '${contract.depositAmount}', '${contract.totalAmount}', '${contract.startDate}', '${contract.expectedReturnDate}', '${contract.status}', '${contract.note}', true, '${contract.rentalContractId}')"
-                                                                                title="Xem chi tiết và duyệt hợp đồng">
+                                                                                title="${(empty contract.assignedStaffId || contract.assignedStaffId == 0) ? 'Vui lòng phân công nhân viên kỹ thuật trước khi duyệt' : 'Xem chi tiết và duyệt hợp đồng'}">
                                                                                 <i class="fas fa-check"></i> Duyệt hợp đồng
                                                                             </button>
-                                                                            <form method="post"
-                                                                                action="${pageContext.request.contextPath}/warehouse/rentals/action?action=reject"
-                                                                                class="d-inline"
-                                                                                onsubmit="return confirm('Xác nhận từ chối hợp đồng này?');">
-                                                                                <input type="hidden" name="contractId"
-                                                                                    value="${contract.rentalContractId}">
-                                                                                <button type="submit"
-                                                                                    class="btn btn-danger btn-sm mb-1 ml-1"><i
-                                                                                        class="fas fa-times"></i> Từ chối</button>
-                                                                            </form>
                                                                         </c:when>
                                                                         <c:when test="${contract.status == 'APPROVED'}">
-                                                                            <form method="post"
-                                                                                action="${pageContext.request.contextPath}/warehouse/rentals/action?action=deliver"
-                                                                                class="d-inline"
-                                                                                onsubmit="return confirm('Xác nhận bàn giao máy phát điện cho khách hàng?');">
-                                                                                <input type="hidden" name="contractId"
-                                                                                    value="${contract.rentalContractId}">
-                                                                                <button type="submit"
-                                                                                    class="btn btn-success btn-sm mb-1"><i
-                                                                                        class="fas fa-truck-moving"></i>
-                                                                                    Bàn giao máy (Xuất kho)</button>
-                                                                            </form>
+                                                                            <span class="badge badge-light border text-info p-2 font-weight-bold" title="Nhân viên kỹ thuật (Staff) sẽ thực hiện xuất kho bàn giao máy">
+                                                                                <i class="fas fa-user-clock mr-1"></i> Chờ Staff xuất kho
+                                                                            </span>
                                                                         </c:when>
-                                                                        <c:when
-                                                                            test="${contract.status == 'DELIVERED'}">
-                                                                            <form method="post"
-                                                                                action="${pageContext.request.contextPath}/warehouse/rentals/action?action=return"
-                                                                                class="d-inline"
-                                                                                onsubmit="return confirm('Xác nhận nhận lại máy phát điện và hoàn thành hợp đồng?');">
-                                                                                <input type="hidden" name="contractId"
-                                                                                    value="${contract.rentalContractId}">
-                                                                                <button type="submit"
-                                                                                    class="btn btn-info btn-sm mb-1"><i
-                                                                                        class="fas fa-undo"></i> Xác nhận trả máy (Nhập kho)</button>
-                                                                            </form>
+                                                                        <c:when test="${contract.status == 'DELIVERED'}">
+                                                                            <c:choose>
+                                                                                <c:when test="${contract.dueOrOverdue}">
+                                                                                    <form method="post"
+                                                                                        action="${pageContext.request.contextPath}/warehouse/rentals/action?action=return"
+                                                                                        class="d-inline"
+                                                                                        onsubmit="return confirm('Xác nhận nhận lại máy phát điện và hoàn thành hợp đồng?');">
+                                                                                        <input type="hidden" name="contractId"
+                                                                                            value="${contract.rentalContractId}">
+                                                                                        <button type="submit"
+                                                                                            class="btn btn-info btn-sm mb-1"><i
+                                                                                                class="fas fa-undo"></i> Xác nhận trả máy (Nhập kho)</button>
+                                                                                    </form>
+                                                                                </c:when>
+                                                                                <c:otherwise>
+                                                                                    <span class="badge badge-light border text-primary p-2 font-weight-bold" title="Máy đang trong thời gian cho khách thuê (Chưa đến ngày trả dự kiến)">
+                                                                                        <i class="fas fa-clock mr-1"></i> Đang cho thuê
+                                                                                    </span>
+                                                                                </c:otherwise>
+                                                                            </c:choose>
                                                                         </c:when>
                                                                         <c:otherwise>
                                                                             <span class="text-muted">Không có hành động</span>
@@ -302,7 +305,7 @@
                         <div class="modal-footer bg-light">
                             <form id="approveContractForm" method="post"
                                 action="${pageContext.request.contextPath}/warehouse/rentals/action?action=approve"
-                                class="d-inline" style="display:none;"
+                                style="display: none !important;"
                                 onsubmit="return confirm('Xác nhận duyệt yêu cầu thuê này?');">
                                 <input type="hidden" name="contractId" id="approveContractId" value="">
                                 <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Xác
@@ -310,7 +313,7 @@
                             </form>
                             <form id="rejectContractForm" method="post"
                                 action="${pageContext.request.contextPath}/warehouse/rentals/action?action=reject"
-                                class="d-inline" style="display:none;"
+                                style="display: none !important;"
                                 onsubmit="return confirm('Xác nhận từ chối yêu cầu thuê này?');">
                                 <input type="hidden" name="contractId" id="rejectContractId" value="">
                                 <button type="submit" class="btn btn-danger"><i class="fas fa-times-circle"></i> Từ chối</button>
@@ -335,7 +338,19 @@
                     $('#detailCustomerEmail').text(email || '-');
 
                     $('#detailGeneratorName').text(genName || 'Chưa chọn máy');
-                    $('#detailSerialNumber').text(serial || '-');
+                    
+                    var serialEl = $('#detailSerialNumber');
+                    serialEl.empty();
+                    if (serial && serial !== 'Chưa cập nhật' && serial !== '-') {
+                        var serials = serial.split(', ');
+                        var html = '';
+                        serials.forEach(function(s) {
+                            html += '<div style="font-size: 0.78rem; font-weight: 600; line-height: 1.3; margin-bottom: 2px; color: #e74a3b;">- ' + s + '</div>';
+                        });
+                        serialEl.html(html);
+                    } else {
+                        serialEl.text(serial || '-');
+                    }
 
                     var formattedPrice = price ? parseFloat(price).toLocaleString('vi-VN') + ' VNĐ/ngày' : '0 VNĐ/ngày';
                     $('#detailRentalPrice').text(formattedPrice);
@@ -373,16 +388,20 @@
 
                     $('#detailNote').text(note || 'Không có ghi chú.');
 
-                    if (showApprove && contractId) {
+                    if (showApprove && contractId && status === 'PENDING') {
                         $('#approveContractId').val(contractId);
-                        $('#approveContractForm').show();
-                        $('#rejectContractId').val(contractId);
-                        $('#rejectContractForm').show();
+                        $('#approveContractForm').attr('style', 'display: inline-block !important;');
                     } else {
                         $('#approveContractId').val('');
-                        $('#approveContractForm').hide();
+                        $('#approveContractForm').attr('style', 'display: none !important;');
+                    }
+
+                    if (contractId && (status === 'PENDING' || status === 'APPROVED')) {
+                        $('#rejectContractId').val(contractId);
+                        $('#rejectContractForm').attr('style', 'display: inline-block !important;');
+                    } else {
                         $('#rejectContractId').val('');
-                        $('#rejectContractForm').hide();
+                        $('#rejectContractForm').attr('style', 'display: none !important;');
                     }
 
                     $('#contractDetailModal').modal('show');
@@ -421,7 +440,7 @@
                                             <option value="${s.userId}" ${s.userId == assignContract.assignedStaffId ? 'selected' : ''}>${s.fullName} (${s.email})</option>
                                         </c:forEach>
                                     </select>
-                                    <small class="form-text text-muted">Nhân viên được phân công sẽ nhận được thông báo thực hiện pre-delivery check-up.</small>
+                                    <small class="form-text text-muted">Nhân viên được phân công sẽ nhận được thông báo thực hiện kiểm tra máy trước khi bàn giao.</small>
                                 </div>
                             </div>
                             <div class="modal-footer bg-light">

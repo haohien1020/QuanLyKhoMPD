@@ -98,6 +98,16 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("unreadNotifications",
                 dashboardDAO.countWhereInt("notifications", "user_id = ? AND is_read = 0", userId));
+
+        dao.RentalContractDAO rentalContractDAO = new dao.RentalContractDAO();
+        java.util.List<model.CustomerRentalContract> assignedContracts = rentalContractDAO.findContractsAssignedToStaff(userId);
+        request.setAttribute("assignedContracts", assignedContracts);
+
+        dao.GeneratorDAO generatorDAO = new dao.GeneratorDAO();
+        if (currentUser.getWarehouseId() != null) {
+            java.util.List<model.GeneratorBarcode> staffBarcodes = generatorDAO.findBarcodes(currentUser.getWarehouseId(), "IN_STOCK");
+            request.setAttribute("staffBarcodes", staffBarcodes);
+        }
     }
 
     private void loadSellerData(HttpServletRequest request, User currentUser) throws Exception {

@@ -23,7 +23,7 @@ public class EmailUtil {
     private static final String SMTP_USER = "haohien1020@gmail.com";
     private static final String SMTP_PASS = "ylgg pkyx divs qxtg";
     private static final String SMTP_FROM = "haohien1020@gmail.com";
-
+    
     private EmailUtil() {
     }
 

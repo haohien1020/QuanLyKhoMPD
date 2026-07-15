@@ -80,6 +80,11 @@ public class ManagerEmployeeServlet extends HttpServlet {
 
     private void showEmployees(HttpServletRequest request, HttpServletResponse response, User manager)
             throws Exception {
+        String roleFilter = request.getParameter("role");
+        if (roleFilter == null || roleFilter.trim().isEmpty()) {
+            roleFilter = "ALL";
+        }
+
         List<User> employees = userDAO.findEmployeesBySupervisingManager(manager.getUserId());
         List<User> warehouseManagers = userDAO.findWarehouseManagersBySupervisingManager(manager.getUserId());
 
@@ -92,6 +97,18 @@ public class ManagerEmployeeServlet extends HttpServlet {
             }
         }
 
+        // Apply role filtering
+        if ("STAFF".equalsIgnoreCase(roleFilter)) {
+            employees.removeIf(e -> !"STAFF".equals(e.getRoleName()));
+            warehouseManagers.clear();
+        } else if ("SELLER".equalsIgnoreCase(roleFilter)) {
+            employees.removeIf(e -> !"SELLER".equals(e.getRoleName()));
+            warehouseManagers.clear();
+        } else if ("WAREHOUSE_MANAGER".equalsIgnoreCase(roleFilter)) {
+            employees.clear();
+        }
+
+        request.setAttribute("selectedRole", roleFilter.toUpperCase());
         request.setAttribute("employees", employees);
         request.setAttribute("warehouseManagers", warehouseManagers);
         request.getRequestDispatcher("/views/warehouse/manager-employee-list.jsp").forward(request, response);

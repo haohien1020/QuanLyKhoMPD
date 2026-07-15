@@ -382,8 +382,12 @@
                     width: 2,
                     height: 50,
                     displayValue: true,
-                    fontSize: 12,
-                    margin: 0
+                    font: "monospace",
+                    fontSize: 13,
+                    textMargin: 4,
+                    margin: 12,
+                    background: "#ffffff",
+                    lineColor: "#000000"
                 });
                 $('#modalBarcodeImg').attr('src', canvas.toDataURL("image/png"));
                 $('#modalBarcodeArea').show();

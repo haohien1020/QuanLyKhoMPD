@@ -17,7 +17,7 @@ import util.EmailUtil;
 @WebServlet(name = "ForgotPasswordServlet", urlPatterns = {"/forgot-password"})
 public class ForgotPasswordServlet extends HttpServlet {
 
-    private static final long TOKEN_EXPIRY_MILLIS = 60 * 60 * 1000; // 1h dong ho
+    private static final long TOKEN_EXPIRY_MILLIS = 60 * 60 * 1000;
     private final UserDAO userDAO = new UserDAO();
     private final PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
 
@@ -37,7 +37,7 @@ public class ForgotPasswordServlet extends HttpServlet {
         String email = request.getParameter("email");
 
         if (email == null || email.trim().isEmpty()) {
-            request.setAttribute("errorMessage", "Please enter your email address.");
+            request.setAttribute("errorMessage", "Vui lòng nhập địa chỉ email của bạn.");
             request.getRequestDispatcher("/views/auth/forgot-password.jsp").forward(request, response);
             return;
         }
@@ -45,7 +45,7 @@ public class ForgotPasswordServlet extends HttpServlet {
         email = email.trim().toLowerCase();
 
         if (!isValidEmail(email)) {
-            request.setAttribute("errorMessage", "Email address is invalid.");
+            request.setAttribute("errorMessage", "Địa chỉ email không hợp lệ.");
             request.setAttribute("inputEmail", email);
             request.getRequestDispatcher("/views/auth/forgot-password.jsp").forward(request, response);
             return;
@@ -78,12 +78,12 @@ public class ForgotPasswordServlet extends HttpServlet {
             }
 
             request.setAttribute("successMessage",
-                    "If this email exists in our system, a password reset link has been sent.");
+                    "Nếu email này tồn tại trên hệ thống, một liên kết đặt lại mật khẩu đã được gửi.");
             request.getRequestDispatcher("/views/auth/forgot-password.jsp").forward(request, response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("errorMessage", "System error. Please try again later.");
+            request.setAttribute("errorMessage", "Lỗi hệ thống. Vui lòng thử lại sau.");
             request.getRequestDispatcher("/views/auth/forgot-password.jsp").forward(request, response);
         }
     }

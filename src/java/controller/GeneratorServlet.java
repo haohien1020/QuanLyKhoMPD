@@ -49,8 +49,30 @@ public class GeneratorServlet extends HttpServlet {
                 String filterStatus = trim(request.getParameter("status"));
                 String filterKeyword = trim(request.getParameter("q"));
 
-                List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword);
-                List<Generator> generators = generatorDAO.findAll();
+                Integer warehouseId = null;
+                boolean isWarehouseRestricted = false;
+                Integer restrictedWarehouseId = null;
+
+                if (currentUser.hasRole("WAREHOUSE_MANAGER")) {
+                    Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
+                    if (managedWarehouse != null) {
+                        restrictedWarehouseId = managedWarehouse.getWarehouseId();
+                        isWarehouseRestricted = true;
+                    }
+                } else if (currentUser.hasRole("STAFF")) {
+                    restrictedWarehouseId = currentUser.getWarehouseId();
+                    isWarehouseRestricted = true;
+                } else if (currentUser.hasRole("SELLER")) {
+                    restrictedWarehouseId = currentUser.getWarehouseId();
+                    isWarehouseRestricted = true;
+                }
+
+                if (isWarehouseRestricted) {
+                    warehouseId = restrictedWarehouseId;
+                }
+
+                List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword, warehouseId);
+                List<Generator> generators = generatorDAO.findGenerators(null, warehouseId, null);
 
                 request.setAttribute("barcodes", barcodes);
                 request.setAttribute("generators", generators);
