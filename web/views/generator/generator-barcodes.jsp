@@ -2,12 +2,17 @@
 <%@ page import="java.util.List" %>
 <%@ page import="model.Generator" %>
 <%@ page import="model.GeneratorBarcode" %>
+<%@ page import="model.Warehouse" %>
+<%@ page import="model.User" %>
 
 <%
     @SuppressWarnings("unchecked")
     List<GeneratorBarcode> barcodes = (List<GeneratorBarcode>) request.getAttribute("barcodes");
     @SuppressWarnings("unchecked")
     List<Generator> generators = (List<Generator>) request.getAttribute("generators");
+    @SuppressWarnings("unchecked")
+    List<Warehouse> warehouses = (List<Warehouse>) request.getAttribute("warehouses");
+    User currentUser = (User) session.getAttribute("currentUser");
 
     Integer filterGeneratorId = (Integer) request.getAttribute("filterGeneratorId");
     String filterStatus = (String) request.getAttribute("filterStatus");
@@ -141,6 +146,41 @@
                     </div>
                 </div>
 
+                <!-- Alert Notifications -->
+                <%
+                    String successParam = request.getParameter("success");
+                    String errorParam = request.getParameter("error");
+                    if ("barcode_deleted".equals(successParam)) {
+                %>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-left-success" role="alert">
+                    <i class="fas fa-check-circle mr-2"></i> <strong>Thành công!</strong> Đã xóa mềm mã vạch của máy phát điện.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <% } else if ("delete_failed".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-left-danger" role="alert">
+                    <i class="fas fa-times-circle mr-2"></i> <strong>Thất bại!</strong> Không thể xóa mã vạch. Vui lòng thử lại.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <% } else if ("unauthorized".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-left-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Từ chối!</strong> Bạn không có quyền quản lý kho của máy phát điện này.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <% } else if ("not_found".equals(errorParam)) { %>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-left-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Lỗi!</strong> Không tìm thấy mã vạch hoặc máy phát điện tương ứng.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <% } %>
+
                 <!-- Filter Card -->
                 <div class="filter-card">
                     <form method="get" action="${pageContext.request.contextPath}/generators/barcodes" class="row align-items-end" id="filterForm">
@@ -169,10 +209,6 @@
                                 <option value="" <%= (filterStatus == null || filterStatus.isEmpty()) ? "selected" : "" %>>-- Tất cả --</option>
                                 <option value="IN_STOCK"    <%= "IN_STOCK".equals(filterStatus)    ? "selected" : "" %>>Trong kho</option>
                                 <option value="EXPORTED"   <%= "EXPORTED".equals(filterStatus)   ? "selected" : "" %>>Đã xuất kho</option>
-                                <option value="TRANSFERRED" <%= "TRANSFERRED".equals(filterStatus) ? "selected" : "" %>>Đã chuyển kho</option>
-                                <option value="UNDER_REPAIR"<%= "UNDER_REPAIR".equals(filterStatus)? "selected":"" %>>Đang sửa chữa</option>
-                                <option value="MAINTENANCE" <%= "MAINTENANCE".equals(filterStatus) ? "selected" : "" %>>Bảo trì</option>
-                                <option value="DAMAGED"    <%= "DAMAGED".equals(filterStatus)    ? "selected" : "" %>>Đã hỏng</option>
                             </select>
                         </div>
                         <div class="form-group col-md-4 mb-2">
@@ -226,7 +262,7 @@
                                         <th class="text-center" style="min-width:140px;">Mã vạch</th>
                                         <th class="text-center">Trạng thái</th>
                                         <th class="text-center">Ngày tạo</th>
-                                        <th class="text-center" style="width:80px;">Thao tác</th>
+                                        <th class="text-center" style="width:110px;">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -301,7 +337,7 @@
                                     </td>
                                     <td class="text-center"><%=statusBadge%></td>
                                     <td class="text-center text-muted" style="font-size:0.82rem;"><%= createdStr %></td>
-                                    <td class="text-center">
+                                    <td class="text-center text-nowrap">
                                         <button type="button"
                                                 class="btn btn-sm btn-light border shadow-sm"
                                                 onclick="openBarcodeDetail(
@@ -321,6 +357,33 @@
                                                 title="Xem chi tiết">
                                             <i class="fas fa-eye text-primary"></i>
                                         </button>
+                                        <%
+                                            boolean canDeleteBarcode = false;
+                                            if (currentUser != null && genDetail != null && warehouses != null) {
+                                                Warehouse barcodeWarehouse = null;
+                                                for (Warehouse wh : warehouses) {
+                                                    if (wh.getWarehouseId() == genDetail.getWarehouseId()) {
+                                                        barcodeWarehouse = wh;
+                                                        break;
+                                                    }
+                                                }
+                                                if (barcodeWarehouse != null) {
+                                                    if (currentUser.hasRole("WAREHOUSE_MANAGER") && barcodeWarehouse.getWarehouseManagerId() != null && barcodeWarehouse.getWarehouseManagerId().equals(currentUser.getUserId())) {
+                                                        canDeleteBarcode = true;
+                                                    } else if (currentUser.hasRole("MANAGER") && barcodeWarehouse.getManagerId() != null && barcodeWarehouse.getManagerId().equals(currentUser.getUserId())) {
+                                                        canDeleteBarcode = true;
+                                                    }
+                                                }
+                                            }
+                                            if (canDeleteBarcode) {
+                                        %>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger border shadow-sm ml-1"
+                                                onclick="confirmDeleteBarcode(<%= gb.getBarcodeId() %>, '<%= safeSerial %>')"
+                                                title="Xóa mã vạch">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        <% } %>
                                     </td>
                                 </tr>
                                 <% }
@@ -410,6 +473,30 @@
 </div>
 <!-- ===== end Modal ===== -->
 
+<!-- ===== Modal Xác nhận Xóa ===== -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Xác nhận xóa
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-gray-900 mb-2">Bạn có chắc chắn muốn xóa mã vạch của máy phát điện có số Serial: <strong id="deleteSerialText" class="text-danger"></strong> không?</p>
+                <p class="text-muted small mb-0"><i class="fas fa-info-circle mr-1"></i>Lưu ý: Thao tác này là xóa mềm.</p>
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-danger btn-sm px-3 font-weight-bold" id="btnConfirmDelete">Xác nhận xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
             </div><!-- /container-fluid -->
         </div>
         <%@ include file="/views/layout/footer.jsp" %>
@@ -425,6 +512,8 @@
 <script src="${pageContext.request.contextPath}/assets/js/JsBarcode.all.min.js"></script>
 
 <script>
+var barcodeIdToDelete = null;
+
 $(document).ready(function() {
     // DataTable
     $('#barcodesTable').DataTable({
@@ -540,7 +629,40 @@ $(document).ready(function() {
             '<%= createdStr %>'
         );
     <% } %>
+
+    // Confirm delete barcode action
+    $('#btnConfirmDelete').on('click', function() {
+        if (barcodeIdToDelete) {
+            var form = document.createElement("form");
+            form.method = "POST";
+            form.action = "${pageContext.request.contextPath}/generators/barcodes/delete";
+            
+            var inputId = document.createElement("input");
+            inputId.type = "hidden";
+            inputId.name = "barcodeId";
+            inputId.value = barcodeIdToDelete;
+            form.appendChild(inputId);
+            
+            var genIdParam = new URLSearchParams(window.location.search).get("generatorId");
+            if (genIdParam) {
+                var inputGenId = document.createElement("input");
+                inputGenId.type = "hidden";
+                inputGenId.name = "generatorId";
+                inputGenId.value = genIdParam;
+                form.appendChild(inputGenId);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 });
+
+function confirmDeleteBarcode(barcodeId, serial) {
+    barcodeIdToDelete = barcodeId;
+    $('#deleteSerialText').text(serial);
+    $('#deleteConfirmModal').modal('show');
+}
 
 function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPrice, location, note, status, badgeClass, createdAt) {
     // Fill generator template info

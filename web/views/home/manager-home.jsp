@@ -42,25 +42,16 @@
                 </c:if>
 
                 <div class="row">
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-6 col-md-6 mb-4">
                         <div class="card border-left-warning shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Yêu cầu chờ phê duyệt</div>
-                                <div class="h4 font-weight-bold text-gray-800">${pendingPartRequests + pendingTransfers}</div>
-                                <div class="small text-muted">Các yêu cầu và điều chuyển đang chờ duyệt</div>
+                                <div class="h4 font-weight-bold text-gray-800">${pendingTransfers}</div>
+                                <div class="small text-muted">Các yêu cầu điều chuyển kho đang chờ duyệt</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-md-6 mb-4">
-                        <div class="card border-left-primary shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Đơn mua hàng</div>
-                                <div class="h4 font-weight-bold text-gray-800">${pendingPurchaseOrders}</div>
-                                <div class="small text-muted">Đơn hàng nhà cung cấp đang chờ xử lý</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-6 col-md-6 mb-4">
                         <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Giám sát tồn kho</div>
@@ -76,10 +67,9 @@
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
                                 <h6 class="font-weight-bold text-gray-900"><i class="fas fa-clipboard-check text-warning"></i> Yêu cầu & Phê duyệt</h6>
-                                <p class="small text-muted">Xem xét phê duyệt yêu cầu phụ tùng và điều chuyển kho.</p>
+                                <p class="small text-muted">Xem xét phê duyệt điều chuyển kho.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/manager/pending-requests" class="btn btn-sm btn-warning">Hàng đợi chờ duyệt</a>
-                                    <a href="${pageContext.request.contextPath}/part-requests" class="btn btn-sm btn-outline-secondary">Yêu cầu phụ tùng</a>
                                 </div>
                             </div>
                         </div>
@@ -87,7 +77,7 @@
                     <div class="col-lg-6 mb-4">
                         <div class="card workflow-card shadow h-100">
                             <div class="card-body">
-                                <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-invoice text-primary"></i> Mua sắm & Nhà cung cấp</h6>
+                                <h6 class="font-weight-bold text-gray-900"><i class="fas fa-file-invoice text-primary"></i> Nhà cung cấp</h6>
                                 <p class="small text-muted">Quản lý thông tin và danh sách các nhà cung cấp thiết bị.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-primary">Nhà cung cấp</a>

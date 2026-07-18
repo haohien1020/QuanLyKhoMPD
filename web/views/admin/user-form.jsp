@@ -1,5 +1,6 @@
 ﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ page import="java.util.List" %>
+    <%@ page import="model.Permission" %>
 
         <% String error=(String) request.getAttribute("error"); String success=(String) request.getAttribute("success");
             @SuppressWarnings("unchecked") List<String> allRoles = (List<String>) request.getAttribute("allRoles");
@@ -180,6 +181,36 @@
                                                                             </div>
                                                                         </div>
 
+                                                                        <%
+                                                                            List<Permission> permissionList = (List<Permission>) request.getAttribute("permissionList");
+                                                                            if (permissionList != null && !permissionList.isEmpty()) {
+                                                                        %>
+                                                                            <div class="form-group" id="permissionsSection">
+                                                                                <label class="font-weight-bold text-gray-700">Cấp quyền hệ thống trực tiếp</label>
+                                                                                <div class="border rounded p-3 bg-light">
+                                                                                    <div class="row">
+                                                                                        <%
+                                                                                            for (Permission p : permissionList) {
+                                                                                                String pDesc = p.getDescription() != null ? p.getDescription() : p.getPermissionName();
+                                                                                        %>
+                                                                                            <div class="col-md-6 mb-2">
+                                                                                                <div class="custom-control custom-checkbox">
+                                                                                                    <input type="checkbox" class="custom-control-input perm-chk" id="perm_<%= p.getPermissionId() %>" name="permissions" value="<%= p.getPermissionName() %>" data-roles="<%= String.join(",", p.getRoles()) %>">
+                                                                                                    <label class="custom-control-label font-weight-normal" for="perm_<%= p.getPermissionId() %>">
+                                                                                                        <strong><%= p.getPermissionName() %></strong> - <%= pDesc %>
+                                                                                                    </label>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        <%
+                                                                                            }
+                                                                                        %>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        <%
+                                                                            }
+                                                                        %>
+
                                                                         <button type="submit" class="btn btn-primary">
                                                                             <i class="fas fa-save"></i> Tạo tài khoản
                                                                         </button>
@@ -203,6 +234,46 @@
                     <script
                         src="${pageContext.request.contextPath}/assets/vendor/jquery-easing/jquery.easing.min.js"></script>
                     <script src="${pageContext.request.contextPath}/assets/js/sb-admin-2.min.js"></script>
+
+                    <script>
+                        function filterPermissionsByRole() {
+                            var selectedRole = $('input[name="role"]:checked').val();
+                            if (!selectedRole) {
+                                $('#permissionsSection').hide();
+                                return;
+                            }
+                            
+                            var hasVisiblePerms = false;
+                            $('.perm-chk').each(function() {
+                                var allowedRolesCsv = $(this).attr('data-roles');
+                                var allowedRoles = allowedRolesCsv ? allowedRolesCsv.split(',') : [];
+                                
+                                if (allowedRoles.indexOf(selectedRole) !== -1) {
+                                    $(this).closest('.col-md-6').show();
+                                    $(this).prop('disabled', false);
+                                    hasVisiblePerms = true;
+                                } else {
+                                    $(this).closest('.col-md-6').hide();
+                                    $(this).prop('checked', false);
+                                    $(this).prop('disabled', true);
+                                }
+                            });
+                            
+                            if (hasVisiblePerms) {
+                                $('#permissionsSection').show();
+                            } else {
+                                $('#permissionsSection').hide();
+                            }
+                        }
+
+                        $(document).ready(function() {
+                            filterPermissionsByRole();
+                            
+                            $('input[name="role"]').change(function() {
+                                filterPermissionsByRole();
+                            });
+                        });
+                    </script>
 
                 </body>
 

@@ -26,9 +26,7 @@ public class DashboardDAO {
     }
 
     public int countPendingWork() throws Exception {
-        return countWhere("part_requests", "status = 'PENDING'")
-                + countWhere("purchase_requests", "status = 'PENDING'")
-                + countWhere("stock_transfers", "status = 'PENDING'");
+        return countWhere("stock_transfers", "status = 'PENDING'");
     }
 
     public int countWhereInt(String tableName, String whereClause, int value) throws Exception {

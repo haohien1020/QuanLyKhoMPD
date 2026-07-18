@@ -57,7 +57,7 @@ public class DashboardServlet extends HttpServlet {
             throws IOException {
         String contextPath = request.getContextPath();
         if (user.hasRole("ADMIN")) {
-            response.sendRedirect(contextPath + "/admin/users");
+            response.sendRedirect(contextPath + "/admin/dashboard");
         } else if (user.hasRole("MANAGER")) {
             response.sendRedirect(contextPath + "/manager/home");
         } else if (user.hasRole("WAREHOUSE_MANAGER")) {
@@ -89,9 +89,6 @@ public class DashboardServlet extends HttpServlet {
             request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
             request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
 
-            request.setAttribute("pendingPartRequests", dashboardDAO.countWhere("part_requests", "status = 'PENDING'"));
-            request.setAttribute("pendingPurchaseRequests", dashboardDAO.countWhere("purchase_requests", "status = 'PENDING'"));
-            request.setAttribute("pendingPurchaseOrders", dashboardDAO.countWhere("purchase_orders", "status = 'PENDING'"));
             request.setAttribute("pendingWork", dashboardDAO.countPendingWork());
 
             request.setAttribute("unreadNotifications", dashboardDAO.countWhere("notifications", "is_read = 0"));

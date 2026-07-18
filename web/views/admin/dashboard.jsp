@@ -175,7 +175,21 @@
                                                 <p class="small text-muted mb-3">Xác thực tài khoản, quyền hạn và phân quyền người dùng.</p>
                                                 <div class="module-actions">
                                                     <a href="${pageContext.request.contextPath}/admin/users" class="btn btn-sm btn-primary mr-1">Người dùng</a>
-                                                    <a href="${pageContext.request.contextPath}/admin/roles" class="btn btn-sm btn-outline-primary">Vai trò</a>
+                                                    <a href="${pageContext.request.contextPath}/admin/roles" class="btn btn-sm btn-outline-primary mr-1">Vai trò</a>
+                                                    <a href="${pageContext.request.contextPath}/admin/permissions-manager" class="btn btn-sm btn-outline-info">Quản lý quyền</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card business-card border-left-primary h-100">
+                                            <div class="card-body">
+                                                <div class="mb-2"><span class="module-index">2</span></div>
+                                                <h6 class="font-weight-bold text-gray-900">Phân quyền người dùng</h6>
+                                                <p class="small text-muted mb-3">Cấu hình chi tiết quyền hạn (nhập máy, nhập/xuất kho) cho nhân viên kỹ thuật.</p>
+                                                <div class="module-actions">
+                                                    <a href="${pageContext.request.contextPath}/admin/permissions" class="btn btn-sm btn-outline-primary">Phân quyền</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -184,7 +198,7 @@
                                     <div class="col-md-6 mb-3">
                                         <div class="card business-card border-left-success h-100">
                                             <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">2</span></div>
+                                                <div class="mb-2"><span class="module-index">3</span></div>
                                                 <h6 class="font-weight-bold text-gray-900">Kho hàng & Tồn kho</h6>
                                                 <p class="small text-muted mb-3">${totalWarehouses} kho hàng.</p>
                                                 <div class="module-actions">
@@ -197,9 +211,9 @@
                                     <div class="col-md-6 mb-3">
                                         <div class="card business-card border-left-info h-100">
                                             <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">3</span></div>
+                                                <div class="mb-2"><span class="module-index">4</span></div>
                                                 <h6 class="font-weight-bold text-gray-900">Quản lý Tài sản</h6>
-                                                <p class="small text-muted mb-3">Đang quản lý ${totalGenerators} máy phát điện (${damagedGenerators} máy bị hỏng).</p>
+                                                <p class="small text-muted mb-3">Đang quản lý ${totalGenerators} máy phát điện.</p>
                                                 <div class="module-actions">
                                                     <a href="${pageContext.request.contextPath}/generators" class="btn btn-sm btn-outline-info">Máy phát điện</a>
                                                 </div>
@@ -210,7 +224,7 @@
                                     <div class="col-md-6 mb-3">
                                         <div class="card business-card border-left-warning h-100">
                                             <div class="card-body">
-                                                <div class="mb-2"><span class="module-index">4</span></div>
+                                                <div class="mb-2"><span class="module-index">5</span></div>
                                                 <h6 class="font-weight-bold text-gray-900">Vận hành Kho hàng</h6>
                                                 <p class="small text-muted mb-3">${inventoryTransactions} giao dịch nhập/xuất, ${pendingTransfers} yêu cầu điều chuyển.</p>
                                                 <div class="module-actions">
@@ -219,8 +233,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-
                                 </div>
                             </div>
                         </div>
@@ -239,7 +251,6 @@
                                 </div>
                                 <div class="small">
                                     <div class="mb-2"><span class="status-dot ok"></span>Máy sẵn sàng trong kho: ${inStockGenerators}</div>
-                                    <div class="mb-2"><span class="status-dot danger"></span>Máy bị hỏng: ${damagedGenerators}</div>
                                     <div><span class="status-dot info"></span>Công việc đang chờ xử lý: ${pendingWork}</div>
                                 </div>
                             </div>
@@ -330,15 +341,14 @@
         new Chart(healthCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Sẵn sàng trong kho', 'Bị hỏng', 'Công việc chờ xử lý'],
+                labels: ['Sẵn sàng trong kho', 'Công việc chờ xử lý'],
                 datasets: [{
                     data: [
                         Number('${inStockGenerators}' || 0),
-                        Number('${damagedGenerators}' || 0),
                         Number('${pendingWork}' || 0)
                     ],
-                    backgroundColor: ['#1cc88a', '#e74a3b', '#36b9cc'],
-                    hoverBackgroundColor: ['#17a673', '#be2617', '#2c9faf'],
+                    backgroundColor: ['#1cc88a', '#36b9cc'],
+                    hoverBackgroundColor: ['#17a673', '#2c9faf'],
                     hoverBorderColor: 'rgba(234, 236, 244, 1)'
                 }]
             },

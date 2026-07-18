@@ -51,6 +51,21 @@
                     <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${homeError}</div>
                 </c:if>
 
+                <c:if test="${lowStockGeneratorsCount > 0}">
+                    <div class="alert alert-danger shadow-sm border-left-danger fade show d-flex align-items-center justify-content-between p-3 mb-4" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mr-3"></i>
+                            <div>
+                                <h5 class="alert-heading text-danger font-weight-bold mb-1">Cảnh báo tồn kho thiết bị!</h5>
+                                <p class="mb-0 text-gray-800">Hiện có <span class="badge badge-danger font-weight-bold px-2 py-1" style="font-size: 0.9rem;">${lowStockGeneratorsCount} mẫu máy phát điện</span> đang dưới ngưỡng tối thiểu trong kho của bạn.</p>
+                            </div>
+                        </div>
+                        <a href="${pageContext.request.contextPath}/inventory/low-stock" class="btn btn-danger btn-sm shadow-sm font-weight-bold px-3 py-2">
+                            <i class="fas fa-arrow-right"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </c:if>
+
                 <div class="row">
                     <div class="col-xl-4 col-md-6 mb-4">
                         <div class="card border-left-success shadow h-100 py-2">
@@ -123,7 +138,12 @@
                                 <p class="small text-muted">Tổng số ${totalSuppliers} nhà cung cấp có sẵn phục vụ luồng mua hàng.</p>
                                 <div class="workflow-actions">
                                     <a href="${pageContext.request.contextPath}/suppliers" class="btn btn-sm btn-info">Nhà cung cấp</a>
-                                    <a href="${pageContext.request.contextPath}/inventory/low-stock" class="btn btn-sm btn-outline-info">Cảnh báo tồn kho</a>
+                                    <a href="${pageContext.request.contextPath}/inventory/low-stock" class="btn btn-sm btn-outline-info">
+                                        Cảnh báo tồn kho
+                                        <c:if test="${lowStockGeneratorsCount > 0}">
+                                            <span class="badge badge-danger ml-1">${lowStockGeneratorsCount}</span>
+                                        </c:if>
+                                    </a>
                                 </div>
                             </div>
                         </div>

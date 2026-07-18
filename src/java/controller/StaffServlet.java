@@ -1,6 +1,5 @@
 package controller;
 
-import dao.PartRequestDAO;
 import dao.PartDAO;
 import dao.WarehouseDAO;
 import javax.servlet.ServletException;
@@ -11,19 +10,15 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.List;
-import model.PartRequest;
 import model.Part;
 import model.Warehouse;
 import model.User;
 
 @WebServlet(name = "StaffServlet", urlPatterns = {
-    "/staff/part-request/create",
-    "/staff/my-requests",
     "/staff/rented-generators"
 })
 public class StaffServlet extends HttpServlet {
 
-    private final PartRequestDAO partRequestDAO = new PartRequestDAO();
     private final PartDAO partDAO = new PartDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
 
@@ -37,11 +32,7 @@ public class StaffServlet extends HttpServlet {
 
         String path = request.getServletPath();
         try {
-            if ("/staff/part-request/create".equals(path)) {
-                showPartRequestForm(request, response);
-            } else if ("/staff/my-requests".equals(path)) {
-                showMyPartRequests(request, response, currentUser);
-            } else if ("/staff/rented-generators".equals(path)) {
+            if ("/staff/rented-generators".equals(path)) {
                 showRentedGenerators(request, response, currentUser);
             } else {
                 response.sendRedirect(request.getContextPath() + "/staff/home");
@@ -63,38 +54,7 @@ public class StaffServlet extends HttpServlet {
             return;
         }
 
-        String path = request.getServletPath();
-        try {
-            if ("/staff/part-request/create".equals(path)) {
-                createPartRequest(request, response, currentUser);
-            } else {
-                response.sendRedirect(request.getContextPath() + "/staff/home");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + "/staff/home?error=system_error");
-        }
-    }
-
-    private void showPartRequestForm(HttpServletRequest request, HttpServletResponse response)
-            throws Exception {
-        List<Warehouse> warehouses = warehouseDAO.findAll();
-        List<Part> parts = partDAO.findAll();
-        request.setAttribute("warehouses", warehouses);
-        request.setAttribute("parts", parts);
-        request.getRequestDispatcher("/views/staff/part-request-create.jsp").forward(request, response);
-    }
-
-    private void showMyPartRequests(HttpServletRequest request, HttpServletResponse response, User currentUser)
-            throws Exception {
-        List<PartRequest> requests = partRequestDAO.findPartRequests(currentUser.getUserId(), null);
-        List<Warehouse> warehouses = warehouseDAO.findAll();
-        List<Part> parts = partDAO.findAll();
-        
-        request.setAttribute("requests", requests);
-        request.setAttribute("warehouses", warehouses);
-        request.setAttribute("parts", parts);
-        request.getRequestDispatcher("/views/staff/my-requests.jsp").forward(request, response);
+        response.sendRedirect(request.getContextPath() + "/staff/home");
     }
 
     private void showRentedGenerators(HttpServletRequest request, HttpServletResponse response, User currentUser)
@@ -109,34 +69,6 @@ public class StaffServlet extends HttpServlet {
             request.setAttribute("staffBarcodes", staffBarcodes);
         }
         request.getRequestDispatcher("/views/staff/rented-generators.jsp").forward(request, response);
-    }
-
-    private void createPartRequest(HttpServletRequest request, HttpServletResponse response, User currentUser)
-            throws Exception {
-        Integer warehouseId = parseInt(request.getParameter("warehouseId"));
-        Integer partId = parseInt(request.getParameter("partId"));
-        Integer quantity = parseInt(request.getParameter("quantity"));
-        String reason = trim(request.getParameter("reason"));
-
-        if (warehouseId == null || partId == null || quantity == null || quantity <= 0) {
-            response.sendRedirect(request.getContextPath() + "/staff/part-request/create?error=invalid_input");
-            return;
-        }
-
-        PartRequest req = new PartRequest();
-        req.setWarehouseId(warehouseId);
-        req.setPartId(partId);
-        req.setRequestedBy(currentUser.getUserId());
-        req.setQuantity(quantity);
-        req.setReason(reason);
-        req.setStatus("PENDING");
-
-        int id = partRequestDAO.insert(req);
-        if (id > 0) {
-            response.sendRedirect(request.getContextPath() + "/staff/my-requests?success=created");
-        } else {
-            response.sendRedirect(request.getContextPath() + "/staff/part-request/create?error=create_failed");
-        }
     }
 
     private User requireLogin(HttpServletRequest request, HttpServletResponse response)
@@ -165,17 +97,5 @@ public class StaffServlet extends HttpServlet {
         }
 
         return currentUser;
-    }
-
-    private Integer parseInt(String value) {
-        try {
-            return value == null || value.trim().isEmpty() ? null : Integer.parseInt(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    private String trim(String value) {
-        return value == null ? null : value.trim();
     }
 }

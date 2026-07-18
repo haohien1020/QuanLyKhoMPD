@@ -156,16 +156,7 @@
                             <% if (sellerWarehouseId != null) { %>
                             <input type="hidden" name="warehouseId" value="<%= sellerWarehouseId %>">
                             <% } %>
-                            <input type="text" name="q" class="form-control form-control-sm" placeholder="Tìm tên, serial..." value="<%= q != null ? q : "" %>" style="width:200px">
-                            <select name="status" class="form-control form-control-sm" style="width:160px">
-                                <option value="" <%= statusFilter == null || statusFilter.isEmpty() ? "selected" : "" %>>-- Tất cả --</option>
-                                <option value="IN_STOCK" <%= "IN_STOCK".equals(statusFilter) ? "selected" : "" %>>Trong kho</option>
-                                <option value="MAINTENANCE" <%= "MAINTENANCE".equals(statusFilter) ? "selected" : "" %>>Bảo trì</option>
-                                <option value="UNDER_REPAIR" <%= "UNDER_REPAIR".equals(statusFilter) ? "selected" : "" %>>Đang sửa</option>
-                                <option value="EXPORTED" <%= "EXPORTED".equals(statusFilter) ? "selected" : "" %>>Đã xuất kho</option>
-                                <option value="TRANSFERRED" <%= "TRANSFERRED".equals(statusFilter) ? "selected" : "" %>>Đã chuyển kho</option>
-                                <option value="DAMAGED" <%= "DAMAGED".equals(statusFilter) ? "selected" : "" %>>Đã hỏng</option>
-                            </select>
+                            <input type="text" name="q" class="form-control form-control-sm" placeholder="Tên mẫu máy" value="<%= q != null ? q : "" %>" style="width:200px">
                             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
                         </form>
                     </div>
@@ -179,13 +170,13 @@
                     </div>
                     <div class="card-body">
                         <form method="get" action="${pageContext.request.contextPath}/generators" class="row">
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label for="q">Tìm kiếm</label>
                                 <input type="text" id="q" name="q" class="form-control" 
-                                       placeholder="Tên máy, số serial, thương hiệu..." 
+                                       placeholder="Tên mẫu máy" 
                                        value="<%= q != null ? q : "" %>">
                             </div>
-                            <div class="form-group col-md-3">
+                            <div class="form-group col-md-4">
                                 <label for="warehouseId">Kho lưu trữ</label>
                                 <select id="warehouseId" name="warehouseId" class="form-control" <%= isWarehouseRestricted ? "disabled" : "" %>>
                                     <% if (!isWarehouseRestricted) { %>
@@ -199,18 +190,6 @@
                                 <% if (isWarehouseRestricted && warehouses != null && !warehouses.isEmpty()) { %>
                                     <input type="hidden" name="warehouseId" value="<%= warehouses.get(0).getWarehouseId() %>">
                                 <% } %>
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="status">Trạng thái</label>
-                                <select id="status" name="status" class="form-control">
-                                    <option value="" <%= statusFilter == null || statusFilter.isEmpty() ? "selected" : "" %>>--- Tất cả trạng thái ---</option>
-                                    <option value="IN_STOCK" <%= "IN_STOCK".equals(statusFilter) ? "selected" : "" %>>Trong kho (IN_STOCK)</option>
-                                    <option value="MAINTENANCE" <%= "MAINTENANCE".equals(statusFilter) ? "selected" : "" %>>Bảo trì (MAINTENANCE)</option>
-                                    <option value="UNDER_REPAIR" <%= "UNDER_REPAIR".equals(statusFilter) ? "selected" : "" %>>Đang sửa chữa (UNDER_REPAIR)</option>
-                                    <option value="EXPORTED" <%= "EXPORTED".equals(statusFilter) ? "selected" : "" %>>Đã xuất kho (EXPORTED)</option>
-                                    <option value="TRANSFERRED" <%= "TRANSFERRED".equals(statusFilter) ? "selected" : "" %>>Đã chuyển kho (TRANSFERRED)</option>
-                                    <option value="DAMAGED" <%= "DAMAGED".equals(statusFilter) ? "selected" : "" %>>Đã hỏng (DAMAGED)</option>
-                                </select>
                             </div>
                             <div class="form-group col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary w-100 shadow-sm">
@@ -461,14 +440,12 @@
 
                     <div class="row">
                         <div class="form-group col-md-4">
-                            <label for="formOrigin">Nguồn gốc máy <span class="text-danger">*</span></label>
-                            <select id="formOrigin" name="originType" class="form-control" required>
-                                <option value="">--- Chọn nguồn gốc ---</option>
+                            <label for="formOriginSelect">Nguồn gốc máy <span class="text-danger">*</span></label>
+                            <select id="formOriginSelect" class="form-control" required onchange="handleOriginSelectChange()">
                                 <option value="SUPPLIER">Nhà cung cấp (SUPPLIER)</option>
-                                <option value="TRANSFER">Điều chuyển nội bộ (TRANSFER)</option>
-                                <option value="RETURN">Thu hồi bảo dưỡng (RETURN)</option>
-                                <option value="OTHER">Khác (OTHER)</option>
+                                <option value="OTHER">Khác...</option>
                             </select>
+                            <input type="text" id="formOrigin" name="originType" class="form-control mt-2" placeholder="Nhập nguồn gốc khác..." style="display:none;" required maxlength="30">
                         </div>
                         <div class="form-group col-md-4">
                             <label for="formImportDate">Ngày nhập kho <span class="text-danger">*</span></label>
@@ -489,11 +466,11 @@
                     </div>
 
                     <div class="row">
-                        <div class="form-group col-md-4">
+                        <div class="form-group col-md-6">
                             <label for="formLocation">Vị trí chi tiết trong kho <span class="text-danger">*</span></label>
                             <input type="text" id="formLocation" name="location" class="form-control" required maxlength="100" placeholder="Ví dụ: Kệ A1-02">
                         </div>
-                        <div class="form-group col-md-4">
+                        <div class="form-group col-md-6">
                             <label>Giá cho thuê (VND/ngày) <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <input type="number" id="formRentalPriceNumber" class="form-control" step="any" min="0.000001" required placeholder="Số" oninput="updateCombinedRentalPrice()" style="flex: 1 1 auto;">
@@ -505,18 +482,7 @@
                             </div>
                             <input type="hidden" id="formRentalPrice" name="rentalPrice">
                         </div>
-                        <div class="form-group col-md-4">
-                            <label for="formStatus">Trạng thái vận hành <span class="text-danger">*</span></label>
-                            <select id="formStatus" name="status" class="form-control" required>
-                                <option value="">--- Chọn trạng thái ---</option>
-                                <option value="IN_STOCK">Trong kho (IN_STOCK)</option>
-                                <option value="MAINTENANCE">Bảo trì hệ thống (MAINTENANCE)</option>
-                                <option value="UNDER_REPAIR">Đang sửa chữa (UNDER_REPAIR)</option>
-                                <option value="EXPORTED">Đã xuất xưởng / Sử dụng (EXPORTED)</option>
-                                <option value="TRANSFERRED">Đã chuyển kho (TRANSFERRED)</option>
-                                <option value="DAMAGED">Đã hỏng hóc (DAMAGED)</option>
-                            </select>
-                        </div>
+                        <input type="hidden" id="formStatus" name="status">
                     </div>
 
                     <div class="form-group">
@@ -1066,7 +1032,12 @@
                 $('#confirmFuel').text($('#formFuel option:selected').text() || '-');
                 $('#confirmWarehouse').text($('#formWarehouse option:selected').text() || '-');
                 $('#confirmSupplier').text($('#formSupplier option:selected').text() || '-');
-                $('#confirmOrigin').text($('#formOrigin option:selected').text() || '-');
+                var originSelectVal = $('#formOriginSelect').val();
+                if (originSelectVal === 'OTHER') {
+                    $('#confirmOrigin').text($('#formOrigin').val() || '-');
+                } else {
+                    $('#confirmOrigin').text('Nhà cung cấp (SUPPLIER)');
+                }
                 $('#confirmImportDate').text($('#formImportDate').val() || '-');
 
                 var displayPrice = '-';
@@ -1084,7 +1055,13 @@
                 $('#confirmRentalPrice').text(displayRentalPrice);
 
                 $('#confirmLocation').text($('#formLocation').val() || '-');
-                $('#confirmStatus').text($('#formStatus option:selected').text() || '-');
+                var statusVal = $('#formStatus').val() || 'IN_STOCK';
+                var statusText = 'Trong kho (IN_STOCK)';
+                if (statusVal === 'MAINTENANCE') statusText = 'Bảo trì hệ thống (MAINTENANCE)';
+                else if (statusVal === 'UNDER_REPAIR') statusText = 'Đang sửa chữa (UNDER_REPAIR)';
+                else if (statusVal === 'EXPORTED') statusText = 'Đã xuất xưởng / Sử dụng (EXPORTED)';
+                else if (statusVal === 'TRANSFERRED') statusText = 'Đã chuyển kho (TRANSFERRED)';
+                $('#confirmStatus').text(statusText);
                 $('#confirmNote').text($('#formNote').val() || 'Không có ghi chú');
 
                 // Ẩn modal chính và hiện modal xác nhận
@@ -1222,6 +1199,15 @@
         }
     }
 
+    function handleOriginSelectChange() {
+        var selectVal = $('#formOriginSelect').val();
+        if (selectVal === 'OTHER') {
+            $('#formOrigin').val('').show().focus();
+        } else {
+            $('#formOrigin').val(selectVal).hide();
+        }
+    }
+
     function updateCombinedPower() {
         var num = $('#formPowerNumber').val();
         var unit = $('#formPowerUnit').val();
@@ -1315,7 +1301,8 @@
         $('#formFuel').val('Diesel');
         $('#formWarehouse').val('<%= isWarehouseRestricted ? restrictedWarehouseId : "" %>');
         $('#formSupplier').val('');
-        $('#formOrigin').val('SUPPLIER');
+        $('#formOriginSelect').val('SUPPLIER');
+        $('#formOrigin').val('SUPPLIER').hide();
         $('#formImportDate').val('');
         $('#formPriceNumber').val('');
         $('#formPriceUnit').val('1000000'); // Mặc định là Triệu VNĐ
@@ -1385,7 +1372,14 @@
         $('#formFuel').val(fuel ? fuel : 'Diesel');
         $('#formWarehouse').val(warehouseId);
         $('#formSupplier').val(supplierId !== -1 ? supplierId : '');
-        $('#formOrigin').val(origin ? origin : 'SUPPLIER');
+        var originVal = origin ? origin.trim() : 'SUPPLIER';
+        if (originVal === 'SUPPLIER') {
+            $('#formOriginSelect').val('SUPPLIER');
+            $('#formOrigin').val('SUPPLIER').hide();
+        } else {
+            $('#formOriginSelect').val('OTHER');
+            $('#formOrigin').val(originVal).show();
+        }
         $('#formImportDate').val(importDate);
         
         if (price && parseFloat(price) > 0) {

@@ -11,10 +11,10 @@ import java.io.IOException;
 import model.User;
 
 @WebServlet(name = "RoleHomeServlet", urlPatterns = {
-    "/manager/home",
-    "/warehouse/dashboard",
-    "/staff/home",
-    "/seller/home"
+        "/manager/home",
+        "/warehouse/dashboard",
+        "/staff/home",
+        "/seller/home"
 })
 public class RoleHomeServlet extends HttpServlet {
 
@@ -61,13 +61,10 @@ public class RoleHomeServlet extends HttpServlet {
     }
 
     private void loadManagerData(HttpServletRequest request) throws Exception {
-        request.setAttribute("pendingPartRequests", dashboardDAO.countWhere("part_requests", "status = 'PENDING'"));
-        request.setAttribute("pendingPurchaseRequests", dashboardDAO.countWhere("purchase_requests", "status = 'PENDING'"));
         request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
         request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
-        request.setAttribute("pendingPurchaseOrders", dashboardDAO.countWhere("purchase_orders", "status = 'PENDING'"));
         request.setAttribute("unreadNotifications", dashboardDAO.countWhere("notifications", "is_read = 0"));
     }
 
@@ -83,8 +80,16 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
-        request.setAttribute("pendingPurchaseRequests", dashboardDAO.countWhere("purchase_requests", "status = 'PENDING'"));
         request.setAttribute("totalSuppliers", dashboardDAO.count("suppliers"));
+
+        if (managedWarehouse != null) {
+            dao.GeneratorDAO generatorDAO = new dao.GeneratorDAO();
+            java.util.List<model.Generator> lowStockGens = generatorDAO
+                    .findLowStockGenerators(managedWarehouse.getWarehouseId(), "");
+            request.setAttribute("lowStockGeneratorsCount", lowStockGens.size());
+        } else {
+            request.setAttribute("lowStockGeneratorsCount", 0);
+        }
     }
 
     private void loadStaffData(HttpServletRequest request, User currentUser) throws Exception {
@@ -92,20 +97,19 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
         request.setAttribute("totalParts", dashboardDAO.count("parts"));
         request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
-        request.setAttribute("myPartRequests", dashboardDAO.countWhereInt("part_requests", "requested_by = ?", userId));
-        request.setAttribute("myPendingPartRequests",
-                dashboardDAO.countWhereInt("part_requests", "requested_by = ? AND status = 'PENDING'", userId));
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("unreadNotifications",
                 dashboardDAO.countWhereInt("notifications", "user_id = ? AND is_read = 0", userId));
 
         dao.RentalContractDAO rentalContractDAO = new dao.RentalContractDAO();
-        java.util.List<model.CustomerRentalContract> assignedContracts = rentalContractDAO.findContractsAssignedToStaff(userId);
+        java.util.List<model.CustomerRentalContract> assignedContracts = rentalContractDAO
+                .findContractsAssignedToStaff(userId);
         request.setAttribute("assignedContracts", assignedContracts);
 
         dao.GeneratorDAO generatorDAO = new dao.GeneratorDAO();
         if (currentUser.getWarehouseId() != null) {
-            java.util.List<model.GeneratorBarcode> staffBarcodes = generatorDAO.findBarcodes(currentUser.getWarehouseId(), "IN_STOCK");
+            java.util.List<model.GeneratorBarcode> staffBarcodes = generatorDAO
+                    .findBarcodes(currentUser.getWarehouseId(), "IN_STOCK");
             request.setAttribute("staffBarcodes", staffBarcodes);
         }
     }
@@ -117,8 +121,10 @@ public class RoleHomeServlet extends HttpServlet {
 
         // Count contracts created by this seller
         request.setAttribute("myTotalContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId));
-        request.setAttribute("myPendingContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'PENDING'"));
-        request.setAttribute("myActiveContracts", dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'DELIVERED'"));
+        request.setAttribute("myPendingContracts",
+                dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'PENDING'"));
+        request.setAttribute("myActiveContracts",
+                dashboardDAO.countWhere("rental_contracts", "created_by = " + userId + " AND status = 'DELIVERED'"));
 
         // Only count generators in seller's own warehouse
         if (warehouseId != null) {
@@ -132,7 +138,7 @@ public class RoleHomeServlet extends HttpServlet {
             request.setAttribute("availableGenerators", 0);
         }
     }
- 
+
     private void forwardFallback(String path, HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if ("/manager/home".equals(path)) {

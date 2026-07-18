@@ -118,6 +118,20 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/permissions-manager">
+                            <i class="fas fa-fw fa-shield-alt"></i>
+                            <span>Quản lý quyền</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/permissions">
+                            <i class="fas fa-fw fa-user-check"></i>
+                            <span>Phân quyền người dùng</span>
+                        </a>
+                    </li>
+
                     <div class="sidebar-heading">
                         Quản lý kho
                     </div>
@@ -143,28 +157,14 @@
         </a>
     </li> -->
 
-                    <!--    <div class="sidebar-heading">
-        Báo cáo & Nhật ký
-    </div>
-
-    <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/reports">
-            <i class="fas fa-file-alt"></i>
-            <span>Báo cáo hệ thống</span>
-        </a>
-    </li>
-
-    <li class="nav-item">
-        <a class="nav-link" href="${pageContext.request.contextPath}/activity-logs">
-            <i class="fas fa-history"></i>
-            <span>Nhật ký hoạt động</span>
-        </a>
-    </li>-->
+                    <div class="sidebar-heading">
+                        Báo cáo & Nhật ký
+                    </div>
 
                     <li class="nav-item">
-                        <a class="nav-link" href="${pageContext.request.contextPath}/settings">
-                            <i class="fas fa-cogs"></i>
-                            <span>Cài đặt hệ thống</span>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/reports?type=inventory">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Báo cáo tồn kho</span>
                         </a>
                     </li>
 
@@ -281,8 +281,9 @@
                                     </li>
 
                                     <li class="nav-item">
-                                        <a class="nav-link pl-4" href="${pageContext.request.contextPath}/generators/barcodes"
-                                           style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                        <a class="nav-link pl-4"
+                                            href="${pageContext.request.contextPath}/generators/barcodes"
+                                            style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
                                             <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
                                             <span>Danh sách mã vạch</span>
                                         </a>
@@ -292,13 +293,6 @@
                                     <div class="sidebar-heading">
                                         Tồn kho
                                     </div>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="${pageContext.request.contextPath}/inventory">
-                                            <i class="fas fa-boxes"></i>
-                                            <span>Theo dõi tồn kho</span>
-                                        </a>
-                                    </li>
 
                                     <li class="nav-item">
                                         <a class="nav-link"
@@ -400,131 +394,80 @@
                                                 </a>
                                             </li>
 
-                                            <% if (sidebarUser != null && (sidebarUser.isCanImportInventory() || sidebarUser.isCanExportInventory())) { %>
-                                            <li class="nav-item">
-                                                <a class="nav-link"
-                                                    href="${pageContext.request.contextPath}/inventory-transactions">
-                                                    <i class="fas fa-dolly-flatbed"></i>
-                                                    <span>Nhập kho / Xuất kho</span>
-                                                </a>
-                                            </li>
-                                            <% } %>
-
-                                            <hr class="sidebar-divider">
-
-                                            <% } %>
-
-                                                <!-- SELLER MENU -->
-                                                <% if (sidebarRoles !=null && sidebarRoles.contains("SELLER") &&
-                                                    !sidebarRoles.contains("ADMIN") && !sidebarRoles.contains("MANAGER")
-                                                    && !sidebarRoles.contains("WAREHOUSE_MANAGER")) { %>
-
-                                                    <div class="sidebar-heading">
-                                                        Nghiệp vụ SELLER
-                                                    </div>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link"
-                                                            href="${pageContext.request.contextPath}/seller/home">
-                                                            <i class="fas fa-home"></i>
-                                                            <span>Trang chủ SELLER</span>
-                                                        </a>
-                                                    </li>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link font-weight-bold"
-                                                            href="${pageContext.request.contextPath}/seller/contracts/create"
-                                                            style="color:#fff !important;">
-                                                            <i class="fas fa-plus-circle"
-                                                                style="color:#fff !important;"></i>
-                                                            <span>Lập hợp đồng mới</span>
-                                                        </a>
-                                                    </li>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link"
-                                                            href="${pageContext.request.contextPath}/seller/contracts">
-                                                            <i class="fas fa-file-contract"></i>
-                                                            <span>Quản lý Hợp đồng Thuê</span>
-                                                        </a>
-                                                    </li>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link"
-                                                            href="${pageContext.request.contextPath}/customers">
-                                                            <i class="fas fa-users"></i>
-                                                            <span>Quản lý Khách hàng</span>
-                                                        </a>
-                                                    </li>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link"
-                                                            href="${pageContext.request.contextPath}/generators">
-                                                            <i class="fas fa-bolt"></i>
-                                                            <span>Tra cứu máy khả dụng</span>
-                                                        </a>
-                                                    </li>
-
-                                                    <li class="nav-item">
-                                                        <a class="nav-link pl-4"
-                                                            href="${pageContext.request.contextPath}/generators/barcodes"
-                                                            style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
-                                                            <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
-                                                            <span>Danh sách mã vạch</span>
-                                                        </a>
-                                                    </li>
+                                            <% if (sidebarUser !=null && (sidebarUser.isCanImportInventory() ||
+                                                sidebarUser.isCanExportInventory())) { %>
+                                                <li class="nav-item">
+                                                    <a class="nav-link"
+                                                        href="${pageContext.request.contextPath}/inventory-transactions">
+                                                        <i class="fas fa-dolly-flatbed"></i>
+                                                        <span>Nhập kho / Xuất kho</span>
+                                                    </a>
+                                                </li>
+                                                <% } %>
 
                                                     <hr class="sidebar-divider">
 
                                                     <% } %>
 
-
-
-                                                        <!-- CUSTOMER MENU -->
-                                                        <% if (sidebarRoles !=null && sidebarRoles.contains("CUSTOMER")
-                                                            && !sidebarRoles.contains("ADMIN")) { %>
+                                                        <!-- SELLER MENU -->
+                                                        <% if (sidebarRoles !=null && sidebarRoles.contains("SELLER") &&
+                                                            !sidebarRoles.contains("ADMIN") &&
+                                                            !sidebarRoles.contains("MANAGER") &&
+                                                            !sidebarRoles.contains("WAREHOUSE_MANAGER")) { %>
 
                                                             <div class="sidebar-heading">
-                                                                Cổng khách hàng
+                                                                Nghiệp vụ SELLER
                                                             </div>
 
                                                             <li class="nav-item">
                                                                 <a class="nav-link"
-                                                                    href="${pageContext.request.contextPath}/customer/home">
-                                                                    <i class="fas fa-fw fa-home"></i>
-                                                                    <span>Tổng quan</span>
+                                                                    href="${pageContext.request.contextPath}/seller/home">
+                                                                    <i class="fas fa-home"></i>
+                                                                    <span>Trang chủ SELLER</span>
+                                                                </a>
+                                                            </li>
+
+                                                            <li class="nav-item">
+                                                                <a class="nav-link font-weight-bold"
+                                                                    href="${pageContext.request.contextPath}/seller/contracts/create"
+                                                                    style="color:#fff !important;">
+                                                                    <i class="fas fa-plus-circle"
+                                                                        style="color:#fff !important;"></i>
+                                                                    <span>Lập hợp đồng mới</span>
                                                                 </a>
                                                             </li>
 
                                                             <li class="nav-item">
                                                                 <a class="nav-link"
-                                                                    href="${pageContext.request.contextPath}/customer/contracts">
+                                                                    href="${pageContext.request.contextPath}/seller/contracts">
                                                                     <i class="fas fa-file-contract"></i>
-                                                                    <span>Hợp đồng thuê của tôi</span>
+                                                                    <span>Quản lý Hợp đồng Thuê</span>
                                                                 </a>
                                                             </li>
 
                                                             <li class="nav-item">
                                                                 <a class="nav-link"
-                                                                    href="${pageContext.request.contextPath}/customer/generators">
+                                                                    href="${pageContext.request.contextPath}/customers">
+                                                                    <i class="fas fa-users"></i>
+                                                                    <span>Quản lý Khách hàng</span>
+                                                                </a>
+                                                            </li>
+
+                                                            <li class="nav-item">
+                                                                <a class="nav-link"
+                                                                    href="${pageContext.request.contextPath}/generators">
                                                                     <i class="fas fa-bolt"></i>
-                                                                    <span>Máy đang thuê</span>
+                                                                    <span>Tra cứu máy khả dụng</span>
                                                                 </a>
                                                             </li>
 
                                                             <li class="nav-item">
-                                                                <a class="nav-link"
-                                                                    href="${pageContext.request.contextPath}/customer/rental-request">
-                                                                    <i class="fas fa-plus-circle"></i>
-                                                                    <span>Yêu cầu thuê máy</span>
-                                                                </a>
-                                                            </li>
-
-                                                            <li class="nav-item">
-                                                                <a class="nav-link"
-                                                                    href="${pageContext.request.contextPath}/customer/notifications">
-                                                                    <i class="fas fa-bell"></i>
-                                                                    <span>Thông báo của tôi</span>
+                                                                <a class="nav-link pl-4"
+                                                                    href="${pageContext.request.contextPath}/generators/barcodes"
+                                                                    style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                                                    <i class="fas fa-barcode fa-fw"
+                                                                        style="font-size:0.9rem;"></i>
+                                                                    <span>Danh sách mã vạch</span>
                                                                 </a>
                                                             </li>
 
@@ -532,30 +475,85 @@
 
                                                             <% } %>
 
-                                                                <!-- ALL USERS -->
-                                                                <div class="sidebar-heading">
-                                                                    Cài đặt
-                                                                </div>
 
-                                                                <li class="nav-item">
-                                                                    <a class="nav-link"
-                                                                        href="${pageContext.request.contextPath}/notifications">
-                                                                        <i class="fas fa-bell"></i>
-                                                                        <span>Thông báo</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="nav-item">
-                                                                    <a class="nav-link"
-                                                                        href="${pageContext.request.contextPath}/change-password">
-                                                                        <i class="fas fa-key"></i>
-                                                                        <span>Thay đổi mật khẩu</span>
-                                                                    </a>
-                                                                </li>
 
-                                                                <hr class="sidebar-divider d-none d-md-block">
+                                                                <!-- CUSTOMER MENU -->
+                                                                <% if (sidebarRoles !=null &&
+                                                                    sidebarRoles.contains("CUSTOMER") &&
+                                                                    !sidebarRoles.contains("ADMIN")) { %>
 
-                                                                <div class="text-center d-none d-md-inline">
-                                                                    <button class="rounded-circle border-0"
-                                                                        id="sidebarToggle"></button>
-                                                                </div>
+                                                                    <div class="sidebar-heading">
+                                                                        Cổng khách hàng
+                                                                    </div>
+
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link"
+                                                                            href="${pageContext.request.contextPath}/customer/home">
+                                                                            <i class="fas fa-fw fa-home"></i>
+                                                                            <span>Tổng quan</span>
+                                                                        </a>
+                                                                    </li>
+
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link"
+                                                                            href="${pageContext.request.contextPath}/customer/contracts">
+                                                                            <i class="fas fa-file-contract"></i>
+                                                                            <span>Hợp đồng thuê của tôi</span>
+                                                                        </a>
+                                                                    </li>
+
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link"
+                                                                            href="${pageContext.request.contextPath}/customer/generators">
+                                                                            <i class="fas fa-bolt"></i>
+                                                                            <span>Máy đang thuê</span>
+                                                                        </a>
+                                                                    </li>
+
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link"
+                                                                            href="${pageContext.request.contextPath}/customer/rental-request">
+                                                                            <i class="fas fa-plus-circle"></i>
+                                                                            <span>Yêu cầu thuê máy</span>
+                                                                        </a>
+                                                                    </li>
+
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link"
+                                                                            href="${pageContext.request.contextPath}/customer/notifications">
+                                                                            <i class="fas fa-bell"></i>
+                                                                            <span>Thông báo của tôi</span>
+                                                                        </a>
+                                                                    </li>
+
+                                                                    <hr class="sidebar-divider">
+
+                                                                    <% } %>
+
+                                                                        <!-- ALL USERS -->
+                                                                        <div class="sidebar-heading">
+                                                                            Cài đặt
+                                                                        </div>
+
+                                                                        <li class="nav-item">
+                                                                            <a class="nav-link"
+                                                                                href="${pageContext.request.contextPath}/notifications">
+                                                                                <i class="fas fa-bell"></i>
+                                                                                <span>Thông báo</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li class="nav-item">
+                                                                            <a class="nav-link"
+                                                                                href="${pageContext.request.contextPath}/change-password">
+                                                                                <i class="fas fa-key"></i>
+                                                                                <span>Thay đổi mật khẩu</span>
+                                                                            </a>
+                                                                        </li>
+
+                                                                        <hr class="sidebar-divider d-none d-md-block">
+
+                                                                        <div class="text-center d-none d-md-inline">
+                                                                            <button class="rounded-circle border-0"
+                                                                                id="sidebarToggle"></button>
+                                                                        </div>
         </ul>
