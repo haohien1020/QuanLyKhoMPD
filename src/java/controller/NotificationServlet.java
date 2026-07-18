@@ -13,11 +13,11 @@ import model.Notification;
 import model.User;
 
 @WebServlet(name = "NotificationServlet", urlPatterns = {
-    "/notifications",
-    "/notifications/mark-read",
-    "/notifications/mark-all-read",
-    "/notifications/delete",
-    "/notifications/clear-all"
+        "/notifications",
+        "/notifications/mark-read",
+        "/notifications/mark-all-read",
+        "/notifications/delete",
+        "/notifications/clear-all"
 })
 public class NotificationServlet extends HttpServlet {
 

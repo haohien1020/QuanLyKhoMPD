@@ -1,7 +1,6 @@
 package controller;
 
 import dao.GeneratorDAO;
-import dao.PartDAO;
 import dao.StockTransferDAO;
 import dao.StockTransferDetailDAO;
 import dao.WarehouseDAO;
@@ -17,7 +16,6 @@ import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 import model.Generator;
-import model.Part;
 import model.StockTransfer;
 import model.StockTransferDetail;
 import model.User;
@@ -36,7 +34,6 @@ public class StockTransferServlet extends HttpServlet {
     private final StockTransferDetailDAO stockTransferDetailDAO = new StockTransferDetailDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
     private final GeneratorDAO generatorDAO = new GeneratorDAO();
-    private final PartDAO partDAO = new PartDAO();
     private final dao.InventoryTransactionDAO inventoryTransactionDAO = new dao.InventoryTransactionDAO();
 
     @Override
@@ -81,11 +78,9 @@ public class StockTransferServlet extends HttpServlet {
                     }
                 }
                 List<Generator> generators = generatorDAO.findGenerators("", managedWarehouse.getWarehouseId(), "IN_STOCK");
-                List<Part> parts = partDAO.findParts("", managedWarehouse.getWarehouseId(), "ACTIVE");
 
                 request.setAttribute("destWarehouses", destWarehouses);
                 request.setAttribute("generators", generators);
-                request.setAttribute("parts", parts);
                 request.getRequestDispatcher("/views/transfer/stock-transfer-create.jsp").forward(request, response);
             } else {
                 List<StockTransfer> list;
@@ -103,13 +98,11 @@ public class StockTransferServlet extends HttpServlet {
                 }
                 
                 List<Generator> allGenerators = generatorDAO.findGenerators("", null, null);
-                List<Part> allParts = partDAO.findParts("", null, null);
                 List<Warehouse> allWarehouses = warehouseDAO.findAll();
                 
                 request.setAttribute("transfers", list);
                 request.setAttribute("detailsMap", detailsMap);
                 request.setAttribute("allGenerators", allGenerators);
-                request.setAttribute("allParts", allParts);
                 request.setAttribute("warehouses", allWarehouses);
                 request.getRequestDispatcher("/views/transfer/stock-transfer-list.jsp").forward(request, response);
             }
@@ -146,7 +139,7 @@ public class StockTransferServlet extends HttpServlet {
                 }
 
                 int toWarehouseId = Integer.parseInt(request.getParameter("toWarehouseId"));
-                String itemType = request.getParameter("itemType"); // GENERATOR or PART
+                String itemType = request.getParameter("itemType"); // GENERATOR
 
                 conn = util.DBUtil.getConnection();
                 conn.setAutoCommit(false);
@@ -183,7 +176,6 @@ public class StockTransferServlet extends HttpServlet {
                                 std.setTransferId(transferId);
                                 std.setItemType("GENERATOR");
                                 std.setGeneratorId(gId);
-                                std.setPartId(null);
                                 std.setQuantity(1);
                                 stockTransferDetailDAO.insert(conn, std);
                                 detailsList.add(std);
@@ -193,31 +185,6 @@ public class StockTransferServlet extends HttpServlet {
                                 if (!locked) {
                                     throw new Exception("Không thể khóa máy phát điện để chuyển.");
                                 }
-                            }
-                        }
-                    } else {
-                        String[] partIds = request.getParameterValues("partId");
-                        String[] quantities = request.getParameterValues("quantity");
-                        if (partIds != null && quantities != null) {
-                            for (int i = 0; i < partIds.length; i++) {
-                                if (partIds[i].isEmpty()) continue;
-                                int pId = Integer.parseInt(partIds[i]);
-                                int qty = Integer.parseInt(quantities[i]);
-                                if (qty <= 0) continue;
-
-                                Part part = partDAO.findById(pId);
-                                if (part == null || part.getWarehouseId() != managedWarehouse.getWarehouseId() || part.getQuantity() < qty) {
-                                    throw new Exception("Không đủ phụ tùng trong kho để thực hiện điều chuyển.");
-                                }
-
-                                StockTransferDetail std = new StockTransferDetail();
-                                std.setTransferId(transferId);
-                                std.setItemType("PART");
-                                std.setGeneratorId(null);
-                                std.setPartId(pId);
-                                std.setQuantity(qty);
-                                stockTransferDetailDAO.insert(conn, std);
-                                detailsList.add(std);
                             }
                         }
                     }
@@ -427,94 +394,14 @@ public class StockTransferServlet extends HttpServlet {
                             generatorDAO.transferBarcodes(conn, transferId, destGeneratorId);
 
                             // Log IMPORT transaction in inventory_transactions for destination warehouse
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED', ?)";
+                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status, transfer_id) "
+                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, ?, ?, 'COMPLETED', ?)";
                             try (PreparedStatement ps = conn.prepareStatement(importSql)) {
                                 ps.setInt(1, st.getToWarehouseId());
                                 ps.setInt(2, currentUser.getUserId());
                                 ps.setInt(3, destGeneratorId);
                                 ps.setInt(4, quantity);
                                 ps.setString(5, "Nhận điều chuyển từ kho ID " + st.getFromWarehouseId() + " (Phiếu điều chuyển TF-" + transferId + ")");
-                                ps.setInt(6, transferId);
-                                ps.executeUpdate();
-                            }
-                        } else if ("PART".equals(detail.getItemType())) {
-                            int sourcePartId = detail.getPartId();
-                            int quantity = detail.getQuantity();
-
-                            // Load source part details
-                            Part sourcePart = partDAO.findById(sourcePartId);
-                            if (sourcePart == null) {
-                                throw new Exception("Không tìm thấy thông tin phụ tùng nguồn.");
-                            }
-
-                            // Check if destination warehouse already has a matching part (by part_code)
-                            String checkDestSql = "SELECT part_id FROM parts WHERE warehouse_id = ? AND LOWER(part_code) = LOWER(?) AND is_deleted = 0";
-                            int destPartId = 0;
-                            try (PreparedStatement ps = conn.prepareStatement(checkDestSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setString(2, sourcePart.getPartCode());
-                                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                                    if (rs.next()) {
-                                        destPartId = rs.getInt("part_id");
-                                    }
-                                }
-                            }
-
-                            // Subtract quantity from source warehouse
-                            String subQtySql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ?";
-                            try (PreparedStatement ps = conn.prepareStatement(subQtySql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, sourcePartId);
-                                int rows = ps.executeUpdate();
-                                if (rows == 0) {
-                                    throw new Exception("Lỗi trừ số lượng phụ tùng tại kho nguồn.");
-                                }
-                            }
-
-                            if (destPartId > 0) {
-                                // Add quantity to destination part
-                                String addQtySql = "UPDATE parts SET quantity = quantity + ?, updated_at = NOW() WHERE part_id = ?";
-                                try (PreparedStatement ps = conn.prepareStatement(addQtySql)) {
-                                    ps.setInt(1, quantity);
-                                    ps.setInt(2, destPartId);
-                                    int rows = ps.executeUpdate();
-                                    if (rows == 0) {
-                                        throw new Exception("Lỗi cộng số lượng phụ tùng tại kho đích.");
-                                    }
-                                }
-                            } else {
-                                // Create new part record in destination warehouse
-                                String insertPartSql = "INSERT INTO parts (warehouse_id, part_name, part_code, quantity, min_quantity, unit, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                                try (PreparedStatement ps = conn.prepareStatement(insertPartSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
-                                    ps.setInt(1, st.getToWarehouseId());
-                                    ps.setString(2, sourcePart.getPartName());
-                                    ps.setString(3, sourcePart.getPartCode());
-                                    ps.setInt(4, quantity);
-                                    ps.setInt(5, sourcePart.getMinQuantity());
-                                    ps.setString(6, sourcePart.getUnit());
-                                    ps.setString(7, sourcePart.getStatus());
-                                    int affectedRows = ps.executeUpdate();
-                                    if (affectedRows == 0) {
-                                        throw new Exception("Lỗi tạo mới phụ tùng tại kho đích.");
-                                    }
-                                    try (java.sql.ResultSet keys = ps.getGeneratedKeys()) {
-                                        if (keys.next()) {
-                                            destPartId = keys.getInt(1);
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Insert destination IMPORT transaction (with transfer_id)
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED', ?)";
-                            try (PreparedStatement ps = conn.prepareStatement(importSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setInt(2, currentUser.getUserId());
-                                ps.setInt(3, destPartId);
-                                ps.setInt(4, quantity);
-                                ps.setString(5, "Nhận điều chuyển phụ tùng từ kho ID " + st.getFromWarehouseId() + " (Phiếu điều chuyển TF-" + transferId + ")");
                                 ps.setInt(6, transferId);
                                 ps.executeUpdate();
                             }

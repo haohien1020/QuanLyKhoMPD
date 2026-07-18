@@ -241,7 +241,9 @@
                                     } else {
                                         for (Generator g : generators) {
                                             String warehouseName = "Chưa rõ";
-                                            if (warehouses != null) {
+                                            if (g.getWarehouseName() != null && !g.getWarehouseName().trim().isEmpty()) {
+                                                warehouseName = g.getWarehouseName();
+                                            } else if (warehouses != null) {
                                                 for (Warehouse w : warehouses) {
                                                     if (w.getWarehouseId() == g.getWarehouseId()) {
                                                         warehouseName = w.getWarehouseName();

@@ -92,24 +92,12 @@
                                                 <ul class="list-unstyled mb-0" style="font-size: 0.9rem;">
                                                     <c:forEach var="det" items="${tDetails}">
                                                         <li>
-                                                            <c:choose>
-                                                                <c:when test="${det.itemType == 'GENERATOR'}">
-                                                                    <i class="fas fa-bolt text-warning mr-1"></i>
-                                                                    <c:forEach var="g" items="${allGenerators}">
-                                                                        <c:if test="${g.generatorId == det.generatorId}">
-                                                                            ${g.generatorName}
-                                                                        </c:if>
-                                                                    </c:forEach>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <i class="fas fa-cog text-info mr-1"></i>
-                                                                    <c:forEach var="p" items="${allParts}">
-                                                                        <c:if test="${p.partId == det.partId}">
-                                                                            ${p.partName}
-                                                                        </c:if>
-                                                                    </c:forEach>
-                                                                </c:otherwise>
-                                                            </c:choose>
+                                                            <i class="fas fa-bolt text-warning mr-1"></i>
+                                                            <c:forEach var="g" items="${allGenerators}">
+                                                                <c:if test="${g.generatorId == det.generatorId}">
+                                                                    ${g.generatorName}
+                                                                </c:if>
+                                                            </c:forEach>
                                                         </li>
                                                     </c:forEach>
                                                     <c:if test="${empty tDetails}">

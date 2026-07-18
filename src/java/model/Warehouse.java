@@ -118,8 +118,7 @@ public class Warehouse {
     }
 
     private int totalGenerators;
-    private int totalParts;
-    private int lowStockParts;
+    private int totalBarcodes;
 
     public int getTotalGenerators() {
         return totalGenerators;
@@ -129,19 +128,11 @@ public class Warehouse {
         this.totalGenerators = totalGenerators;
     }
 
-    public int getTotalParts() {
-        return totalParts;
+    public int getTotalBarcodes() {
+        return totalBarcodes;
     }
 
-    public void setTotalParts(int totalParts) {
-        this.totalParts = totalParts;
-    }
-
-    public int getLowStockParts() {
-        return lowStockParts;
-    }
-
-    public void setLowStockParts(int lowStockParts) {
-        this.lowStockParts = lowStockParts;
+    public void setTotalBarcodes(int totalBarcodes) {
+        this.totalBarcodes = totalBarcodes;
     }
 }

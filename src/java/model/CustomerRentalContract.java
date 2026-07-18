@@ -266,4 +266,14 @@ public class CustomerRentalContract {
     public void setGeneratorId(Integer generatorId) {
         this.generatorId = generatorId;
     }
+
+    private int createdBy;
+
+    public int getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(int createdBy) {
+        this.createdBy = createdBy;
+    }
 }

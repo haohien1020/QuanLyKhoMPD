@@ -4,14 +4,12 @@ import dao.StockTransferDAO;
 import dao.StockTransferDetailDAO;
 import dao.WarehouseDAO;
 import dao.GeneratorDAO;
-import dao.PartDAO;
 import dao.UserDAO;
 import model.StockTransfer;
 import model.StockTransferDetail;
 import model.User;
 import model.Warehouse;
 import model.Generator;
-import model.Part;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -39,7 +37,6 @@ public class ManagerRequestServlet extends HttpServlet {
     private final StockTransferDetailDAO stockTransferDetailDAO = new StockTransferDetailDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
     private final GeneratorDAO generatorDAO = new GeneratorDAO();
-    private final PartDAO partDAO = new PartDAO();
     private final UserDAO userDAO = new UserDAO();
     private final dao.InventoryTransactionDAO inventoryTransactionDAO = new dao.InventoryTransactionDAO();
 
@@ -71,8 +68,6 @@ public class ManagerRequestServlet extends HttpServlet {
                 transferDetailsMap.put(st.getTransferId(), stockTransferDetailDAO.findDetailsByTransferId(st.getTransferId()));
             }
 
-
-
             // Supporting data collections
             List<Warehouse> warehouses = warehouseDAO.findAll();
             Map<Integer, String> warehouseMap = new HashMap<>();
@@ -84,12 +79,6 @@ public class ManagerRequestServlet extends HttpServlet {
             Map<Integer, String> userMap = new HashMap<>();
             for (User u : users) {
                 userMap.put(u.getUserId(), u.getFullName() + " (" + u.getRoleName() + ")");
-            }
-
-            List<Part> allParts = partDAO.findParts("", null, null);
-            Map<Integer, Part> partMap = new HashMap<>();
-            for (Part p : allParts) {
-                partMap.put(p.getPartId(), p);
             }
 
             List<Generator> allGenerators = generatorDAO.findGenerators("", null, null);
@@ -104,7 +93,6 @@ public class ManagerRequestServlet extends HttpServlet {
             request.setAttribute("transferDetailsMap", transferDetailsMap);
             request.setAttribute("warehouseMap", warehouseMap);
             request.setAttribute("userMap", userMap);
-            request.setAttribute("partMap", partMap);
             request.setAttribute("genMap", genMap);
 
             request.getRequestDispatcher("/views/manager/pending-requests.jsp").forward(request, response);
@@ -130,7 +118,7 @@ public class ManagerRequestServlet extends HttpServlet {
         }
 
         String path = request.getServletPath();
-        String type = request.getParameter("type"); // transfer, purchase, part
+        String type = request.getParameter("type"); // transfer, purchase
         String idStr = request.getParameter("id");
 
         if (idStr == null || idStr.trim().isEmpty() || type == null) {
@@ -237,88 +225,14 @@ public class ManagerRequestServlet extends HttpServlet {
 
                             generatorDAO.transferBarcodes(conn, id, destGeneratorId);
 
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED', ?)";
+                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status, transfer_id) "
+                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, ?, ?, 'COMPLETED', ?)";
                             try (PreparedStatement ps = conn.prepareStatement(importSql)) {
                                 ps.setInt(1, st.getToWarehouseId());
                                 ps.setInt(2, currentUser.getUserId());
                                 ps.setInt(3, destGeneratorId);
                                 ps.setInt(4, quantity);
                                 ps.setString(5, "Nhận điều chuyển từ kho ID " + st.getFromWarehouseId() + " (TF-" + id + ")");
-                                ps.setInt(6, id);
-                                ps.executeUpdate();
-                            }
-                        } else if ("PART".equals(detail.getItemType())) {
-                            int sourcePartId = detail.getPartId();
-                            int quantity = detail.getQuantity();
-
-                            Part sourcePart = partDAO.findById(sourcePartId);
-                            if (sourcePart == null) {
-                                throw new Exception("Không tìm thấy thông tin phụ tùng nguồn.");
-                            }
-
-                            String checkDestSql = "SELECT part_id FROM parts WHERE warehouse_id = ? AND LOWER(part_code) = LOWER(?) AND is_deleted = 0";
-                            int destPartId = 0;
-                            try (PreparedStatement ps = conn.prepareStatement(checkDestSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setString(2, sourcePart.getPartCode());
-                                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                                    if (rs.next()) {
-                                        destPartId = rs.getInt("part_id");
-                                    }
-                                }
-                            }
-
-                            String subQtySql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ?";
-                            try (PreparedStatement ps = conn.prepareStatement(subQtySql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, sourcePartId);
-                                int rows = ps.executeUpdate();
-                                if (rows == 0) {
-                                    throw new Exception("Lỗi trừ số lượng phụ tùng tại kho nguồn.");
-                                }
-                            }
-
-                            if (destPartId > 0) {
-                                String addQtySql = "UPDATE parts SET quantity = quantity + ?, updated_at = NOW() WHERE part_id = ?";
-                                try (PreparedStatement ps = conn.prepareStatement(addQtySql)) {
-                                    ps.setInt(1, quantity);
-                                    ps.setInt(2, destPartId);
-                                    int rows = ps.executeUpdate();
-                                    if (rows == 0) {
-                                        throw new Exception("Lỗi cộng số lượng phụ tùng tại kho đích.");
-                                    }
-                                }
-                            } else {
-                                String insertPartSql = "INSERT INTO parts (warehouse_id, part_name, part_code, quantity, min_quantity, unit, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                                try (PreparedStatement ps = conn.prepareStatement(insertPartSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
-                                    ps.setInt(1, st.getToWarehouseId());
-                                    ps.setString(2, sourcePart.getPartName());
-                                    ps.setString(3, sourcePart.getPartCode());
-                                    ps.setInt(4, quantity);
-                                    ps.setInt(5, sourcePart.getMinQuantity());
-                                    ps.setString(6, sourcePart.getUnit());
-                                    ps.setString(7, sourcePart.getStatus());
-                                    int affectedRows = ps.executeUpdate();
-                                    if (affectedRows == 0) {
-                                        throw new Exception("Lỗi tạo mới phụ tùng tại kho đích.");
-                                    }
-                                    try (java.sql.ResultSet keys = ps.getGeneratedKeys()) {
-                                        if (keys.next()) {
-                                            destPartId = keys.getInt(1);
-                                        }
-                                    }
-                                }
-                            }
-
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED', ?)";
-                            try (PreparedStatement ps = conn.prepareStatement(importSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setInt(2, currentUser.getUserId());
-                                ps.setInt(3, destPartId);
-                                ps.setInt(4, quantity);
-                                ps.setString(5, "Nhận điều chuyển phụ tùng từ kho ID " + st.getFromWarehouseId() + " (TF-" + id + ")");
                                 ps.setInt(6, id);
                                 ps.executeUpdate();
                             }
@@ -331,6 +245,19 @@ public class ManagerRequestServlet extends HttpServlet {
                     st.setApprovedAt(new Timestamp(System.currentTimeMillis()));
                     stockTransferDAO.update(conn, st);
 
+                    try {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(st.getCreatedBy());
+                        notif.setTitle("Yêu cầu điều chuyển kho được phê duyệt");
+                        notif.setMessage("Yêu cầu điều chuyển TF-" + id + " đã được phê duyệt bởi Quản lý " + currentUser.getFullName() + ".");
+                        notif.setRead(false);
+                        notif.setType("SYSTEM");
+                        notif.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+                        new dao.NotificationDAO().insert(notif);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=approved");
                 } else {
@@ -341,6 +268,19 @@ public class ManagerRequestServlet extends HttpServlet {
                     st.setApprovedBy(currentUser.getUserId());
                     st.setApprovedAt(new Timestamp(System.currentTimeMillis()));
                     stockTransferDAO.update(conn, st);
+
+                    try {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(st.getCreatedBy());
+                        notif.setTitle("Yêu cầu điều chuyển kho bị từ chối");
+                        notif.setMessage("Yêu cầu điều chuyển TF-" + id + " đã bị từ chối bởi Quản lý " + currentUser.getFullName() + ".");
+                        notif.setRead(false);
+                        notif.setType("SYSTEM");
+                        notif.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+                        new dao.NotificationDAO().insert(notif);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
 
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=rejected");
@@ -413,88 +353,14 @@ public class ManagerRequestServlet extends HttpServlet {
 
                             generatorDAO.transferBarcodes(conn, id, destGeneratorId);
 
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED', ?)";
+                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status, transfer_id) "
+                                             + "VALUES (?, NULL, ?, 'IMPORT', 'GENERATOR', ?, ?, ?, 'COMPLETED', ?)";
                             try (PreparedStatement ps = conn.prepareStatement(importSql)) {
                                 ps.setInt(1, st.getToWarehouseId());
                                 ps.setInt(2, currentUser.getUserId());
                                 ps.setInt(3, destGeneratorId);
                                 ps.setInt(4, quantity);
                                 ps.setString(5, "Nhận điều chuyển từ kho ID " + st.getFromWarehouseId() + " (TF-" + id + ")");
-                                ps.setInt(6, id);
-                                ps.executeUpdate();
-                            }
-                        } else if ("PART".equals(detail.getItemType())) {
-                            int sourcePartId = detail.getPartId();
-                            int quantity = detail.getQuantity();
-
-                            Part sourcePart = partDAO.findById(sourcePartId);
-                            if (sourcePart == null) {
-                                throw new Exception("Không tìm thấy thông tin phụ tùng nguồn.");
-                            }
-
-                            String checkDestSql = "SELECT part_id FROM parts WHERE warehouse_id = ? AND LOWER(part_code) = LOWER(?) AND is_deleted = 0";
-                            int destPartId = 0;
-                            try (PreparedStatement ps = conn.prepareStatement(checkDestSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setString(2, sourcePart.getPartCode());
-                                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                                    if (rs.next()) {
-                                        destPartId = rs.getInt("part_id");
-                                    }
-                                }
-                            }
-
-                            String subQtySql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ?";
-                            try (PreparedStatement ps = conn.prepareStatement(subQtySql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, sourcePartId);
-                                int rows = ps.executeUpdate();
-                                if (rows == 0) {
-                                    throw new Exception("Lỗi trừ số lượng phụ tùng tại kho nguồn.");
-                                }
-                            }
-
-                            if (destPartId > 0) {
-                                String addQtySql = "UPDATE parts SET quantity = quantity + ?, updated_at = NOW() WHERE part_id = ?";
-                                try (PreparedStatement ps = conn.prepareStatement(addQtySql)) {
-                                    ps.setInt(1, quantity);
-                                    ps.setInt(2, destPartId);
-                                    int rows = ps.executeUpdate();
-                                    if (rows == 0) {
-                                        throw new Exception("Lỗi cộng số lượng phụ tùng tại kho đích.");
-                                    }
-                                }
-                            } else {
-                                String insertPartSql = "INSERT INTO parts (warehouse_id, part_name, part_code, quantity, min_quantity, unit, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                                try (PreparedStatement ps = conn.prepareStatement(insertPartSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
-                                    ps.setInt(1, st.getToWarehouseId());
-                                    ps.setString(2, sourcePart.getPartName());
-                                    ps.setString(3, sourcePart.getPartCode());
-                                    ps.setInt(4, quantity);
-                                    ps.setInt(5, sourcePart.getMinQuantity());
-                                    ps.setString(6, sourcePart.getUnit());
-                                    ps.setString(7, sourcePart.getStatus());
-                                    int affectedRows = ps.executeUpdate();
-                                    if (affectedRows == 0) {
-                                        throw new Exception("Lỗi tạo mới phụ tùng tại kho đích.");
-                                    }
-                                    try (java.sql.ResultSet keys = ps.getGeneratedKeys()) {
-                                        if (keys.next()) {
-                                            destPartId = keys.getInt(1);
-                                        }
-                                    }
-                                }
-                            }
-
-                            String importSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) "
-                                             + "VALUES (?, NULL, ?, 'IMPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED', ?)";
-                            try (PreparedStatement ps = conn.prepareStatement(importSql)) {
-                                ps.setInt(1, st.getToWarehouseId());
-                                ps.setInt(2, currentUser.getUserId());
-                                ps.setInt(3, destPartId);
-                                ps.setInt(4, quantity);
-                                ps.setString(5, "Nhận điều chuyển phụ tùng từ kho ID " + st.getFromWarehouseId() + " (TF-" + id + ")");
                                 ps.setInt(6, id);
                                 ps.executeUpdate();
                             }
@@ -507,6 +373,19 @@ public class ManagerRequestServlet extends HttpServlet {
                     st.setApprovedAt(new Timestamp(System.currentTimeMillis()));
                     stockTransferDAO.update(conn, st);
 
+                    try {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(st.getCreatedBy());
+                        notif.setTitle("Yêu cầu nhận điều chuyển kho được xác nhận");
+                        notif.setMessage("Yêu cầu nhận điều chuyển TF-" + id + " đã được xác nhận nhập kho thành công bởi Quản lý " + currentUser.getFullName() + ".");
+                        notif.setRead(false);
+                        notif.setType("SYSTEM");
+                        notif.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+                        new dao.NotificationDAO().insert(notif);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=approved");
                 } else {
@@ -517,6 +396,19 @@ public class ManagerRequestServlet extends HttpServlet {
                     st.setApprovedBy(currentUser.getUserId());
                     st.setApprovedAt(new Timestamp(System.currentTimeMillis()));
                     stockTransferDAO.update(conn, st);
+
+                    try {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(st.getCreatedBy());
+                        notif.setTitle("Yêu cầu nhận điều chuyển kho bị từ chối");
+                        notif.setMessage("Yêu cầu nhận điều chuyển TF-" + id + " đã bị từ chối nhận kho bởi Quản lý " + currentUser.getFullName() + ".");
+                        notif.setRead(false);
+                        notif.setType("SYSTEM");
+                        notif.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+                        new dao.NotificationDAO().insert(notif);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
 
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=rejected");

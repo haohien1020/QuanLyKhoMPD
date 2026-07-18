@@ -23,7 +23,6 @@ public class InventoryTransactionDAO extends BaseDAO {
         item.setTransactionType(rs.getString("transaction_type"));
         item.setItemType(rs.getString("item_type"));
         item.setGeneratorId(getNullableInt(rs, "generator_id"));
-        item.setPartId(getNullableInt(rs, "part_id"));
         item.setQuantity(rs.getInt("quantity"));
         item.setTransactionDate(rs.getTimestamp("transaction_date"));
         item.setNote(rs.getString("note"));
@@ -33,7 +32,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public InventoryTransaction findById(int id) throws Exception {
-        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions WHERE transaction_id = ?";
+        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions WHERE transaction_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -47,7 +46,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public List<InventoryTransaction> findAll() throws Exception {
-        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions ORDER BY transaction_id DESC";
+        String sql = "SELECT transaction_id, warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, transaction_date, note, status, transfer_id FROM inventory_transactions ORDER BY transaction_id DESC";
         List<InventoryTransaction> list = new ArrayList<InventoryTransaction>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -66,7 +65,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public int insert(Connection conn, InventoryTransaction item) throws Exception {
-        String sql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status, transfer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status, transfer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getWarehouseId());
             setNullableInt(ps, 2, item.getSupplierId());
@@ -74,11 +73,10 @@ public class InventoryTransactionDAO extends BaseDAO {
             ps.setString(4, item.getTransactionType());
             ps.setString(5, item.getItemType());
             setNullableInt(ps, 6, item.getGeneratorId());
-            setNullableInt(ps, 7, item.getPartId());
-            ps.setInt(8, item.getQuantity());
-            ps.setString(9, item.getNote());
-            ps.setString(10, item.getStatus());
-            setNullableInt(ps, 11, item.getTransferId());
+            ps.setInt(7, item.getQuantity());
+            ps.setString(8, item.getNote());
+            ps.setString(9, item.getStatus());
+            setNullableInt(ps, 10, item.getTransferId());
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
                 return 0;
@@ -93,7 +91,7 @@ public class InventoryTransactionDAO extends BaseDAO {
     }
 
     public boolean update(InventoryTransaction item) throws Exception {
-        String sql = "UPDATE inventory_transactions SET warehouse_id = ?, supplier_id = ?, created_by = ?, transaction_type = ?, item_type = ?, generator_id = ?, part_id = ?, quantity = ?, transaction_date = ?, note = ?, status = ?, transfer_id = ? WHERE transaction_id = ?";
+        String sql = "UPDATE inventory_transactions SET warehouse_id = ?, supplier_id = ?, created_by = ?, transaction_type = ?, item_type = ?, generator_id = ?, quantity = ?, transaction_date = ?, note = ?, status = ?, transfer_id = ? WHERE transaction_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getWarehouseId());
@@ -102,13 +100,12 @@ public class InventoryTransactionDAO extends BaseDAO {
             ps.setString(4, item.getTransactionType());
             ps.setString(5, item.getItemType());
             setNullableInt(ps, 6, item.getGeneratorId());
-            setNullableInt(ps, 7, item.getPartId());
-            ps.setInt(8, item.getQuantity());
-            ps.setTimestamp(9, item.getTransactionDate());
-            ps.setString(10, item.getNote());
-            ps.setString(11, item.getStatus());
-            setNullableInt(ps, 12, item.getTransferId());
-            ps.setInt(13, item.getTransactionId());
+            ps.setInt(7, item.getQuantity());
+            ps.setTimestamp(8, item.getTransactionDate());
+            ps.setString(9, item.getNote());
+            ps.setString(10, item.getStatus());
+            setNullableInt(ps, 11, item.getTransferId());
+            ps.setInt(12, item.getTransactionId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -124,11 +121,10 @@ public class InventoryTransactionDAO extends BaseDAO {
 
     public List<InventoryTransaction> findTransactions(Integer warehouseId, String transactionType, String itemType, String keyword, java.sql.Timestamp startDate, java.sql.Timestamp endDate) throws Exception {
         StringBuilder sql = new StringBuilder(
-            "SELECT t.transaction_id, t.warehouse_id, t.supplier_id, t.created_by, t.transaction_type, t.item_type, t.generator_id, t.part_id, t.quantity, t.transaction_date, t.note, t.status, t.transfer_id, " +
-            "g.generator_name, g.serial_number, p.part_name, p.part_code, w.warehouse_name, s.supplier_name, u.full_name AS creator_name " +
+            "SELECT t.transaction_id, t.warehouse_id, t.supplier_id, t.created_by, t.transaction_type, t.item_type, t.generator_id, t.quantity, t.transaction_date, t.note, t.status, t.transfer_id, " +
+            "g.generator_name, g.serial_number, w.warehouse_name, s.supplier_name, u.full_name AS creator_name " +
             "FROM inventory_transactions t " +
             "LEFT JOIN generators g ON t.generator_id = g.generator_id " +
-            "LEFT JOIN parts p ON t.part_id = p.part_id " +
             "LEFT JOIN warehouses w ON t.warehouse_id = w.warehouse_id " +
             "LEFT JOIN suppliers s ON t.supplier_id = s.supplier_id " +
             "LEFT JOIN users u ON t.created_by = u.user_id " +
@@ -152,10 +148,8 @@ public class InventoryTransactionDAO extends BaseDAO {
         }
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (LOWER(t.note) LIKE ? OR LOWER(g.generator_name) LIKE ? OR LOWER(g.serial_number) LIKE ? OR LOWER(p.part_name) LIKE ? OR LOWER(p.part_code) LIKE ? OR LOWER(u.full_name) LIKE ?) ");
+            sql.append("AND (LOWER(t.note) LIKE ? OR LOWER(g.generator_name) LIKE ? OR LOWER(g.serial_number) LIKE ? OR LOWER(u.full_name) LIKE ?) ");
             String search = "%" + keyword.trim().toLowerCase() + "%";
-            params.add(search);
-            params.add(search);
             params.add(search);
             params.add(search);
             params.add(search);
@@ -190,7 +184,6 @@ public class InventoryTransactionDAO extends BaseDAO {
                     item.setTransactionType(rs.getString("transaction_type"));
                     item.setItemType(rs.getString("item_type"));
                     item.setGeneratorId(getNullableInt(rs, "generator_id"));
-                    item.setPartId(getNullableInt(rs, "part_id"));
                     item.setQuantity(rs.getInt("quantity"));
                     item.setTransactionDate(rs.getTimestamp("transaction_date"));
                     item.setNote(rs.getString("note"));
@@ -200,8 +193,6 @@ public class InventoryTransactionDAO extends BaseDAO {
                     // Joined fields
                     item.setGeneratorName(rs.getString("generator_name"));
                     item.setGeneratorSerial(rs.getString("serial_number"));
-                    item.setPartName(rs.getString("part_name"));
-                    item.setPartCode(rs.getString("part_code"));
                     item.setWarehouseName(rs.getString("warehouse_name"));
                     item.setSupplierName(rs.getString("supplier_name"));
                     item.setCreatorName(rs.getString("creator_name"));
@@ -211,138 +202,6 @@ public class InventoryTransactionDAO extends BaseDAO {
             }
         }
         return list;
-    }
-
-    public boolean importPart(int partId, int quantity, int warehouseId, Integer supplierId, int createdBy, String note) throws Exception {
-        Connection conn = null;
-        try {
-            conn = DBUtil.getConnection();
-            conn.setAutoCommit(false);
-
-            // 1. Update part quantity
-            String updateSql = "UPDATE parts SET quantity = quantity + ?, updated_at = NOW() WHERE part_id = ? AND warehouse_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setInt(1, quantity);
-                ps.setInt(2, partId);
-                ps.setInt(3, warehouseId);
-                int rows = ps.executeUpdate();
-                if (rows == 0) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-
-            // 2. Insert transaction log
-            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED')";
-            try (PreparedStatement ps = conn.prepareStatement(txSql)) {
-                ps.setInt(1, warehouseId);
-                setNullableInt(ps, 2, supplierId);
-                ps.setInt(3, createdBy);
-                ps.setInt(4, partId);
-                ps.setInt(5, quantity);
-                ps.setString(6, note);
-                int rows = ps.executeUpdate();
-                if (rows == 0) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-
-            conn.commit();
-            return true;
-        } catch (Exception ex) {
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    ex.addSuppressed(rollbackEx);
-                }
-            }
-            throw ex;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException ignored) {}
-                conn.close();
-            }
-        }
-    }
-
-    public boolean exportPart(int partId, int quantity, int warehouseId, int createdBy, String note) throws Exception {
-        Connection conn = null;
-        try {
-            conn = DBUtil.getConnection();
-            conn.setAutoCommit(false);
-
-            // Check current quantity first to make sure there's enough stock
-            String selectSql = "SELECT quantity FROM parts WHERE part_id = ? AND warehouse_id = ?";
-            int currentQty = 0;
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                ps.setInt(1, partId);
-                ps.setInt(2, warehouseId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        currentQty = rs.getInt("quantity");
-                    } else {
-                        conn.rollback();
-                        return false;
-                    }
-                }
-            }
-
-            if (currentQty < quantity) {
-                conn.rollback();
-                return false; // Insufficient stock
-            }
-
-            // 1. Update part quantity
-            String updateSql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ? AND warehouse_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setInt(1, quantity);
-                ps.setInt(2, partId);
-                ps.setInt(3, warehouseId);
-                int rows = ps.executeUpdate();
-                if (rows == 0) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-
-            // 2. Insert transaction log
-            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, NULL, ?, 'EXPORT', 'PART', NULL, ?, ?, ?, 'COMPLETED')";
-            try (PreparedStatement ps = conn.prepareStatement(txSql)) {
-                ps.setInt(1, warehouseId);
-                ps.setInt(2, createdBy);
-                ps.setInt(3, partId);
-                ps.setInt(4, quantity);
-                ps.setString(5, note);
-                int rows = ps.executeUpdate();
-                if (rows == 0) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-
-            conn.commit();
-            return true;
-        } catch (Exception ex) {
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    ex.addSuppressed(rollbackEx);
-                }
-            }
-            throw ex;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException ignored) {}
-                conn.close();
-            }
-        }
     }
 
     public boolean importGenerator(int barcodeId, int warehouseId, Integer supplierId, int createdBy, String note) throws Exception {
@@ -380,7 +239,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             }
 
             // 3. Insert transaction log
-            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, NULL, 1, ?, 'COMPLETED')";
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, 1, ?, 'COMPLETED')";
             try (PreparedStatement ps = conn.prepareStatement(txSql)) {
                 ps.setInt(1, warehouseId);
                 setNullableInt(ps, 2, supplierId);
@@ -451,7 +310,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             }
 
             // Log ONE transaction record in inventory_transactions
-            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, NULL, ?, ?, 'COMPLETED')";
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status) VALUES (?, ?, ?, 'IMPORT', 'GENERATOR', ?, ?, ?, 'COMPLETED')";
             try (PreparedStatement ps = conn.prepareStatement(txSql)) {
                 ps.setInt(1, warehouseId);
                 setNullableInt(ps, 2, finalSupplierId);
@@ -537,7 +396,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             }
 
             // 3. Insert transaction log
-            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, part_id, quantity, note, status) VALUES (?, NULL, ?, 'EXPORT', 'GENERATOR', ?, NULL, 1, ?, 'COMPLETED')";
+            String txSql = "INSERT INTO inventory_transactions (warehouse_id, supplier_id, created_by, transaction_type, item_type, generator_id, quantity, note, status) VALUES (?, NULL, ?, 'EXPORT', 'GENERATOR', ?, 1, ?, 'COMPLETED')";
             try (PreparedStatement ps = conn.prepareStatement(txSql)) {
                 ps.setInt(1, warehouseId);
                 ps.setInt(2, createdBy);
@@ -585,7 +444,6 @@ public class InventoryTransactionDAO extends BaseDAO {
             tx.setTransactionType("EXPORT");
             tx.setItemType(detail.getItemType());
             tx.setGeneratorId(detail.getGeneratorId());
-            tx.setPartId(detail.getPartId());
             tx.setQuantity(detail.getQuantity());
             tx.setTransferId(transferId);
             tx.setStatus("PENDING");
@@ -602,18 +460,6 @@ public class InventoryTransactionDAO extends BaseDAO {
                     }
                 }
                 tx.setNote("Yêu cầu điều chuyển máy phát điện '" + genName + "' (Phiếu TF-" + transferId + ")");
-            } else {
-                String partName = "";
-                String specSql = "SELECT part_name FROM parts WHERE part_id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(specSql)) {
-                    ps.setInt(1, detail.getPartId());
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            partName = rs.getString("part_name");
-                        }
-                    }
-                }
-                tx.setNote("Yêu cầu điều chuyển " + detail.getQuantity() + " phụ tùng '" + partName + "' (Phiếu TF-" + transferId + ")");
             }
             insert(conn, tx);
         }

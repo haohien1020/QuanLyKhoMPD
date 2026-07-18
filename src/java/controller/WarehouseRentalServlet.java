@@ -132,9 +132,21 @@ public class WarehouseRentalServlet extends HttpServlet {
                                     util.EmailUtil.sendContractApprovedEmailAsync(customer, generator, warehouse, contract, cg.getRentalPrice().doubleValue());
                                 }
                             }
+                            try {
+                                NotificationDAO notificationDAO = new NotificationDAO();
+                                Notification notif = new Notification();
+                                notif.setUserId(contract.getCreatedBy());
+                                notif.setTitle("Hợp đồng được phê duyệt");
+                                notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã được phê duyệt bởi Quản lý kho " + currentUser.getFullName() + ".");
+                                notif.setType("RENTAL");
+                                notif.setRead(false);
+                                notificationDAO.insert(notif);
+                            } catch (Exception ex) {
+                                System.err.println("Failed to send approval notification to Seller: " + ex.getMessage());
+                            }
                         }
                     } catch (Exception ex) {
-                        System.err.println("Failed to initiate contract approval email: " + ex.getMessage());
+                        System.err.println("Failed to initiate contract approval details: " + ex.getMessage());
                         ex.printStackTrace();
                     }
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=approved");
@@ -186,6 +198,19 @@ public class WarehouseRentalServlet extends HttpServlet {
                             }
                         }
 
+                        try {
+                            NotificationDAO notificationDAO = new NotificationDAO();
+                            Notification notif = new Notification();
+                            notif.setUserId(contract.getCreatedBy());
+                            notif.setTitle("Hợp đồng bị từ chối/hủy");
+                            notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã bị từ chối/hủy bởi Quản lý kho " + currentUser.getFullName() + ".");
+                            notif.setType("RENTAL");
+                            notif.setRead(false);
+                            notificationDAO.insert(notif);
+                        } catch (Exception ex) {
+                            System.err.println("Failed to send rejection notification to Seller: " + ex.getMessage());
+                        }
+
                         response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=rejected");
                     } else {
                         response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=reject_failed");
@@ -219,6 +244,18 @@ public class WarehouseRentalServlet extends HttpServlet {
                             inventoryTransactionDAO.insert(tx);
                         }
                     }
+                    try {
+                        NotificationDAO notificationDAO = new NotificationDAO();
+                        Notification notif = new Notification();
+                        notif.setUserId(contract.getCreatedBy());
+                        notif.setTitle("Bàn giao máy thành công");
+                        notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã được bàn giao thành công cho khách hàng.");
+                        notif.setType("RENTAL");
+                        notif.setRead(false);
+                        notificationDAO.insert(notif);
+                    } catch (Exception ex) {
+                        System.err.println("Failed to send delivery notification to Seller: " + ex.getMessage());
+                    }
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=delivered");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?error=deliver_failed");
@@ -248,6 +285,18 @@ public class WarehouseRentalServlet extends HttpServlet {
                             tx.setStatus("COMPLETED");
                             inventoryTransactionDAO.insert(tx);
                         }
+                    }
+                    try {
+                        NotificationDAO notificationDAO = new NotificationDAO();
+                        Notification notif = new Notification();
+                        notif.setUserId(contract.getCreatedBy());
+                        notif.setTitle("Hợp đồng hoàn thành");
+                        notif.setMessage("Hợp đồng " + contract.getContractCode() + " đã được hoàn thành (khách hàng trả máy).");
+                        notif.setType("RENTAL");
+                        notif.setRead(false);
+                        notificationDAO.insert(notif);
+                    } catch (Exception ex) {
+                        System.err.println("Failed to send return notification to Seller: " + ex.getMessage());
                     }
                     response.sendRedirect(request.getContextPath() + "/warehouse/rentals?success=returned");
                 } else {

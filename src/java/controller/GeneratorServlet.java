@@ -68,17 +68,55 @@ public class GeneratorServlet extends HttpServlet {
                     isWarehouseRestricted = true;
                 }
 
-                if (isWarehouseRestricted) {
-                    warehouseId = restrictedWarehouseId;
-                }
+                List<model.GeneratorBarcode> barcodes;
+                List<Generator> generators;
+                List<Warehouse> warehouses;
 
-                List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword, warehouseId);
-                List<Generator> generators = generatorDAO.findGenerators(null, warehouseId, null);
-                List<Warehouse> warehouses = warehouseDAO.findAll();
+                if (currentUser.hasRole("MANAGER") && !currentUser.hasRole("ADMIN")) {
+                    warehouses = warehouseDAO.findBySupervisingManager(currentUser.getUserId(), null);
+                    warehouseId = parseInt(request.getParameter("warehouseId"));
+                    if (warehouseId != null && warehouseId > 0) {
+                        boolean isSupervised = false;
+                        for (Warehouse w : warehouses) {
+                            if (w.getWarehouseId() == warehouseId) {
+                                isSupervised = true;
+                                break;
+                            }
+                        }
+                        if (!isSupervised) {
+                            warehouseId = null;
+                        }
+                    }
+                    if (warehouseId == null) {
+                        barcodes = generatorDAO.findBarcodesByManager(filterGeneratorId, filterStatus, filterKeyword, currentUser.getUserId(), null);
+                        generators = generatorDAO.findGeneratorsByManager(null, currentUser.getUserId(), null, null);
+                    } else {
+                        barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword, warehouseId);
+                        generators = generatorDAO.findGenerators(null, warehouseId, null);
+                    }
+                } else {
+                    if (isWarehouseRestricted) {
+                        warehouseId = restrictedWarehouseId;
+                    } else {
+                        warehouseId = parseInt(request.getParameter("warehouseId"));
+                    }
+                    barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword, warehouseId);
+                    generators = generatorDAO.findGenerators(null, warehouseId, null);
+                    if (isWarehouseRestricted) {
+                        warehouses = new java.util.ArrayList<>();
+                        if (warehouseId != null) {
+                            Warehouse wh = warehouseDAO.findById(warehouseId);
+                            if (wh != null) warehouses.add(wh);
+                        }
+                    } else {
+                        warehouses = warehouseDAO.findAll();
+                    }
+                }
 
                 request.setAttribute("barcodes", barcodes);
                 request.setAttribute("generators", generators);
                 request.setAttribute("warehouses", warehouses);
+                request.setAttribute("warehouseIdFilter", warehouseId);
                 request.setAttribute("filterGeneratorId", filterGeneratorId);
                 request.setAttribute("filterStatus", filterStatus);
                 request.setAttribute("filterKeyword", filterKeyword);
@@ -158,22 +196,45 @@ public class GeneratorServlet extends HttpServlet {
                 isWarehouseRestricted = true;
             }
 
-            if (isWarehouseRestricted) {
-                warehouseId = restrictedWarehouseId;
-            } else {
-                warehouseId = parseInt(request.getParameter("warehouseId"));
-            }
-
-            List<Generator> generators = generatorDAO.findGenerators(q, warehouseId, status);
+            List<Generator> generators;
             List<Warehouse> warehouses;
-            if (isWarehouseRestricted) {
-                warehouses = new java.util.ArrayList<>();
-                if (warehouseId != null) {
-                    Warehouse wh = warehouseDAO.findById(warehouseId);
-                    if (wh != null) warehouses.add(wh);
+
+            if (currentUser.hasRole("MANAGER") && !currentUser.hasRole("ADMIN")) {
+                warehouses = warehouseDAO.findBySupervisingManager(currentUser.getUserId(), null);
+                warehouseId = parseInt(request.getParameter("warehouseId"));
+                if (warehouseId != null && warehouseId > 0) {
+                    boolean isSupervised = false;
+                    for (Warehouse w : warehouses) {
+                        if (w.getWarehouseId() == warehouseId) {
+                            isSupervised = true;
+                            break;
+                        }
+                    }
+                    if (!isSupervised) {
+                        warehouseId = null;
+                    }
+                }
+                if (warehouseId == null) {
+                    generators = generatorDAO.findGeneratorsByManager(q, currentUser.getUserId(), null, status);
+                } else {
+                    generators = generatorDAO.findGenerators(q, warehouseId, status);
                 }
             } else {
-                warehouses = warehouseDAO.findAll();
+                if (isWarehouseRestricted) {
+                    warehouseId = restrictedWarehouseId;
+                } else {
+                    warehouseId = parseInt(request.getParameter("warehouseId"));
+                }
+                generators = generatorDAO.findGenerators(q, warehouseId, status);
+                if (isWarehouseRestricted) {
+                    warehouses = new java.util.ArrayList<>();
+                    if (warehouseId != null) {
+                        Warehouse wh = warehouseDAO.findById(warehouseId);
+                        if (wh != null) warehouses.add(wh);
+                    }
+                } else {
+                    warehouses = warehouseDAO.findAll();
+                }
             }
             List<Supplier> suppliers = supplierDAO.findAll();
 

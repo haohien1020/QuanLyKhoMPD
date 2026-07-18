@@ -219,6 +219,22 @@
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a class="nav-link" href="${pageContext.request.contextPath}/generators">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>Quản lý máy phát điện</span>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link pl-4"
+                                    href="${pageContext.request.contextPath}/generators/barcodes"
+                                    style="font-size:0.88rem; padding-top:0.4rem; padding-bottom:0.4rem;">
+                                    <i class="fas fa-barcode fa-fw" style="font-size:0.9rem;"></i>
+                                    <span>Danh sách mã vạch</span>
+                                </a>
+                            </li>
+
                             <div class="sidebar-heading">
                                 Báo cáo
                             </div>
