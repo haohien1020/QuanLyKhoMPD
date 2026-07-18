@@ -41,6 +41,9 @@ public class WarehouseManagementServlet extends HttpServlet {
             try {
                 request.setAttribute("warehouses", warehouseDAO.findAll());
                 request.setAttribute("managers", userDAO.findUsersByRoleName("MANAGER"));
+                request.setAttribute("warehouseManagers", userDAO.findUsersByRoleName("WAREHOUSE_MANAGER"));
+                request.setAttribute("allStaff", userDAO.findUsersByRoleName("STAFF"));
+                request.setAttribute("allSellers", userDAO.findUsersByRoleName("SELLER"));
             } catch (Exception ignored) {
             }
             request.getRequestDispatcher("/views/admin/warehouse-list.jsp").forward(request, response);
@@ -84,9 +87,15 @@ public class WarehouseManagementServlet extends HttpServlet {
 
         List<Warehouse> list = warehouseDAO.findWarehouses(q, status);
         List<User> managers = userDAO.findUsersByRoleName("MANAGER");
+        List<User> warehouseManagers = userDAO.findUsersByRoleName("WAREHOUSE_MANAGER");
+        List<User> allStaff = userDAO.findUsersByRoleName("STAFF");
+        List<User> allSellers = userDAO.findUsersByRoleName("SELLER");
 
         request.setAttribute("warehouses", list);
         request.setAttribute("managers", managers);
+        request.setAttribute("warehouseManagers", warehouseManagers);
+        request.setAttribute("allStaff", allStaff);
+        request.setAttribute("allSellers", allSellers);
         request.setAttribute("q", q);
         request.setAttribute("statusFilter", status);
 
@@ -98,6 +107,7 @@ public class WarehouseManagementServlet extends HttpServlet {
         String warehouseName = trim(request.getParameter("warehouseName"));
         String address = trim(request.getParameter("address"));
         Integer managerId = parseInt(request.getParameter("managerId"));
+        Integer warehouseManagerId = parseInt(request.getParameter("warehouseManagerId"));
         String status = trim(request.getParameter("status"));
 
         if (status == null || status.isEmpty()) {
@@ -128,16 +138,46 @@ public class WarehouseManagementServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=address_exists");
             return;
         }
+        
+        // Validate warehouse manager is not already assigned to another active warehouse
+        if (warehouseManagerId != null && warehouseDAO.isWarehouseManagerAssignedToAnotherWarehouse(warehouseManagerId, 0)) {
+            response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=warehouse_manager_assigned");
+            return;
+        }
 
         Warehouse item = new Warehouse();
         item.setWarehouseName(warehouseName);
         item.setAddress(address);
         item.setManagerId(managerId);
-        item.setWarehouseManagerId(null);
+        item.setWarehouseManagerId(warehouseManagerId);
         item.setStatus(status);
 
         int generatedId = warehouseDAO.insert(item);
         if (generatedId > 0) {
+            String[] staffIdParams = request.getParameterValues("staffIds");
+            List<Integer> selectedStaffIds = new java.util.ArrayList<>();
+            if (staffIdParams != null) {
+                for (String p : staffIdParams) {
+                    Integer sId = parseInt(p);
+                    if (sId != null) {
+                        selectedStaffIds.add(sId);
+                    }
+                }
+            }
+            userDAO.updateWarehouseStaff(generatedId, selectedStaffIds);
+
+            String[] sellerIdParams = request.getParameterValues("sellerIds");
+            List<Integer> selectedSellerIds = new java.util.ArrayList<>();
+            if (sellerIdParams != null) {
+                for (String p : sellerIdParams) {
+                    Integer sId = parseInt(p);
+                    if (sId != null) {
+                        selectedSellerIds.add(sId);
+                    }
+                }
+            }
+            userDAO.updateWarehouseSellers(generatedId, selectedSellerIds);
+
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=created");
         } else {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=create_failed");
@@ -150,6 +190,7 @@ public class WarehouseManagementServlet extends HttpServlet {
         String warehouseName = trim(request.getParameter("warehouseName"));
         String address = trim(request.getParameter("address"));
         Integer managerId = parseInt(request.getParameter("managerId"));
+        Integer warehouseManagerId = parseInt(request.getParameter("warehouseManagerId"));
         String status = trim(request.getParameter("status"));
 
         if (id == null) {
@@ -182,6 +223,12 @@ public class WarehouseManagementServlet extends HttpServlet {
             return;
         }
 
+        // Validate warehouse manager is not already assigned to another active warehouse
+        if (warehouseManagerId != null && warehouseDAO.isWarehouseManagerAssignedToAnotherWarehouse(warehouseManagerId, id)) {
+            response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=warehouse_manager_assigned");
+            return;
+        }
+
         Warehouse item = warehouseDAO.findById(id);
         if (item == null) {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=not_found");
@@ -191,12 +238,37 @@ public class WarehouseManagementServlet extends HttpServlet {
         item.setWarehouseName(warehouseName);
         item.setAddress(address);
         item.setManagerId(managerId);
+        item.setWarehouseManagerId(warehouseManagerId);
         if (status != null && !status.isEmpty()) {
             item.setStatus(status);
         }
 
         boolean updated = warehouseDAO.update(item);
         if (updated) {
+            String[] staffIdParams = request.getParameterValues("staffIds");
+            List<Integer> selectedStaffIds = new java.util.ArrayList<>();
+            if (staffIdParams != null) {
+                for (String p : staffIdParams) {
+                    Integer sId = parseInt(p);
+                    if (sId != null) {
+                        selectedStaffIds.add(sId);
+                    }
+                }
+            }
+            userDAO.updateWarehouseStaff(id, selectedStaffIds);
+
+            String[] sellerIdParams = request.getParameterValues("sellerIds");
+            List<Integer> selectedSellerIds = new java.util.ArrayList<>();
+            if (sellerIdParams != null) {
+                for (String p : sellerIdParams) {
+                    Integer sId = parseInt(p);
+                    if (sId != null) {
+                        selectedSellerIds.add(sId);
+                    }
+                }
+            }
+            userDAO.updateWarehouseSellers(id, selectedSellerIds);
+
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?success=updated");
         } else {
             response.sendRedirect(request.getContextPath() + "/admin/warehouses?error=update_failed");

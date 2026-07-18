@@ -354,7 +354,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             // 1. Get barcode details
             String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status FROM generator_barcodes gb "
                     + "JOIN generators g ON gb.generator_id = g.generator_id "
-                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ?";
+                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ? AND gb.is_deleted = 0";
             int generatorId = 0;
             String serialNumber = "";
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
@@ -504,7 +504,7 @@ public class InventoryTransactionDAO extends BaseDAO {
             // 1. Check if generator barcode is currently IN_STOCK
             String checkSql = "SELECT gb.generator_id, gb.serial_number, gb.status AS barcode_status FROM generator_barcodes gb "
                     + "JOIN generators g ON gb.generator_id = g.generator_id "
-                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ?";
+                    + "WHERE gb.barcode_id = ? AND g.warehouse_id = ? AND gb.is_deleted = 0";
             int generatorId = 0;
             String serialNumber = "";
             String currentStatus = "";

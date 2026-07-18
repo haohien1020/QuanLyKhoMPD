@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.List;
 import model.Role;
 import model.User;
+import model.Permission;
 
 @WebServlet(name = "UserManagementServlet", urlPatterns = {
     "/admin/user",
@@ -89,11 +90,9 @@ public class UserManagementServlet extends HttpServlet {
         String role = trim(request.getParameter("role"));
 
         List<User> list = userDAO.findUsers(q, status, role);
-        list.removeIf(u -> "SELLER".equals(u.getRoleName()));
         request.setAttribute("users", list);
 
         List<String> activeRoles = roleDAO.findActiveRoleNames();
-        activeRoles.remove("SELLER");
         request.setAttribute("allRoles", activeRoles);
 
         request.setAttribute("q", q);
@@ -106,11 +105,9 @@ public class UserManagementServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             List<User> list = userDAO.findUsers(null, null, null);
-            list.removeIf(u -> "SELLER".equals(u.getRoleName()));
             request.setAttribute("users", list);
 
             List<String> activeRoles = roleDAO.findActiveRoleNames();
-            activeRoles.remove("SELLER");
             request.setAttribute("allRoles", activeRoles);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -121,8 +118,11 @@ public class UserManagementServlet extends HttpServlet {
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
         List<String> activeRoles = roleDAO.findActiveRoleNames();
-        activeRoles.remove("SELLER");
         request.setAttribute("allRoles", activeRoles);
+        
+        List<Permission> permissionList = userDAO.findAllPermissions();
+        request.setAttribute("permissionList", permissionList);
+        
         request.getRequestDispatcher("/views/admin/user-form.jsp").forward(request, response);
     }
 
@@ -135,13 +135,8 @@ public class UserManagementServlet extends HttpServlet {
         }
 
         User viewUser = userDAO.findById(id);
-        if (viewUser != null && "SELLER".equals(viewUser.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/admin/users?error=seller_managed_by_warehouse_manager");
-            return;
-        }
 
         List<String> activeRoles = roleDAO.findActiveRoleNames();
-        activeRoles.remove("SELLER");
         request.setAttribute("allRoles", activeRoles);
 
         request.setAttribute("viewUser", viewUser);
@@ -167,11 +162,7 @@ public class UserManagementServlet extends HttpServlet {
             return;
         }
 
-        if ("SELLER".equalsIgnoreCase(roleName)) {
-            request.setAttribute("error", "Selected role is invalid.");
-            showCreateForm(request, response);
-            return;
-        }
+        // SELLER role creation is allowed for Admin
 
         Role role = roleDAO.findByName(roleName);
         if (role == null || !"ACTIVE".equalsIgnoreCase(role.getStatus())) {
@@ -188,6 +179,13 @@ public class UserManagementServlet extends HttpServlet {
             return;
         }
 
+        String[] selectedPermissions = request.getParameterValues("permissions");
+        if (selectedPermissions != null) {
+            for (String permName : selectedPermissions) {
+                userDAO.updateUserPermission(userId, permName, true);
+            }
+        }
+
         response.sendRedirect(request.getContextPath() + "/admin/users?success=created");
     }
 
@@ -200,10 +198,6 @@ public class UserManagementServlet extends HttpServlet {
         }
 
         User viewUser = userDAO.findById(id);
-        if (viewUser != null && "SELLER".equals(viewUser.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/admin/users?error=seller_managed_by_warehouse_manager");
-            return;
-        }
 
         String username = trim(request.getParameter("username"));
         String fullName = trim(request.getParameter("fullName"));
@@ -223,10 +217,7 @@ public class UserManagementServlet extends HttpServlet {
             return;
         }
 
-        if ("SELLER".equalsIgnoreCase(roleName)) {
-            response.sendRedirect(request.getContextPath() + "/admin/user/detail?id=" + id + "&error=invalid_role");
-            return;
-        }
+        // SELLER role is allowed
 
         boolean updated = userDAO.updateAdminUser(id, role.getRoleId(), username, fullName, email, phone);
         if (!updated) {
@@ -249,10 +240,6 @@ public class UserManagementServlet extends HttpServlet {
         }
 
         User viewUser = userDAO.findById(id);
-        if (viewUser != null && "SELLER".equals(viewUser.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/admin/users?error=seller_managed_by_warehouse_manager");
-            return;
-        }
 
         if (id == currentUser.getUserId()) {
             response.sendRedirect(request.getContextPath() + "/admin/users?error=self_toggle");

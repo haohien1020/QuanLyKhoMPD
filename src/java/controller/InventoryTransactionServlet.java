@@ -348,11 +348,47 @@ public class InventoryTransactionServlet extends HttpServlet {
                     if (note.isEmpty()) {
                         note = "Nhập máy phát điện trở lại kho";
                     }
+                    model.GeneratorBarcode gb = null;
+                    try {
+                        gb = generatorDAO.findBarcodeById(barcodeId);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     success = transactionDAO.importGenerator(barcodeId, managedWarehouse.getWarehouseId(),
                             supplierId, currentUser.getUserId(), note);
+                    if (success && gb != null) {
+                        try {
+                            rentalContractDAO.checkAndCompleteContractForReturnedBarcode(gb.getSerialNumber(), currentUser.getUserId());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
 
                 if (success) {
+                    try {
+                        dao.NotificationDAO notificationDAO = new dao.NotificationDAO();
+                        if (managedWarehouse.getManagerId() != null) {
+                            model.Notification notif = new model.Notification();
+                            notif.setUserId(managedWarehouse.getManagerId());
+                            notif.setTitle("Nhập kho máy phát điện");
+                            notif.setMessage("Giao dịch nhập kho máy phát điện tại kho " + managedWarehouse.getWarehouseName() + " đã thực hiện thành công.");
+                            notif.setType("SYSTEM");
+                            notif.setRead(false);
+                            notificationDAO.insert(notif);
+                        }
+                        if (managedWarehouse.getWarehouseManagerId() != null) {
+                            model.Notification notif = new model.Notification();
+                            notif.setUserId(managedWarehouse.getWarehouseManagerId());
+                            notif.setTitle("Nhập kho máy phát điện");
+                            notif.setMessage("Giao dịch nhập kho máy phát điện tại kho " + managedWarehouse.getWarehouseName() + " đã thực hiện thành công.");
+                            notif.setType("SYSTEM");
+                            notif.setRead(false);
+                            notificationDAO.insert(notif);
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=generator_import_success");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=generator_import_failed");
@@ -532,6 +568,29 @@ public class InventoryTransactionServlet extends HttpServlet {
                     
                     String redirectUrl = request.getParameter("redirect");
                     if (success) {
+                        try {
+                            dao.NotificationDAO notificationDAO = new dao.NotificationDAO();
+                            if (managedWarehouse.getManagerId() != null) {
+                                model.Notification notif = new model.Notification();
+                                notif.setUserId(managedWarehouse.getManagerId());
+                                notif.setTitle("Xuất kho máy phát điện");
+                                notif.setMessage("Giao dịch xuất kho máy phát điện tại kho " + managedWarehouse.getWarehouseName() + " đã thực hiện thành công.");
+                                notif.setType("SYSTEM");
+                                notif.setRead(false);
+                                notificationDAO.insert(notif);
+                            }
+                            if (managedWarehouse.getWarehouseManagerId() != null) {
+                                model.Notification notif = new model.Notification();
+                                notif.setUserId(managedWarehouse.getWarehouseManagerId());
+                                notif.setTitle("Xuất kho máy phát điện");
+                                notif.setMessage("Giao dịch xuất kho máy phát điện tại kho " + managedWarehouse.getWarehouseName() + " đã thực hiện thành công.");
+                                notif.setType("SYSTEM");
+                                notif.setRead(false);
+                                notificationDAO.insert(notif);
+                            }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                         if ("home".equals(redirectUrl)) {
                             response.sendRedirect(request.getContextPath() + "/staff/home?success=generator_export_success");
                         } else if ("rented-generators".equals(redirectUrl)) {

@@ -25,6 +25,7 @@ public class User {
     private boolean canImportGenerator;
     private boolean canImportInventory;
     private boolean canExportInventory;
+    private java.util.Set<String> permissions = new java.util.HashSet<>();
 
     public User() {
     }
@@ -207,6 +208,11 @@ public class User {
 
     public void setCanImportGenerator(boolean canImportGenerator) {
         this.canImportGenerator = canImportGenerator;
+        if (canImportGenerator) {
+            this.permissions.add("IMPORT_GENERATOR");
+        } else {
+            this.permissions.remove("IMPORT_GENERATOR");
+        }
     }
 
     public boolean isCanImportInventory() {
@@ -215,6 +221,11 @@ public class User {
 
     public void setCanImportInventory(boolean canImportInventory) {
         this.canImportInventory = canImportInventory;
+        if (canImportInventory) {
+            this.permissions.add("IMPORT_INVENTORY");
+        } else {
+            this.permissions.remove("IMPORT_INVENTORY");
+        }
     }
 
     public boolean isCanExportInventory() {
@@ -223,6 +234,42 @@ public class User {
 
     public void setCanExportInventory(boolean canExportInventory) {
         this.canExportInventory = canExportInventory;
+        if (canExportInventory) {
+            this.permissions.add("EXPORT_INVENTORY");
+        } else {
+            this.permissions.remove("EXPORT_INVENTORY");
+        }
+    }
+
+    public java.util.Set<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(java.util.Set<String> permissions) {
+        this.permissions = permissions;
+        if (permissions != null) {
+            this.canImportGenerator = permissions.contains("IMPORT_GENERATOR");
+            this.canImportInventory = permissions.contains("IMPORT_INVENTORY");
+            this.canExportInventory = permissions.contains("EXPORT_INVENTORY");
+        } else {
+            this.canImportGenerator = false;
+            this.canImportInventory = false;
+            this.canExportInventory = false;
+        }
+    }
+
+    public void addPermission(String permission) {
+        if (this.permissions == null) {
+            this.permissions = new java.util.HashSet<>();
+        }
+        this.permissions.add(permission);
+        if ("IMPORT_GENERATOR".equals(permission)) {
+            this.canImportGenerator = true;
+        } else if ("IMPORT_INVENTORY".equals(permission)) {
+            this.canImportInventory = true;
+        } else if ("EXPORT_INVENTORY".equals(permission)) {
+            this.canExportInventory = true;
+        }
     }
 
     private String warehouseName;

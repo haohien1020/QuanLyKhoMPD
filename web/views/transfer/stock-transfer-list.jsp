@@ -210,7 +210,7 @@
                                                                                     <span class="text-muted" style="font-size: 0.85rem;">Chờ Manager kho nhận duyệt</span>
                                                                                 </c:otherwise>
                                                                             </c:choose>
-                                                                        </if>
+                                                                        </c:if>
                                                                     </c:forEach>
                                                                 </c:when>
                                                                 <c:otherwise>

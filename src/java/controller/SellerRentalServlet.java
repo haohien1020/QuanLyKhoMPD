@@ -223,8 +223,31 @@ public class SellerRentalServlet extends HttpServlet {
                 if (customer != null && customer.getEmail() != null && !customer.getEmail().trim().isEmpty() && generator != null) {
                     util.EmailUtil.sendContractEmailAsync(customer, generator, warehouse, contract, currentUser, rentalPrice);
                 }
+
+                // Send notifications to supervising Manager and Warehouse Manager
+                if (warehouse != null) {
+                    dao.NotificationDAO notificationDAO = new dao.NotificationDAO();
+                    if (warehouse.getManagerId() != null) {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(warehouse.getManagerId());
+                        notif.setTitle("Yêu cầu phê duyệt hợp đồng mới");
+                        notif.setMessage("Hợp đồng thuê máy phát điện mới " + contractCode + " đã được tạo bởi Seller và đang chờ phê duyệt.");
+                        notif.setType("RENTAL");
+                        notif.setRead(false);
+                        notificationDAO.insert(notif);
+                    }
+                    if (warehouse.getWarehouseManagerId() != null) {
+                        model.Notification notif = new model.Notification();
+                        notif.setUserId(warehouse.getWarehouseManagerId());
+                        notif.setTitle("Hợp đồng thuê máy phát điện mới");
+                        notif.setMessage("Hợp đồng thuê máy phát điện mới " + contractCode + " đã được tạo bởi Seller và đang chờ phê duyệt.");
+                        notif.setType("RENTAL");
+                        notif.setRead(false);
+                        notificationDAO.insert(notif);
+                    }
+                }
             } catch (Exception ex) {
-                System.err.println("Failed to initiate contract email sending: " + ex.getMessage());
+                System.err.println("Failed to initiate contract creation side-effects: " + ex.getMessage());
                 ex.printStackTrace();
             }
             response.sendRedirect(request.getContextPath() + "/seller/contracts?success=created");

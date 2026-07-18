@@ -27,10 +27,7 @@ public class UserDAO {
             + "u.updated_at, "
             + "u.ResetToken, "
             + "u.ResetTokenExpiry, "
-            + "u.warehouse_id, "
-            + "u.can_import_generator, "
-            + "u.can_import_inventory, "
-            + "u.can_export_inventory ";
+            + "u.warehouse_id ";
 
     private User mapResultSet(ResultSet rs) throws Exception {
         User u = new User(
@@ -48,16 +45,36 @@ public class UserDAO {
                 rs.getTimestamp("created_at"),
                 rs.getTimestamp("updated_at"),
                 rs.getString("ResetToken"),
-                rs.getTimestamp("ResetTokenExpiry")
-        );
+                rs.getTimestamp("ResetTokenExpiry"));
         int whId = rs.getInt("warehouse_id");
         if (!rs.wasNull()) {
             u.setWarehouseId(whId);
         }
-        u.setCanImportGenerator(rs.getBoolean("can_import_generator"));
-        u.setCanImportInventory(rs.getBoolean("can_import_inventory"));
-        u.setCanExportInventory(rs.getBoolean("can_export_inventory"));
+
+        try {
+            Connection conn = rs.getStatement().getConnection();
+            populateUserPermissions(u, conn);
+        } catch (Exception ex) {
+            System.err.println("Could not load permissions for user " + u.getUserId() + ": " + ex.getMessage());
+        }
+
         return u;
+    }
+
+    private void populateUserPermissions(User u, Connection conn) throws Exception {
+        String sql = "SELECT p.permission_name FROM user_permissions up "
+                + "INNER JOIN permissions p ON up.permission_id = p.permission_id "
+                + "WHERE up.user_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, u.getUserId());
+            try (ResultSet rs = ps.executeQuery()) {
+                java.util.Set<String> perms = new java.util.HashSet<>();
+                while (rs.next()) {
+                    perms.add(rs.getString("permission_name"));
+                }
+                u.setPermissions(perms);
+            }
+        }
     }
 
     public User authenticate(String username, String password) throws Exception {
@@ -67,7 +84,7 @@ public class UserDAO {
                 + "WHERE u.username = ? AND u.`password` = ? AND r.status = 'ACTIVE' AND u.is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setString(2, HashUtil.hashPassword(password));
@@ -89,7 +106,7 @@ public class UserDAO {
                 + "WHERE LOWER(u.email) = LOWER(?) AND u.is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
 
@@ -110,7 +127,7 @@ public class UserDAO {
                 + "WHERE u.user_id = ? AND u.is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -156,7 +173,7 @@ public class UserDAO {
 
         List<User> users = new ArrayList<User>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
@@ -180,7 +197,7 @@ public class UserDAO {
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, roleId);
             ps.setString(2, fullName);
@@ -217,7 +234,7 @@ public class UserDAO {
                 + "WHERE user_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setString(2, fullName);
@@ -236,7 +253,7 @@ public class UserDAO {
                 + "WHERE user_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, roleId);
             ps.setString(2, username);
@@ -253,7 +270,7 @@ public class UserDAO {
         String sql = "UPDATE users SET status = ?, updated_at = NOW() WHERE user_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, status);
             ps.setInt(2, userId);
@@ -266,7 +283,7 @@ public class UserDAO {
         String sql = "SELECT COUNT(*) FROM users WHERE role_id = ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, roleId);
 
@@ -284,7 +301,7 @@ public class UserDAO {
         String sql = "SELECT COUNT(*) FROM users WHERE LOWER(username) = LOWER(?) AND user_id <> ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setInt(2, userId);
@@ -299,13 +316,13 @@ public class UserDAO {
         return false;
     }
 
-     public boolean checkOldPassword(int userId, String oldPassword) {
+    public boolean checkOldPassword(int userId, String oldPassword) {
         String sql = "SELECT COUNT(*) "
                 + "FROM users "
                 + "WHERE user_id = ? AND `password` = ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
             ps.setString(2, HashUtil.hashPassword(oldPassword));
@@ -329,7 +346,7 @@ public class UserDAO {
                 + "WHERE user_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, HashUtil.hashPassword(newPassword));
             ps.setInt(2, userId);
@@ -349,7 +366,7 @@ public class UserDAO {
                 + "WHERE user_id = ?";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, fullName);
             ps.setString(2, email);
@@ -364,7 +381,7 @@ public class UserDAO {
         String sql = "SELECT COUNT(*) FROM users WHERE LOWER(email) = LOWER(?) AND user_id <> ? AND is_deleted = 0";
 
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
             ps.setInt(2, userId);
@@ -387,7 +404,7 @@ public class UserDAO {
                 + "ORDER BY u.full_name ASC";
         List<User> list = new ArrayList<User>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roleName);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -406,7 +423,7 @@ public class UserDAO {
                 + "ORDER BY u.user_id DESC";
         List<User> list = new ArrayList<User>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, warehouseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -425,7 +442,7 @@ public class UserDAO {
                 + "ORDER BY u.user_id DESC";
         List<User> list = new ArrayList<User>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, warehouseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -436,32 +453,202 @@ public class UserDAO {
         return list;
     }
 
-    public boolean updateImportPermission(int userId, boolean canImport) throws Exception {
-        String sql = "UPDATE users SET can_import_generator = ?, updated_at = NOW() WHERE user_id = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, canImport ? 1 : 0);
-            ps.setInt(2, userId);
-            return ps.executeUpdate() > 0;
+    private boolean toggleUserPermission(int userId, String permissionName, boolean enable) throws Exception {
+        String sql;
+        if (enable) {
+            sql = "INSERT IGNORE INTO user_permissions (user_id, permission_id) "
+                    + "SELECT ?, permission_id FROM permissions WHERE permission_name = ?";
+        } else {
+            sql = "DELETE FROM user_permissions WHERE user_id = ? AND permission_id = ("
+                    + "    SELECT permission_id FROM permissions WHERE permission_name = ?"
+                    + ")";
         }
+        try (Connection conn = DBUtil.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, permissionName);
+            ps.executeUpdate();
+            return true;
+        }
+    }
+
+    public boolean updateImportPermission(int userId, boolean canImport) throws Exception {
+        return toggleUserPermission(userId, "IMPORT_GENERATOR", canImport);
     }
 
     public boolean updateImportInventoryPermission(int userId, boolean canImportInventory) throws Exception {
-        String sql = "UPDATE users SET can_import_inventory = ?, updated_at = NOW() WHERE user_id = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, canImportInventory ? 1 : 0);
-            ps.setInt(2, userId);
-            return ps.executeUpdate() > 0;
-        }
+        return toggleUserPermission(userId, "IMPORT_INVENTORY", canImportInventory);
     }
 
     public boolean updateExportInventoryPermission(int userId, boolean canExportInventory) throws Exception {
-        String sql = "UPDATE users SET can_export_inventory = ?, updated_at = NOW() WHERE user_id = ?";
+        return toggleUserPermission(userId, "EXPORT_INVENTORY", canExportInventory);
+    }
+
+    public List<model.Permission> findAllPermissions() throws Exception {
+        String sql = "SELECT p.permission_id, p.permission_name, p.description, r.role_name " +
+                     "FROM permissions p " +
+                     "LEFT JOIN role_permissions rp ON p.permission_id = rp.permission_id " +
+                     "LEFT JOIN roles r ON rp.role_id = r.role_id " +
+                     "ORDER BY p.permission_id ASC";
+        List<model.Permission> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            model.Permission current = null;
+            while (rs.next()) {
+                int pId = rs.getInt("permission_id");
+                if (current == null || current.getPermissionId() != pId) {
+                    current = new model.Permission(
+                        pId,
+                        rs.getString("permission_name"),
+                        rs.getString("description"),
+                        new java.util.HashSet<>()
+                    );
+                    list.add(current);
+                }
+                String roleName = rs.getString("role_name");
+                if (roleName != null) {
+                    current.getRoles().add(roleName);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<model.Permission> findPermissionsByRole(String roleName) throws Exception {
+        String sql = "SELECT p.permission_id, p.permission_name, p.description " +
+                     "FROM permissions p " +
+                     "JOIN role_permissions rp ON p.permission_id = rp.permission_id " +
+                     "JOIN roles r ON rp.role_id = r.role_id " +
+                     "WHERE r.role_name = ? " +
+                     "ORDER BY p.permission_id ASC";
+        List<model.Permission> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, canExportInventory ? 1 : 0);
-            ps.setInt(2, userId);
+            ps.setString(1, roleName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new model.Permission(
+                        rs.getInt("permission_id"),
+                        rs.getString("permission_name"),
+                        rs.getString("description")
+                    ));
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean updateUserPermission(int userId, String permissionName, boolean enable) throws Exception {
+        return toggleUserPermission(userId, permissionName, enable);
+    }
+
+    public boolean isPermissionNameUsed(String name, int excludeId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM permissions WHERE permission_name = ? AND permission_id != ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name);
+            ps.setInt(2, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean insertPermission(String name, String description, String[] roleNames) throws Exception {
+        String insertPermSql = "INSERT INTO permissions (permission_name, description) VALUES (?, ?)";
+        String insertRolePermSql = "INSERT INTO role_permissions (role_id, permission_id) " +
+                                   "SELECT role_id, ? FROM roles WHERE role_name = ?";
+        
+        try (Connection conn = DBUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int permId = 0;
+                try (PreparedStatement ps = conn.prepareStatement(insertPermSql, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, name);
+                    ps.setString(2, description);
+                    if (ps.executeUpdate() == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            permId = rs.getInt(1);
+                        }
+                    }
+                }
+                
+                if (permId > 0 && roleNames != null && roleNames.length > 0) {
+                    try (PreparedStatement ps2 = conn.prepareStatement(insertRolePermSql)) {
+                        for (String rName : roleNames) {
+                            ps2.setInt(1, permId);
+                            ps2.setString(2, rName);
+                            ps2.addBatch();
+                        }
+                        ps2.executeBatch();
+                    }
+                }
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    public boolean updatePermission(int id, String name, String description, String[] roleNames) throws Exception {
+        String updatePermSql = "UPDATE permissions SET permission_name = ?, description = ? WHERE permission_id = ?";
+        String deleteRolePermSql = "DELETE FROM role_permissions WHERE permission_id = ?";
+        String insertRolePermSql = "INSERT INTO role_permissions (role_id, permission_id) " +
+                                   "SELECT role_id, ? FROM roles WHERE role_name = ?";
+        
+        try (Connection conn = DBUtil.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(updatePermSql)) {
+                    ps.setString(1, name);
+                    ps.setString(2, description);
+                    ps.setInt(3, id);
+                    ps.executeUpdate();
+                }
+                
+                try (PreparedStatement psDelete = conn.prepareStatement(deleteRolePermSql)) {
+                    psDelete.setInt(1, id);
+                    psDelete.executeUpdate();
+                }
+                
+                if (roleNames != null && roleNames.length > 0) {
+                    try (PreparedStatement psInsert = conn.prepareStatement(insertRolePermSql)) {
+                        for (String rName : roleNames) {
+                            psInsert.setInt(1, id);
+                            psInsert.setString(2, rName);
+                            psInsert.addBatch();
+                        }
+                        psInsert.executeBatch();
+                    }
+                }
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    public boolean deletePermission(int id) throws Exception {
+        String sql = "DELETE FROM permissions WHERE permission_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }
     }
@@ -470,7 +657,7 @@ public class UserDAO {
         String resetSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
                 + "SET u.warehouse_id = NULL, u.updated_at = NOW() "
                 + "WHERE u.warehouse_id = ? AND r.role_name = 'STAFF'";
-        
+
         String assignSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
                 + "SET u.warehouse_id = ?, u.updated_at = NOW() "
                 + "WHERE u.user_id = ? AND r.role_name = 'STAFF'";
@@ -509,7 +696,7 @@ public class UserDAO {
         String resetSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
                 + "SET u.warehouse_id = NULL, u.updated_at = NOW() "
                 + "WHERE u.warehouse_id = ? AND r.role_name = 'SELLER'";
-        
+
         String assignSql = "UPDATE users u INNER JOIN roles r ON u.role_id = r.role_id "
                 + "SET u.warehouse_id = ?, u.updated_at = NOW() "
                 + "WHERE u.user_id = ? AND r.role_name = 'SELLER'";
@@ -545,7 +732,7 @@ public class UserDAO {
     }
 
     public List<User> findEmployeesBySupervisingManager(int managerId) throws Exception {
-        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.password, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry, u.warehouse_id, u.can_import_generator, u.can_import_inventory, u.can_export_inventory, "
+        String sql = "SELECT u.user_id, u.role_id, r.role_name, u.full_name, u.email, u.username, u.password, u.phone, u.address, u.avatar, u.status, u.created_at, u.updated_at, u.ResetToken, u.ResetTokenExpiry, u.warehouse_id, "
                 + "w.warehouse_name, wm.full_name AS warehouse_manager_name "
                 + "FROM users u "
                 + "INNER JOIN roles r ON u.role_id = r.role_id "
@@ -556,7 +743,7 @@ public class UserDAO {
                 + "ORDER BY u.user_id DESC";
         List<User> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, managerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -572,7 +759,7 @@ public class UserDAO {
 
     public List<User> findWarehouseManagersBySupervisingManager(int managerId) throws Exception {
         String sql = "SELECT DISTINCT "
-                + "u1.user_id, u1.role_id, r.role_name, u1.full_name, u1.email, u1.username, u1.password, u1.phone, u1.address, u1.avatar, u1.status, u1.created_at, u1.updated_at, u1.ResetToken, u1.ResetTokenExpiry, u1.warehouse_id, u1.can_import_generator, u1.can_import_inventory, u1.can_export_inventory "
+                + "u1.user_id, u1.role_id, r.role_name, u1.full_name, u1.email, u1.username, u1.password, u1.phone, u1.address, u1.avatar, u1.status, u1.created_at, u1.updated_at, u1.ResetToken, u1.ResetTokenExpiry, u1.warehouse_id "
                 + "FROM users u1 "
                 + "INNER JOIN roles r ON u1.role_id = r.role_id "
                 + "INNER JOIN warehouses w ON u1.user_id = w.warehouse_manager_id "
@@ -580,7 +767,7 @@ public class UserDAO {
                 + "ORDER BY u1.full_name ASC";
         List<User> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, managerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -591,12 +778,13 @@ public class UserDAO {
         return list;
     }
 
-    public boolean updateEmployeeByManager(int userId, String fullName, String email, String phone, Integer warehouseId) throws Exception {
+    public boolean updateEmployeeByManager(int userId, String fullName, String email, String phone, Integer warehouseId)
+            throws Exception {
         String sql = "UPDATE users "
                 + "SET full_name = ?, email = ?, phone = ?, warehouse_id = ?, updated_at = NOW() "
                 + "WHERE user_id = ?";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, fullName);
             ps.setString(2, email);
             ps.setString(3, phone);
@@ -613,7 +801,7 @@ public class UserDAO {
     public boolean updateEmployeeWarehouse(int userId, Integer warehouseId) throws Exception {
         String sql = "UPDATE users SET warehouse_id = ?, updated_at = NOW() WHERE user_id = ?";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             if (warehouseId != null) {
                 ps.setInt(1, warehouseId);
             } else {
@@ -627,7 +815,7 @@ public class UserDAO {
     public boolean delete(int id) throws Exception {
         String sql = "UPDATE users SET is_deleted = 1, updated_at = NOW() WHERE user_id = ?";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }

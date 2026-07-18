@@ -288,7 +288,7 @@ public class RentalContractDAO extends BaseDAO {
                         
                         // Find generator_id from generator_barcodes
                         int genId = 0;
-                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ?";
+                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ? AND is_deleted = 0";
                         try (PreparedStatement psGen = conn.prepareStatement(sqlGetGenId)) {
                             psGen.setString(1, serial);
                             try (ResultSet rsGen = psGen.executeQuery()) {
@@ -401,7 +401,7 @@ public class RentalContractDAO extends BaseDAO {
                         
                         // Find generator_id from generator_barcodes
                         int genId = 0;
-                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ?";
+                        String sqlGetGenId = "SELECT generator_id FROM generator_barcodes WHERE serial_number = ? AND is_deleted = 0";
                         try (PreparedStatement psGen = conn.prepareStatement(sqlGetGenId)) {
                             psGen.setString(1, serial);
                             try (ResultSet rsGen = psGen.executeQuery()) {
@@ -502,6 +502,11 @@ public class RentalContractDAO extends BaseDAO {
     }
 
     public List<CustomerRentalContract> findContractsAssignedToStaff(int staffId) throws Exception {
+        try {
+            syncDeliveredContracts();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
@@ -543,5 +548,107 @@ public class RentalContractDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public void syncDeliveredContracts() {
+        String sqlSelect = "SELECT rc.rental_contract_id, rc.contract_code FROM rental_contracts rc WHERE rc.status = 'DELIVERED'";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlSelect);
+             ResultSet rs = ps.executeQuery()) {
+            
+            while (rs.next()) {
+                int contractId = rs.getInt("rental_contract_id");
+                String contractCode = rs.getString("contract_code");
+                
+                // Check if all generators in this contract are now returned (none are EXPORTED)
+                String sqlCheckGens = "SELECT COUNT(*) FROM rental_contract_details rcd "
+                        + "JOIN generator_barcodes gb ON rcd.serial_number = gb.serial_number "
+                        + "WHERE rcd.rental_contract_id = ? AND gb.status = 'EXPORTED'";
+                
+                boolean allReturned = true;
+                try (PreparedStatement psCheck = conn.prepareStatement(sqlCheckGens)) {
+                    psCheck.setInt(1, contractId);
+                    try (ResultSet rsCheck = psCheck.executeQuery()) {
+                        if (rsCheck.next() && rsCheck.getInt(1) > 0) {
+                            allReturned = false;
+                        }
+                    }
+                }
+                
+                if (allReturned) {
+                    // Update this contract to COMPLETED
+                    // Find actual return date from latest IMPORT transaction, fallback to NOW()
+                    Timestamp returnDate = new Timestamp(System.currentTimeMillis());
+                    String sqlGetDate = "SELECT MAX(transaction_date) FROM inventory_transactions t "
+                            + "WHERE t.transaction_type = 'IMPORT' AND t.note LIKE ?";
+                    try (PreparedStatement psDate = conn.prepareStatement(sqlGetDate)) {
+                        psDate.setString(1, "%" + contractCode + "%");
+                        try (ResultSet rsDate = psDate.executeQuery()) {
+                            if (rsDate.next() && rsDate.getTimestamp(1) != null) {
+                                returnDate = rsDate.getTimestamp(1);
+                            }
+                        }
+                    }
+                    
+                    String sqlUpdate = "UPDATE rental_contracts SET status = 'COMPLETED', actual_return_date = ? "
+                            + "WHERE rental_contract_id = ?";
+                    try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate)) {
+                        psUpdate.setTimestamp(1, returnDate);
+                        psUpdate.setInt(2, contractId);
+                        psUpdate.executeUpdate();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void checkAndCompleteContractForReturnedBarcode(String serialNumber, int userId) {
+        if (serialNumber == null || serialNumber.trim().isEmpty()) {
+            return;
+        }
+        try {
+            // Find active (DELIVERED) contract for this serial number
+            String sqlFind = "SELECT rc.rental_contract_id, rc.contract_code FROM rental_contracts rc "
+                    + "JOIN rental_contract_details rcd ON rc.rental_contract_id = rcd.rental_contract_id "
+                    + "WHERE rc.status = 'DELIVERED' AND rcd.serial_number = ? "
+                    + "LIMIT 1";
+            int contractId = 0;
+            String contractCode = "";
+            try (Connection conn = DBUtil.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sqlFind)) {
+                ps.setString(1, serialNumber.trim());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        contractId = rs.getInt("rental_contract_id");
+                        contractCode = rs.getString("contract_code");
+                    }
+                }
+            }
+
+            if (contractId > 0) {
+                // Check if all generators in this contract are now returned (none are EXPORTED)
+                String sqlCheckGens = "SELECT COUNT(*) FROM rental_contract_details rcd "
+                        + "JOIN generator_barcodes gb ON rcd.serial_number = gb.serial_number "
+                        + "WHERE rcd.rental_contract_id = ? AND gb.status = 'EXPORTED'";
+                boolean allReturned = true;
+                try (Connection conn = DBUtil.getConnection();
+                     PreparedStatement ps = conn.prepareStatement(sqlCheckGens)) {
+                    ps.setInt(1, contractId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            allReturned = false;
+                        }
+                    }
+                }
+
+                if (allReturned) {
+                    updateContractStatus(contractId, "COMPLETED", userId);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

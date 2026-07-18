@@ -204,7 +204,7 @@ public class GeneratorDAO extends BaseDAO {
 
     public List<GeneratorBarcode> findBarcodesByGeneratorId(int generatorId) throws Exception {
         String sql = "SELECT barcode_id, generator_id, serial_number, barcode, status, created_at, updated_at, transfer_id "
-                + "FROM generator_barcodes WHERE generator_id = ? ORDER BY barcode_id DESC";
+                + "FROM generator_barcodes WHERE generator_id = ? AND is_deleted = 0 ORDER BY barcode_id DESC";
         List<GeneratorBarcode> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -233,7 +233,7 @@ public class GeneratorDAO extends BaseDAO {
             "SELECT gb.barcode_id, gb.generator_id, gb.serial_number, gb.barcode, gb.status, gb.created_at, gb.updated_at, gb.transfer_id, g.generator_name " +
             "FROM generator_barcodes gb " +
             "JOIN generators g ON gb.generator_id = g.generator_id " +
-            "WHERE 1 = 1 "
+            "WHERE gb.is_deleted = 0 "
         );
         List<Object> params = new ArrayList<>();
         if (warehouseId != null && warehouseId > 0) {
@@ -276,7 +276,7 @@ public class GeneratorDAO extends BaseDAO {
         String sql = "SELECT gb.barcode_id, gb.generator_id, gb.serial_number, gb.barcode, gb.status, gb.created_at, gb.updated_at, gb.transfer_id, g.generator_name " +
                      "FROM generator_barcodes gb " +
                      "JOIN generators g ON gb.generator_id = g.generator_id " +
-                     "WHERE gb.barcode_id = ?";
+                     "WHERE gb.barcode_id = ? AND gb.is_deleted = 0";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, barcodeId);
@@ -514,7 +514,7 @@ public class GeneratorDAO extends BaseDAO {
                 + "gb.barcode AS barcode, g.created_at, g.updated_at, g.rental_price "
                 + "FROM generator_barcodes gb "
                 + "JOIN generators g ON gb.generator_id = g.generator_id "
-                + "WHERE g.warehouse_id = ? AND g.is_deleted = 0 AND gb.status = 'IN_STOCK' "
+                + "WHERE g.warehouse_id = ? AND g.is_deleted = 0 AND gb.status = 'IN_STOCK' AND gb.is_deleted = 0 "
                 + "AND gb.serial_number NOT IN ("
                 + "    SELECT rcd.serial_number FROM rental_contract_details rcd "
                 + "    INNER JOIN rental_contracts rc ON rcd.rental_contract_id = rc.rental_contract_id "
@@ -626,7 +626,7 @@ public class GeneratorDAO extends BaseDAO {
             "g.generator_name " +
             "FROM generator_barcodes gb " +
             "JOIN generators g ON gb.generator_id = g.generator_id " +
-            "WHERE 1=1 "
+            "WHERE gb.is_deleted = 0 "
         );
         List<Object> params = new ArrayList<>();
 
@@ -777,6 +777,51 @@ public class GeneratorDAO extends BaseDAO {
         }
         return 0;
     }
+
+    public List<Generator> findLowStockGenerators(int warehouseId, String keyword) throws Exception {
+        StringBuilder sql = new StringBuilder(
+            "SELECT * FROM ( "
+            + "SELECT g.generator_id, g.warehouse_id, g.supplier_id, g.generator_name, g.serial_number, g.brand, g.power_value, g.fuel_type, g.origin_type, g.import_date, g.purchase_price, g.location, g.status, g.note, g.barcode, g.created_at, g.updated_at, g.rental_price, g.min_stock, "
+            + "(SELECT COUNT(*) FROM generator_barcodes gb WHERE gb.generator_id = g.generator_id AND gb.status = 'IN_STOCK') AS barcode_count "
+            + "FROM generators g "
+            + "WHERE g.warehouse_id = ? AND g.is_deleted = 0 "
+            + ") temp "
+            + "WHERE barcode_count <= min_stock "
+        );
+        List<Object> params = new ArrayList<Object>();
+        params.add(warehouseId);
+        
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (LOWER(generator_name) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(power_value) LIKE ?) ");
+            String search = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(search);
+            params.add(search);
+            params.add(search);
+        }
+        
+        sql.append("ORDER BY generator_id DESC");
+        
+        List<Generator> list = new ArrayList<Generator>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean deleteBarcode(int barcodeId) throws Exception {
+        String sql = "UPDATE generator_barcodes SET is_deleted = 1, updated_at = NOW() WHERE barcode_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, barcodeId);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }
-
-

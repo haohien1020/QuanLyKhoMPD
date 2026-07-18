@@ -25,7 +25,8 @@ import model.Supplier;
     "/generators/create",
     "/generators/update",
     "/generators/delete",
-    "/generators/barcodes"
+    "/generators/barcodes",
+    "/generators/barcodes/delete"
 })
 public class GeneratorServlet extends HttpServlet {
 
@@ -73,9 +74,11 @@ public class GeneratorServlet extends HttpServlet {
 
                 List<model.GeneratorBarcode> barcodes = generatorDAO.findBarcodesWithFilter(filterGeneratorId, filterStatus, filterKeyword, warehouseId);
                 List<Generator> generators = generatorDAO.findGenerators(null, warehouseId, null);
+                List<Warehouse> warehouses = warehouseDAO.findAll();
 
                 request.setAttribute("barcodes", barcodes);
                 request.setAttribute("generators", generators);
+                request.setAttribute("warehouses", warehouses);
                 request.setAttribute("filterGeneratorId", filterGeneratorId);
                 request.setAttribute("filterStatus", filterStatus);
                 request.setAttribute("filterKeyword", filterKeyword);
@@ -212,6 +215,8 @@ public class GeneratorServlet extends HttpServlet {
                     return;
                 }
                 createGenerator(request, response, currentUser);
+            } else if ("/generators/barcodes/delete".equals(path)) {
+                deleteBarcode(request, response, currentUser);
             } else {
                 if (!currentUser.hasRole("WAREHOUSE_MANAGER")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN);
@@ -467,6 +472,54 @@ public class GeneratorServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/generators?success=deleted");
         } else {
             response.sendRedirect(request.getContextPath() + "/generators?error=delete_failed");
+        }
+    }
+
+    private void deleteBarcode(HttpServletRequest request, HttpServletResponse response, User currentUser)
+            throws Exception {
+        Integer barcodeId = parseInt(request.getParameter("barcodeId"));
+        Integer generatorId = parseInt(request.getParameter("generatorId"));
+        
+        if (barcodeId == null) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=invalid_id" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+            return;
+        }
+        
+        model.GeneratorBarcode gb = generatorDAO.findBarcodeById(barcodeId);
+        if (gb == null) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=not_found" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+            return;
+        }
+        
+        Generator genDetail = generatorDAO.findById(gb.getGeneratorId());
+        if (genDetail == null) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=not_found" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+            return;
+        }
+        
+        Warehouse wh = warehouseDAO.findById(genDetail.getWarehouseId());
+        if (wh == null) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=not_found" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+            return;
+        }
+        
+        boolean isAuthorized = false;
+        if (currentUser.hasRole("WAREHOUSE_MANAGER") && wh.getWarehouseManagerId() != null && wh.getWarehouseManagerId().equals(currentUser.getUserId())) {
+            isAuthorized = true;
+        } else if (currentUser.hasRole("MANAGER") && wh.getManagerId() != null && wh.getManagerId().equals(currentUser.getUserId())) {
+            isAuthorized = true;
+        }
+        
+        if (!isAuthorized) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=unauthorized" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+            return;
+        }
+        
+        boolean success = generatorDAO.deleteBarcode(barcodeId);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?success=barcode_deleted" + (generatorId != null ? "&generatorId=" + generatorId : ""));
+        } else {
+            response.sendRedirect(request.getContextPath() + "/generators/barcodes?error=delete_failed" + (generatorId != null ? "&generatorId=" + generatorId : ""));
         }
     }
 

@@ -330,7 +330,7 @@
                                                         <span class="badge-pill-custom badge-status-delivered"><i class="fas fa-truck mr-1"></i>Đang thuê</span>
                                                     </c:when>
                                                     <c:when test="${c.status == 'COMPLETED'}">
-                                                        <span class="badge-pill-custom badge-status-completed"><i class="fas fa-check-double mr-1"></i>Đã hoàn thành</span>
+                                                        <span class="badge-pill-custom badge-status-completed"><i class="fas fa-check-double mr-1"></i>Đã nhập lại kho</span>
                                                     </c:when>
                                                     <c:when test="${c.status == 'CANCELLED'}">
                                                         <span class="badge-pill-custom badge-status-cancelled"><i class="fas fa-times mr-1"></i>Đã hủy</span>

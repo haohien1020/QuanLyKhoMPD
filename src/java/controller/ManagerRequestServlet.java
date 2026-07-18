@@ -5,15 +5,9 @@ import dao.StockTransferDetailDAO;
 import dao.WarehouseDAO;
 import dao.GeneratorDAO;
 import dao.PartDAO;
-import dao.PurchaseRequestDAO;
-import dao.PurchaseRequestDetailDAO;
-import dao.PartRequestDAO;
 import dao.UserDAO;
 import model.StockTransfer;
 import model.StockTransferDetail;
-import model.PurchaseRequest;
-import model.PurchaseRequestDetail;
-import model.PartRequest;
 import model.User;
 import model.Warehouse;
 import model.Generator;
@@ -46,9 +40,6 @@ public class ManagerRequestServlet extends HttpServlet {
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
     private final GeneratorDAO generatorDAO = new GeneratorDAO();
     private final PartDAO partDAO = new PartDAO();
-    private final PurchaseRequestDAO purchaseRequestDAO = new PurchaseRequestDAO();
-    private final PurchaseRequestDetailDAO purchaseRequestDetailDAO = new PurchaseRequestDetailDAO();
-    private final PartRequestDAO partRequestDAO = new PartRequestDAO();
     private final UserDAO userDAO = new UserDAO();
     private final dao.InventoryTransactionDAO inventoryTransactionDAO = new dao.InventoryTransactionDAO();
 
@@ -80,15 +71,7 @@ public class ManagerRequestServlet extends HttpServlet {
                 transferDetailsMap.put(st.getTransferId(), stockTransferDetailDAO.findDetailsByTransferId(st.getTransferId()));
             }
 
-            // 2. Fetch pending Purchase Requests
-            List<PurchaseRequest> pendingPurchases = purchaseRequestDAO.findPendingRequests();
-            Map<Integer, List<PurchaseRequestDetail>> purchaseDetailsMap = new HashMap<>();
-            for (PurchaseRequest pr : pendingPurchases) {
-                purchaseDetailsMap.put(pr.getPurchaseRequestId(), purchaseRequestDetailDAO.findByRequestId(pr.getPurchaseRequestId()));
-            }
 
-            // 3. Fetch pending Part Requests
-            List<PartRequest> pendingParts = partRequestDAO.findPartRequests(null, "PENDING");
 
             // Supporting data collections
             List<Warehouse> warehouses = warehouseDAO.findAll();
@@ -119,9 +102,6 @@ public class ManagerRequestServlet extends HttpServlet {
             request.setAttribute("pendingTransfers", pendingTransfers);
             request.setAttribute("pendingReceiveTransfers", pendingReceiveTransfers);
             request.setAttribute("transferDetailsMap", transferDetailsMap);
-            request.setAttribute("pendingPurchases", pendingPurchases);
-            request.setAttribute("purchaseDetailsMap", purchaseDetailsMap);
-            request.setAttribute("pendingParts", pendingParts);
             request.setAttribute("warehouseMap", warehouseMap);
             request.setAttribute("userMap", userMap);
             request.setAttribute("partMap", partMap);
@@ -541,69 +521,6 @@ public class ManagerRequestServlet extends HttpServlet {
                     conn.commit();
                     response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=rejected");
                 }
-            } else if ("purchase".equals(type)) {
-                // Purchase Request Approval/Rejection
-                PurchaseRequest pr = purchaseRequestDAO.findById(id);
-                if (pr == null || !"PENDING".equals(pr.getStatus())) {
-                    response.sendRedirect(request.getContextPath() + "/manager/pending-requests?error=invalid_purchase");
-                    return;
-                }
-
-                pr.setApprovedBy(currentUser.getUserId());
-                pr.setApprovedAt(new Timestamp(System.currentTimeMillis()));
-                if (isApprove) {
-                    pr.setStatus("APPROVED");
-                } else {
-                    pr.setStatus("REJECTED");
-                }
-
-                purchaseRequestDAO.update(pr);
-                response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=" + (isApprove ? "approved" : "rejected"));
-            } else if ("part".equals(type)) {
-                // Part Request Approval/Rejection
-                PartRequest req = partRequestDAO.findById(id);
-                if (req == null || !"PENDING".equals(req.getStatus())) {
-                    response.sendRedirect(request.getContextPath() + "/manager/pending-requests?error=invalid_part_request");
-                    return;
-                }
-
-                if (isApprove) {
-                    // Subtract part stock from warehouse
-                    Part part = partDAO.findById(req.getPartId());
-                    if (part == null) {
-                        response.sendRedirect(request.getContextPath() + "/manager/pending-requests?error=part_not_found");
-                        return;
-                    }
-                    if (part.getQuantity() < req.getQuantity()) {
-                        response.sendRedirect(request.getContextPath() + "/manager/pending-requests?error=insufficient_stock");
-                        return;
-                    }
-
-                    // Perform updates in transaction
-                    conn = util.DBUtil.getConnection();
-                    conn.setAutoCommit(false);
-
-                    String updatePartSql = "UPDATE parts SET quantity = quantity - ?, updated_at = NOW() WHERE part_id = ?";
-                    try (PreparedStatement ps = conn.prepareStatement(updatePartSql)) {
-                        ps.setInt(1, req.getQuantity());
-                        ps.setInt(2, req.getPartId());
-                        ps.executeUpdate();
-                    }
-
-                    req.setStatus("APPROVED");
-                    req.setApprovedBy(currentUser.getUserId());
-                    req.setApprovedAt(new Timestamp(System.currentTimeMillis()));
-                    partRequestDAO.update(req); // Wait: partRequestDAO.update doesn't accept Connection, but it is fast and safe.
-                    // Actually, let's update inside conn for safety if possible, or just commit part quantity first.
-                    conn.commit();
-                } else {
-                    req.setStatus("REJECTED");
-                    req.setApprovedBy(currentUser.getUserId());
-                    req.setApprovedAt(new Timestamp(System.currentTimeMillis()));
-                    partRequestDAO.update(req);
-                }
-
-                response.sendRedirect(request.getContextPath() + "/manager/pending-requests?success=" + (isApprove ? "approved" : "rejected"));
             } else {
                 response.sendRedirect(request.getContextPath() + "/manager/pending-requests?error=unknown_type");
             }

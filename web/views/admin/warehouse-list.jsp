@@ -8,6 +8,12 @@
     List<Warehouse> warehouses = (List<Warehouse>) request.getAttribute("warehouses");
     @SuppressWarnings("unchecked")
     List<User> managers = (List<User>) request.getAttribute("managers");
+    @SuppressWarnings("unchecked")
+    List<User> warehouseManagers = (List<User>) request.getAttribute("warehouseManagers");
+    @SuppressWarnings("unchecked")
+    List<User> allStaff = (List<User>) request.getAttribute("allStaff");
+    @SuppressWarnings("unchecked")
+    List<User> allSellers = (List<User>) request.getAttribute("allSellers");
 
     String q = (String) request.getAttribute("q");
     String statusFilter = (String) request.getAttribute("statusFilter");
@@ -289,7 +295,7 @@
 
 <%-- Create/Edit Warehouse Modal --%>
 <div class="modal fade" id="warehouseModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <form id="warehouseForm" method="post" action="${pageContext.request.contextPath}/admin/warehouse/create">
                 <div class="modal-header">
@@ -313,6 +319,19 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="warehouseManagerId">Quản Lý Trực Tiếp (Warehouse Manager)</label>
+                        <select id="warehouseManagerId" name="warehouseManagerId" class="form-control">
+                            <option value="">-- Chưa phân công --</option>
+                            <% if (warehouseManagers != null) {
+                                for (User wm : warehouseManagers) {
+                            %>
+                            <option value="<%= wm.getUserId() %>"><%= wm.getFullName() %> (<%= wm.getUsername() %>)</option>
+                            <% } } %>
+                        </select>
+                        <small class="form-text text-muted">Warehouse Manager phụ trách trực tiếp các giao dịch xuất nhập kho.</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="managerId">Người Giám Sát (Manager)</label>
                         <select id="managerId" name="managerId" class="form-control">
                             <option value="">-- Chưa phân công --</option>
@@ -323,7 +342,25 @@
                             <% } } %>
                         </select>
                         <small class="form-text text-muted">Manager có thể quản lý / giám sát cùng lúc nhiều kho.</small>
-                    </div><div class="form-group">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Nhân viên Kỹ thuật (STAFF)</label>
+                        <div id="staffContainer" class="border rounded p-3" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fc;">
+                            <!-- Load dynamic STAFF checkboxes -->
+                        </div>
+                        <small class="form-text text-muted">Chọn nhân viên kỹ thuật làm việc tại kho này.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Nhân viên Bán hàng (SELLER)</label>
+                        <div id="sellerContainer" class="border rounded p-3" style="max-height: 150px; overflow-y: auto; background-color: #f8f9fc;">
+                            <!-- Load dynamic SELLER checkboxes -->
+                        </div>
+                        <small class="form-text text-muted">Chọn nhân viên bán hàng làm việc tại kho này.</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="status">Trạng Thái</label>
                         <select id="status" name="status" class="form-control">
                             <option value="ACTIVE">Hoạt động</option>
@@ -426,13 +463,75 @@
         });
     });
 
+    const allStaff = [
+        <% if (allStaff != null) {
+            for (int i = 0; i < allStaff.size(); i++) {
+                User s = allStaff.get(i);
+        %>
+            { id: <%= s.getUserId() %>, name: '<%= s.getFullName().replace("'", "\\'") %> (<%= s.getUsername().replace("'", "\\'") %>)', warehouseId: <%= s.getWarehouseId() != null ? s.getWarehouseId() : "null" %> }<%= i < allStaff.size() - 1 ? "," : "" %>
+        <% } } %>
+    ];
+
+    const allSellers = [
+        <% if (allSellers != null) {
+            for (int i = 0; i < allSellers.size(); i++) {
+                User sel = allSellers.get(i);
+        %>
+            { id: <%= sel.getUserId() %>, name: '<%= sel.getFullName().replace("'", "\\'") %> (<%= sel.getUsername().replace("'", "\\'") %>)', warehouseId: <%= sel.getWarehouseId() != null ? sel.getWarehouseId() : "null" %> }<%= i < allSellers.size() - 1 ? "," : "" %>
+        <% } } %>
+    ];
+
+    function buildStaffAndSellerCheckboxes(warehouseId) {
+        // 1. Build Staff checkboxes
+        const staffContainer = $('#staffContainer');
+        staffContainer.empty();
+        let hasStaff = false;
+        allStaff.forEach(function (s) {
+            if (s.warehouseId === null || s.warehouseId === warehouseId) {
+                const checked = s.warehouseId === warehouseId ? 'checked' : '';
+                staffContainer.append(
+                    '<div class="custom-control custom-checkbox mb-1">' +
+                    '<input class="custom-control-input" type="checkbox" name="staffIds" value="' + s.id + '" id="staff_' + s.id + '" ' + checked + '>' +
+                    '<label class="custom-control-label font-weight-normal text-gray-800" for="staff_' + s.id + '">' + s.name + '</label>' +
+                    '</div>'
+                );
+                hasStaff = true;
+            }
+        });
+        if (!hasStaff) {
+            staffContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên STAFF khả dụng.</p>');
+        }
+
+        // 2. Build Seller checkboxes
+        const sellerContainer = $('#sellerContainer');
+        sellerContainer.empty();
+        let hasSeller = false;
+        allSellers.forEach(function (sel) {
+            if (sel.warehouseId === null || sel.warehouseId === warehouseId) {
+                const checked = sel.warehouseId === warehouseId ? 'checked' : '';
+                sellerContainer.append(
+                    '<div class="custom-control custom-checkbox mb-1">' +
+                    '<input class="custom-control-input" type="checkbox" name="sellerIds" value="' + sel.id + '" id="seller_' + sel.id + '" ' + checked + '>' +
+                    '<label class="custom-control-label font-weight-normal text-gray-800" for="seller_' + sel.id + '">' + sel.name + '</label>' +
+                    '</div>'
+                );
+                hasSeller = true;
+            }
+        });
+        if (!hasSeller) {
+            sellerContainer.html('<p class="text-muted small italic mb-0">Không có nhân viên SELLER khả dụng.</p>');
+        }
+    }
+
     function openCreateModal() {
         $('#warehouseModalTitle').text('Thêm kho mới');
         $('#warehouseForm').attr('action', '${pageContext.request.contextPath}/admin/warehouse/create');
         $('#warehouseId').val('');
         $('#warehouseName').val('');
         $('#address').val('');
+        $('#warehouseManagerId').val('');
         $('#managerId').val('');
+        buildStaffAndSellerCheckboxes(0);
         $('#status').val('ACTIVE');
 
         $('#warehouseModal').modal('show');
@@ -444,7 +543,9 @@
         $('#warehouseId').val(warehouseId);
         $('#warehouseName').val(warehouseName);
         $('#address').val(address);
+        $('#warehouseManagerId').val(warehouseManagerId > 0 ? warehouseManagerId : '');
         $('#managerId').val(managerId > 0 ? managerId : '');
+        buildStaffAndSellerCheckboxes(warehouseId);
 
         $('#status').val(status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE');
         $('#warehouseModal').modal('show');

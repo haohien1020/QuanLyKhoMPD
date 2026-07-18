@@ -482,8 +482,6 @@
                                                                 : '' }>Đang sử dụng</option>
                                                             <option value="MAINTENANCE" ${asset.status=='MAINTENANCE'
                                                                 ? 'selected' : '' }>Bảo trì</option>
-                                                            <option value="DAMAGED" ${asset.status=='DAMAGED'
-                                                                ? 'selected' : '' }>Hỏng hóc</option>
                                                             <option value="DISPOSED" ${asset.status=='DISPOSED'
                                                                 ? 'selected' : '' }>Đã thanh lý</option>
                                                         </select>

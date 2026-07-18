@@ -1,6 +1,6 @@
 package controller;
 
-import dao.PartDAO;
+import dao.GeneratorDAO;
 import dao.WarehouseDAO;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -9,19 +9,17 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import model.Part;
+import model.Generator;
 import model.User;
 import model.Warehouse;
 
 @WebServlet(name = "WarehouseInventoryServlet", urlPatterns = {
-    "/inventory",
     "/inventory/low-stock"
 })
 public class WarehouseInventoryServlet extends HttpServlet {
 
-    private final PartDAO partDAO = new PartDAO();
+    private final GeneratorDAO generatorDAO = new GeneratorDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
 
     @Override
@@ -45,7 +43,7 @@ public class WarehouseInventoryServlet extends HttpServlet {
             Warehouse managedWarehouse = warehouseDAO.findWarehouseByManager(currentUser.getUserId());
             if (managedWarehouse == null) {
                 request.setAttribute("error", "Tài khoản của bạn chưa được chỉ định quản lý bất kỳ kho nào hoạt động.");
-                request.getRequestDispatcher("/views/inventory/inventory-tracking.jsp").forward(request, response);
+                request.getRequestDispatcher("/views/inventory/low-stock.jsp").forward(request, response);
                 return;
             }
 
@@ -54,28 +52,19 @@ public class WarehouseInventoryServlet extends HttpServlet {
             String q = request.getParameter("q");
             q = (q == null) ? "" : q.trim();
 
-            List<Part> allParts = partDAO.findParts(q, managedWarehouse.getWarehouseId(), "ACTIVE");
-
             if ("/inventory/low-stock".equals(path)) {
-                List<Part> lowStockParts = new ArrayList<>();
-                for (Part part : allParts) {
-                    if (part.getQuantity() <= part.getMinQuantity()) {
-                        lowStockParts.add(part);
-                    }
-                }
-                request.setAttribute("parts", lowStockParts);
+                List<Generator> lowStockGenerators = generatorDAO.findLowStockGenerators(managedWarehouse.getWarehouseId(), q);
+                request.setAttribute("generators", lowStockGenerators);
                 request.setAttribute("q", q);
                 request.getRequestDispatcher("/views/inventory/low-stock.jsp").forward(request, response);
             } else {
-                request.setAttribute("parts", allParts);
-                request.setAttribute("q", q);
-                request.getRequestDispatcher("/views/inventory/inventory-tracking.jsp").forward(request, response);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Lỗi tải dữ liệu tồn kho: " + e.getMessage());
-            request.getRequestDispatcher("/views/inventory/inventory-tracking.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/inventory/low-stock.jsp").forward(request, response);
         }
     }
 }
