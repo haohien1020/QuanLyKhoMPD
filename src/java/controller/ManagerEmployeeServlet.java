@@ -14,6 +14,7 @@ import java.util.List;
 import model.Role;
 import model.User;
 import model.Warehouse;
+import model.Permission;
 
 @WebServlet(name = "ManagerEmployeeServlet", urlPatterns = {
     "/manager/employees",
@@ -85,10 +86,8 @@ public class ManagerEmployeeServlet extends HttpServlet {
             roleFilter = "ALL";
         }
 
-        List<User> employees = userDAO.findEmployeesBySupervisingManager(manager.getUserId());
+        // Active warehouse managers for dropdowns
         List<User> warehouseManagers = userDAO.findWarehouseManagersBySupervisingManager(manager.getUserId());
-
-        // For each warehouse manager, attach the warehouse name they manage
         for (User wm : warehouseManagers) {
             Warehouse w = warehouseDAO.findWarehouseByManager(wm.getUserId());
             if (w != null) {
@@ -97,19 +96,52 @@ public class ManagerEmployeeServlet extends HttpServlet {
             }
         }
 
-        // Apply role filtering
-        if ("STAFF".equalsIgnoreCase(roleFilter)) {
-            employees.removeIf(e -> !"STAFF".equals(e.getRoleName()));
-            warehouseManagers.clear();
-        } else if ("SELLER".equalsIgnoreCase(roleFilter)) {
-            employees.removeIf(e -> !"SELLER".equals(e.getRoleName()));
-            warehouseManagers.clear();
-        } else if ("WAREHOUSE_MANAGER".equalsIgnoreCase(roleFilter)) {
-            employees.clear();
+        // Standard employees (STAFF / SELLER)
+        List<User> employees = userDAO.findEmployeesBySupervisingManager(manager.getUserId());
+
+        // All supervised warehouse managers
+        List<User> allWarehouseManagers = userDAO.findAllWarehouseManagersBySupervisingManager(manager.getUserId());
+        for (User wm : allWarehouseManagers) {
+            List<Warehouse> wList = warehouseDAO.findWarehousesByWarehouseManager(wm.getUserId());
+            if (!wList.isEmpty()) {
+                StringBuilder sbNames = new StringBuilder();
+                for (int i = 0; i < wList.size(); i++) {
+                    if (i > 0) sbNames.append(", ");
+                    sbNames.append(wList.get(i).getWarehouseName());
+                }
+                wm.setWarehouseName(sbNames.toString());
+                wm.setWarehouseId(wList.get(0).getWarehouseId());
+            }
         }
 
+        List<User> combinedList = new java.util.ArrayList<>();
+        if ("ALL".equalsIgnoreCase(roleFilter)) {
+            combinedList.addAll(employees);
+            combinedList.addAll(allWarehouseManagers);
+        } else if ("STAFF".equalsIgnoreCase(roleFilter)) {
+            for (User e : employees) {
+                if ("STAFF".equals(e.getRoleName())) {
+                    combinedList.add(e);
+                }
+            }
+        } else if ("SELLER".equalsIgnoreCase(roleFilter)) {
+            for (User e : employees) {
+                if ("SELLER".equals(e.getRoleName())) {
+                    combinedList.add(e);
+                }
+            }
+        } else if ("WAREHOUSE_MANAGER".equalsIgnoreCase(roleFilter)) {
+            combinedList.addAll(allWarehouseManagers);
+        }
+
+        // Sort by user_id DESC
+        combinedList.sort((u1, u2) -> Integer.compare(u2.getUserId(), u1.getUserId()));
+
+        List<Permission> staffPermissions = userDAO.findPermissionsByRole("STAFF");
+        request.setAttribute("staffPermissions", staffPermissions);
+
         request.setAttribute("selectedRole", roleFilter.toUpperCase());
-        request.setAttribute("employees", employees);
+        request.setAttribute("employees", combinedList);
         request.setAttribute("warehouseManagers", warehouseManagers);
         request.getRequestDispatcher("/views/warehouse/manager-employee-list.jsp").forward(request, response);
     }
@@ -179,6 +211,24 @@ public class ManagerEmployeeServlet extends HttpServlet {
         // 3. Create the user
         int generatedId = userDAO.insertUser(role.getRoleId(), fullName, email, username, password, phone, "ACTIVE", warehouseId);
         if (generatedId > 0) {
+            String[] selectedPermissions = request.getParameterValues("permissions");
+            if (selectedPermissions != null && "STAFF".equals(roleName)) {
+                for (String permName : selectedPermissions) {
+                    userDAO.updateUserPermission(generatedId, permName, true);
+                }
+            }
+            try {
+                dao.NotificationDAO notificationDAO = new dao.NotificationDAO();
+                model.Notification notif = new model.Notification();
+                notif.setUserId(manager.getUserId());
+                notif.setTitle("Tạo tài khoản nhân viên mới");
+                notif.setMessage("Quản lý " + manager.getFullName() + " đã tạo thành công tài khoản " + roleName + " mới: " + username + " (" + fullName + ").");
+                notif.setType("SYSTEM");
+                notif.setRead(false);
+                notificationDAO.insert(notif);
+            } catch (Exception ex) {
+                System.err.println("Failed to send notification for employee creation: " + ex.getMessage());
+            }
             response.sendRedirect(request.getContextPath() + "/manager/employees?success=created");
         } else {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=create_failed");
@@ -198,18 +248,11 @@ public class ManagerEmployeeServlet extends HttpServlet {
             return;
         }
 
-        // Security check: Verify employee is under this Manager (if they are assigned to a warehouse)
+        // Security check
         User targetUser = userDAO.findById(userId);
-        if (targetUser == null || (!"STAFF".equals(targetUser.getRoleName()) && !"SELLER".equals(targetUser.getRoleName()))) {
+        if (!isSupervisedByManager(targetUser, manager)) {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
             return;
-        }
-        if (targetUser.getWarehouseId() != null) {
-            Warehouse currentWh = warehouseDAO.findById(targetUser.getWarehouseId());
-            if (currentWh == null || currentWh.getManagerId() == null || currentWh.getManagerId() != manager.getUserId()) {
-                response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
-                return;
-            }
         }
 
         // Validations
@@ -230,20 +273,37 @@ public class ManagerEmployeeServlet extends HttpServlet {
             return;
         }
 
-        // Get new warehouse (optional)
-        Integer warehouseId = null;
-        if (warehouseManagerId != null) {
-            Warehouse newWh = warehouseDAO.findWarehouseByManager(warehouseManagerId);
-            if (newWh == null || newWh.getManagerId() == null || newWh.getManagerId() != manager.getUserId()) {
-                response.sendRedirect(request.getContextPath() + "/manager/employees?error=no_warehouse");
-                return;
+        boolean updated;
+        if ("WAREHOUSE_MANAGER".equals(targetUser.getRoleName())) {
+            // For warehouse managers, we do not update warehouse_id from this page
+            updated = userDAO.updateProfile(userId, fullName, email, phone);
+        } else {
+            // Get new warehouse (optional)
+            Integer warehouseId = null;
+            if (warehouseManagerId != null) {
+                Warehouse newWh = warehouseDAO.findWarehouseByManager(warehouseManagerId);
+                if (newWh == null || newWh.getManagerId() == null || newWh.getManagerId() != manager.getUserId()) {
+                    response.sendRedirect(request.getContextPath() + "/manager/employees?error=no_warehouse");
+                    return;
+                }
+                warehouseId = newWh.getWarehouseId();
             }
-            warehouseId = newWh.getWarehouseId();
+            updated = userDAO.updateEmployeeByManager(userId, fullName, email, phone, warehouseId);
         }
 
-        // Update employee
-        boolean updated = userDAO.updateEmployeeByManager(userId, fullName, email, phone, warehouseId);
         if (updated) {
+            if ("STAFF".equals(targetUser.getRoleName())) {
+                List<Permission> staffPerms = userDAO.findPermissionsByRole("STAFF");
+                for (Permission p : staffPerms) {
+                    userDAO.updateUserPermission(userId, p.getPermissionName(), false);
+                }
+                String[] selectedPermissions = request.getParameterValues("permissions");
+                if (selectedPermissions != null) {
+                    for (String permName : selectedPermissions) {
+                        userDAO.updateUserPermission(userId, permName, true);
+                    }
+                }
+            }
             response.sendRedirect(request.getContextPath() + "/manager/employees?success=updated");
         } else {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=update_failed");
@@ -262,16 +322,9 @@ public class ManagerEmployeeServlet extends HttpServlet {
 
         // Security check
         User targetUser = userDAO.findById(userId);
-        if (targetUser == null || (!"STAFF".equals(targetUser.getRoleName()) && !"SELLER".equals(targetUser.getRoleName()))) {
+        if (!isSupervisedByManager(targetUser, manager)) {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
             return;
-        }
-        if (targetUser.getWarehouseId() != null) {
-            Warehouse currentWh = warehouseDAO.findById(targetUser.getWarehouseId());
-            if (currentWh == null || currentWh.getManagerId() == null || currentWh.getManagerId() != manager.getUserId()) {
-                response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
-                return;
-            }
         }
 
         String newStatus = active ? "ACTIVE" : "BANNED";
@@ -299,12 +352,9 @@ public class ManagerEmployeeServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
             return;
         }
-        if (targetUser.getWarehouseId() != null) {
-            Warehouse currentWh = warehouseDAO.findById(targetUser.getWarehouseId());
-            if (currentWh == null || currentWh.getManagerId() == null || currentWh.getManagerId() != manager.getUserId()) {
-                response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
-                return;
-            }
+        if (!isSupervisedByManager(targetUser, manager)) {
+            response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
+            return;
         }
 
         // Get new warehouse (optional)
@@ -336,16 +386,9 @@ public class ManagerEmployeeServlet extends HttpServlet {
 
         // Security check
         User targetUser = userDAO.findById(userId);
-        if (targetUser == null || (!"STAFF".equals(targetUser.getRoleName()) && !"SELLER".equals(targetUser.getRoleName()))) {
+        if (!isSupervisedByManager(targetUser, manager)) {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
             return;
-        }
-        if (targetUser.getWarehouseId() != null) {
-            Warehouse currentWh = warehouseDAO.findById(targetUser.getWarehouseId());
-            if (currentWh == null || currentWh.getManagerId() == null || currentWh.getManagerId() != manager.getUserId()) {
-                response.sendRedirect(request.getContextPath() + "/manager/employees?error=permission_denied");
-                return;
-            }
         }
 
         boolean success = userDAO.delete(userId);
@@ -353,6 +396,29 @@ public class ManagerEmployeeServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/manager/employees?success=deleted");
         } else {
             response.sendRedirect(request.getContextPath() + "/manager/employees?error=delete_failed");
+        }
+    }
+
+    private boolean isSupervisedByManager(User targetUser, User manager) throws Exception {
+        if (targetUser == null) return false;
+        String role = targetUser.getRoleName();
+        if (!"STAFF".equals(role) && !"SELLER".equals(role) && !"WAREHOUSE_MANAGER".equals(role)) {
+            return false;
+        }
+        if ("WAREHOUSE_MANAGER".equals(role)) {
+            List<Warehouse> whs = warehouseDAO.findWarehousesByWarehouseManager(targetUser.getUserId());
+            for (Warehouse w : whs) {
+                if (w.getManagerId() != null && w.getManagerId() == manager.getUserId()) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            if (targetUser.getWarehouseId() != null) {
+                Warehouse currentWh = warehouseDAO.findById(targetUser.getWarehouseId());
+                return currentWh != null && currentWh.getManagerId() != null && currentWh.getManagerId() == manager.getUserId();
+            }
+            return true; // Not assigned to a warehouse yet
         }
     }
 

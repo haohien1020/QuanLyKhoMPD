@@ -1,7 +1,6 @@
 package controller;
 
 import dao.InventoryTransactionDAO;
-import dao.PartDAO;
 import dao.SupplierDAO;
 import dao.WarehouseDAO;
 import dao.RentalContractDAO;
@@ -13,13 +12,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import model.InventoryTransaction;
-import model.Part;
 import model.Supplier;
 import model.User;
 import model.Warehouse;
@@ -34,7 +31,6 @@ public class InventoryTransactionServlet extends HttpServlet {
 
     private final InventoryTransactionDAO transactionDAO = new InventoryTransactionDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
-    private final PartDAO partDAO = new PartDAO();
     private final SupplierDAO supplierDAO = new SupplierDAO();
     private final RentalContractDAO rentalContractDAO = new RentalContractDAO();
     private final GeneratorDAO generatorDAO = new GeneratorDAO();
@@ -126,7 +122,6 @@ public class InventoryTransactionServlet extends HttpServlet {
                 request.getRequestDispatcher("/views/inventory/transaction-history.jsp").forward(request, response);
             } else {
                 // Handle transaction actions form
-                List<Part> parts = partDAO.findParts("", managedWarehouse.getWarehouseId(), "ACTIVE");
                 List<Supplier> suppliers = supplierDAO.findAll();
                 List<Generator> generators = generatorDAO.findGenerators("", managedWarehouse.getWarehouseId(), null);
                 
@@ -186,7 +181,6 @@ public class InventoryTransactionServlet extends HttpServlet {
                     }
                 }
 
-                request.setAttribute("parts", parts);
                 request.setAttribute("suppliers", suppliers);
                 request.setAttribute("generators", generators);
                 request.setAttribute("inStockBarcodes", inStockBarcodes);
@@ -232,12 +226,12 @@ public class InventoryTransactionServlet extends HttpServlet {
         
         // Authorize action based on specific transaction permission for staff
         if (isStaff) {
-            if ("import-part".equals(action) || "import-generator".equals(action)) {
+            if ("import-generator".equals(action)) {
                 if (!currentUser.isCanImportInventory()) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động nhập kho này.");
                     return;
                 }
-            } else if ("export-part".equals(action) || "export-generator".equals(action)) {
+            } else if ("export-generator".equals(action)) {
                 if (!currentUser.isCanExportInventory()) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động xuất kho này.");
                     return;
@@ -264,56 +258,7 @@ public class InventoryTransactionServlet extends HttpServlet {
                 return;
             }
 
-            if ("import-part".equals(action)) {
-                int partId = Integer.parseInt(request.getParameter("partId"));
-                int quantity = Integer.parseInt(request.getParameter("quantity"));
-                String supplierIdStr = request.getParameter("supplierId");
-                Integer supplierId = (supplierIdStr == null || supplierIdStr.trim().isEmpty()) ? null
-                        : Integer.parseInt(supplierIdStr.trim());
-                String note = request.getParameter("note");
-                note = (note == null) ? "" : note.trim();
-
-                if (quantity <= 0) {
-                    response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=invalid_quantity");
-                    return;
-                }
-
-                // Append general note for tracking
-                if (note.isEmpty()) {
-                    note = "Nhập bổ sung số lượng phụ tùng mua mới";
-                }
-
-                boolean success = transactionDAO.importPart(partId, quantity, managedWarehouse.getWarehouseId(),
-                        supplierId, currentUser.getUserId(), note);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=import_success");
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=import_failed");
-                }
-            } else if ("export-part".equals(action)) {
-                int partId = Integer.parseInt(request.getParameter("partId"));
-                int quantity = Integer.parseInt(request.getParameter("quantity"));
-                String note = request.getParameter("note");
-                note = (note == null) ? "" : note.trim();
-
-                if (quantity <= 0) {
-                    response.sendRedirect(request.getContextPath() + "/inventory-transactions?error=invalid_quantity");
-                    return;
-                }
-
-                if (note.isEmpty()) {
-                    note = "Xuất cấp phát linh kiện phụ tùng cho kỹ thuật viên sửa chữa";
-                }
-
-                boolean success = transactionDAO.exportPart(partId, quantity, managedWarehouse.getWarehouseId(),
-                        currentUser.getUserId(), note);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/inventory-transactions?success=export_success");
-                } else {
-                    response.sendRedirect(
-                            request.getContextPath() + "/inventory-transactions?error=insufficient_stock");
-                }
-            } else if ("import-generator".equals(action)) {
+            if ("import-generator".equals(action)) {
                 String importType = request.getParameter("importType");
                 String supplierIdStr = request.getParameter("supplierId");
                 Integer supplierId = (supplierIdStr == null || supplierIdStr.trim().isEmpty()) ? null
@@ -452,7 +397,6 @@ public class InventoryTransactionServlet extends HttpServlet {
                             std.setTransferId(transferId);
                             std.setItemType("GENERATOR");
                             std.setGeneratorId(generatorId);
-                            std.setPartId(null);
                             std.setQuantity(quantity);
 
                             dao.StockTransferDetailDAO stdDAO = new dao.StockTransferDetailDAO();

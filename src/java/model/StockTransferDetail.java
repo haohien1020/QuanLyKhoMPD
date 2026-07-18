@@ -6,18 +6,16 @@ public class StockTransferDetail {
     private int transferId;
     private String itemType;
     private Integer generatorId;
-    private Integer partId;
     private int quantity;
 
     public StockTransferDetail() {
     }
 
-    public StockTransferDetail(int detailId, int transferId, String itemType, Integer generatorId, Integer partId, int quantity) {
+    public StockTransferDetail(int detailId, int transferId, String itemType, Integer generatorId, int quantity) {
         this.detailId = detailId;
         this.transferId = transferId;
         this.itemType = itemType;
         this.generatorId = generatorId;
-        this.partId = partId;
         this.quantity = quantity;
     }
 
@@ -51,14 +49,6 @@ public class StockTransferDetail {
 
     public void setGeneratorId(Integer generatorId) {
         this.generatorId = generatorId;
-    }
-
-    public Integer getPartId() {
-        return partId;
-    }
-
-    public void setPartId(Integer partId) {
-        this.partId = partId;
     }
 
     public int getQuantity() {

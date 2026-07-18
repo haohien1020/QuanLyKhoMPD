@@ -33,6 +33,7 @@
                     </div>
                     <div class="card-body">
                         <form method="post" action="${pageContext.request.contextPath}/stock-transfers/create">
+                            <input type="hidden" name="itemType" value="GENERATOR">
                             <div class="row">
                                 <div class="col-md-6 form-group">
                                     <label class="font-weight-bold">Kho gửi hàng (Kho của bạn):</label>
@@ -46,18 +47,6 @@
                                             <option value="${w.warehouseId}">${w.warehouseName} (Địa chỉ: ${w.address})</option>
                                         </c:forEach>
                                     </select>
-                                </div>
-                            </div>
-
-                            <div class="form-group mt-3">
-                                <label class="font-weight-bold d-block">Loại hàng hóa điều chuyển:</label>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="itemType" id="typeGenerator" value="GENERATOR" checked onchange="toggleItemType()">
-                                    <label class="form-check-label" for="typeGenerator">Máy phát điện</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="itemType" id="typePart" value="PART" onchange="toggleItemType()">
-                                    <label class="form-check-label" for="typePart">Linh kiện / Phụ tùng</label>
                                 </div>
                             </div>
 
@@ -81,41 +70,6 @@
                                 </div>
                             </div>
 
-                            <!-- Part selection section -->
-                            <div id="partSection" class="mt-4 d-none">
-                                <h5 class="font-weight-bold text-gray-800 mb-3">Chọn phụ tùng và số lượng cần chuyển:</h5>
-                                <table class="table table-bordered" id="partsTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Chọn phụ tùng</th>
-                                            <th style="width: 150px;">Số lượng chuyển</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <c:forEach var="part" items="${parts}">
-                                            <tr>
-                                                <td>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input part-checkbox" type="checkbox" name="partId" value="${part.partId}" id="part-${part.partId}" onchange="togglePartQty(this)">
-                                                        <label class="form-check-label" for="part-${part.partId}">
-                                                            <strong>${part.partName}</strong> (Mã: ${part.partCode}) - Tồn: ${part.quantity} ${part.unit}
-                                                        </label>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <input type="number" name="quantity" class="form-control part-qty-input" value="1" min="1" max="${part.quantity}" disabled required>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                        <c:if test="${empty parts}">
-                                            <tr>
-                                                <td colspan="2" class="text-center text-muted">Không có phụ tùng nào khả dụng trong kho của bạn.</td>
-                                            </tr>
-                                        </c:if>
-                                    </tbody>
-                                </table>
-                            </div>
-
                             <div class="text-right mt-4">
                                 <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-paper-plane"></i> Gửi yêu cầu điều chuyển</button>
                             </div>
@@ -131,27 +85,5 @@
 <script src="${pageContext.request.contextPath}/assets/vendor/jquery/jquery.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/js/sb-admin-2.min.js"></script>
-<script>
-    function toggleItemType() {
-        var isGen = document.getElementById("typeGenerator").checked;
-        if (isGen) {
-            document.getElementById("generatorSection").classList.remove("d-none");
-            document.getElementById("partSection").classList.add("d-none");
-        } else {
-            document.getElementById("generatorSection").classList.add("d-none");
-            document.getElementById("partSection").classList.remove("d-none");
-        }
-    }
-
-    function togglePartQty(checkbox) {
-        var row = checkbox.closest('tr');
-        var qtyInput = row.querySelector('.part-qty-input');
-        if (checkbox.checked) {
-            qtyInput.disabled = false;
-        } else {
-            qtyInput.disabled = true;
-        }
-    }
-</script>
 </body>
 </html>

@@ -22,16 +22,43 @@
 %>
 
 <%!
-    public String getWarehouseName(Integer whId, List<Warehouse> warehouses) {
-        if (whId == null) return "<span class='text-muted'>Chưa phân kho</span>";
-        if (warehouses != null) {
-            for (Warehouse w : warehouses) {
-                if (w.getWarehouseId() == whId) {
-                    return w.getWarehouseName();
+    public String getWarehouseName(User u, List<Warehouse> warehouses) {
+        if (u == null) return "<span class='text-muted'>Chưa phân kho</span>";
+        
+        if ("MANAGER".equals(u.getRoleName())) {
+            java.util.List<String> names = new java.util.ArrayList<>();
+            if (warehouses != null) {
+                for (Warehouse w : warehouses) {
+                    if (w.getManagerId() != null && w.getManagerId() == u.getUserId()) {
+                        names.add(w.getWarehouseName());
+                    }
                 }
             }
+            if (names.isEmpty()) {
+                return "<span class='text-muted'>Chưa phân kho</span>";
+            }
+            return String.join(", ", names);
+        } else if ("WAREHOUSE_MANAGER".equals(u.getRoleName())) {
+            if (warehouses != null) {
+                for (Warehouse w : warehouses) {
+                    if (w.getWarehouseManagerId() != null && w.getWarehouseManagerId() == u.getUserId()) {
+                        return w.getWarehouseName();
+                    }
+                }
+            }
+            return "<span class='text-muted'>Chưa phân kho</span>";
+        } else {
+            Integer whId = u.getWarehouseId();
+            if (whId == null) return "<span class='text-muted'>Chưa phân kho</span>";
+            if (warehouses != null) {
+                for (Warehouse w : warehouses) {
+                    if (w.getWarehouseId() == whId) {
+                        return w.getWarehouseName();
+                    }
+                }
+            }
+            return "<span class='text-danger'>N/A</span>";
         }
-        return "<span class='text-danger'>N/A</span>";
     }
 %>
 
@@ -189,7 +216,7 @@
                                     <td class="text-center">
                                         <span class="badge badge-info text-uppercase"><%= u.getRoleName() %></span>
                                     </td>
-                                    <td><%= getWarehouseName(u.getWarehouseId(), warehouseList) %></td>
+                                    <td><%= getWarehouseName(u, warehouseList) %></td>
                                     <td class="text-center">
                                         <% if (u.isActive()) { %>
                                             <span class="badge badge-success">Hoạt động</span>

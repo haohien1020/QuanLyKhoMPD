@@ -9,6 +9,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import model.User;
+import model.Warehouse;
+import model.Generator;
+import model.GeneratorBarcode;
+import java.util.List;
 
 @WebServlet(name = "RoleHomeServlet", urlPatterns = {
         "/manager/home",
@@ -64,7 +68,7 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
-        request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
+        request.setAttribute("totalBarcodes", dashboardDAO.countWhere("generator_barcodes", "is_deleted = 0"));
         request.setAttribute("unreadNotifications", dashboardDAO.countWhere("notifications", "is_read = 0"));
     }
 
@@ -74,12 +78,23 @@ public class RoleHomeServlet extends HttpServlet {
         request.setAttribute("managedWarehouse", managedWarehouse);
 
         request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
-        request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
-        request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generators", "status = 'IN_STOCK'"));
-        request.setAttribute("totalParts", dashboardDAO.count("parts"));
-        request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
-        request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
-        request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
+        int totalGens = 0;
+        int inStockGens = 0;
+        if (managedWarehouse != null) {
+            totalGens = dashboardDAO.countWarehouseBarcodes(managedWarehouse.getWarehouseId(), null);
+            inStockGens = dashboardDAO.countWarehouseBarcodes(managedWarehouse.getWarehouseId(), "IN_STOCK");
+        }
+        request.setAttribute("totalGenerators", totalGens);
+        request.setAttribute("inStockGenerators", inStockGens);
+        int transactionsCount = 0;
+        int transfersCount = 0;
+        if (managedWarehouse != null) {
+            transactionsCount = dashboardDAO.countWhereInt("inventory_transactions", "warehouse_id = ?",
+                    managedWarehouse.getWarehouseId());
+            transfersCount = dashboardDAO.countWarehousePendingTransfers(managedWarehouse.getWarehouseId());
+        }
+        request.setAttribute("inventoryTransactions", transactionsCount);
+        request.setAttribute("pendingTransfers", transfersCount);
         request.setAttribute("totalSuppliers", dashboardDAO.count("suppliers"));
 
         if (managedWarehouse != null) {
@@ -95,8 +110,6 @@ public class RoleHomeServlet extends HttpServlet {
     private void loadStaffData(HttpServletRequest request, User currentUser) throws Exception {
         int userId = currentUser.getUserId();
         request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
-        request.setAttribute("totalParts", dashboardDAO.count("parts"));
-        request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
         request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
         request.setAttribute("unreadNotifications",
                 dashboardDAO.countWhereInt("notifications", "user_id = ? AND is_read = 0", userId));

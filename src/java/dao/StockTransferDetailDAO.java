@@ -17,13 +17,12 @@ public class StockTransferDetailDAO extends BaseDAO {
         item.setTransferId(rs.getInt("transfer_id"));
         item.setItemType(rs.getString("item_type"));
         item.setGeneratorId(getNullableInt(rs, "generator_id"));
-        item.setPartId(getNullableInt(rs, "part_id"));
         item.setQuantity(rs.getInt("quantity"));
         return item;
     }
 
     public StockTransferDetail findById(int id) throws Exception {
-        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, part_id, quantity FROM stock_transfer_details WHERE detail_id = ?";
+        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, quantity FROM stock_transfer_details WHERE detail_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -37,7 +36,7 @@ public class StockTransferDetailDAO extends BaseDAO {
     }
 
     public List<StockTransferDetail> findAll() throws Exception {
-        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, part_id, quantity FROM stock_transfer_details ORDER BY detail_id DESC";
+        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, quantity FROM stock_transfer_details ORDER BY detail_id DESC";
         List<StockTransferDetail> list = new ArrayList<StockTransferDetail>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -56,13 +55,12 @@ public class StockTransferDetailDAO extends BaseDAO {
     }
 
     public int insert(Connection conn, StockTransferDetail item) throws Exception {
-        String sql = "INSERT INTO stock_transfer_details (transfer_id, item_type, generator_id, part_id, quantity) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO stock_transfer_details (transfer_id, item_type, generator_id, quantity) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, item.getTransferId());
             ps.setString(2, item.getItemType());
             setNullableInt(ps, 3, item.getGeneratorId());
-            setNullableInt(ps, 4, item.getPartId());
-            ps.setInt(5, item.getQuantity());
+            ps.setInt(4, item.getQuantity());
             int affectedRows = ps.executeUpdate();
             if (affectedRows == 0) {
                 return 0;
@@ -77,15 +75,14 @@ public class StockTransferDetailDAO extends BaseDAO {
     }
 
     public boolean update(StockTransferDetail item) throws Exception {
-        String sql = "UPDATE stock_transfer_details SET transfer_id = ?, item_type = ?, generator_id = ?, part_id = ?, quantity = ? WHERE detail_id = ?";
+        String sql = "UPDATE stock_transfer_details SET transfer_id = ?, item_type = ?, generator_id = ?, quantity = ? WHERE detail_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, item.getTransferId());
             ps.setString(2, item.getItemType());
             setNullableInt(ps, 3, item.getGeneratorId());
-            setNullableInt(ps, 4, item.getPartId());
-            ps.setInt(5, item.getQuantity());
-            ps.setInt(6, item.getDetailId());
+            ps.setInt(4, item.getQuantity());
+            ps.setInt(5, item.getDetailId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -100,7 +97,7 @@ public class StockTransferDetailDAO extends BaseDAO {
     }
 
     public List<StockTransferDetail> findDetailsByTransferId(int transferId) throws Exception {
-        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, part_id, quantity FROM stock_transfer_details WHERE transfer_id = ?";
+        String sql = "SELECT detail_id, transfer_id, item_type, generator_id, quantity FROM stock_transfer_details WHERE transfer_id = ?";
         List<StockTransferDetail> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

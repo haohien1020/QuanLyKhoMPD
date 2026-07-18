@@ -778,6 +778,27 @@ public class UserDAO {
         return list;
     }
 
+    public List<User> findAllWarehouseManagersBySupervisingManager(int managerId) throws Exception {
+        String sql = "SELECT DISTINCT "
+                + "u1.user_id, u1.role_id, r.role_name, u1.full_name, u1.email, u1.username, u1.password, u1.phone, u1.address, u1.avatar, u1.status, u1.created_at, u1.updated_at, u1.ResetToken, u1.ResetTokenExpiry, u1.warehouse_id "
+                + "FROM users u1 "
+                + "INNER JOIN roles r ON u1.role_id = r.role_id "
+                + "INNER JOIN warehouses w ON u1.user_id = w.warehouse_manager_id "
+                + "WHERE r.role_name = 'WAREHOUSE_MANAGER' AND w.manager_id = ? AND u1.is_deleted = 0 "
+                + "ORDER BY u1.full_name ASC";
+        List<User> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     public boolean updateEmployeeByManager(int userId, String fullName, String email, String phone, Integer warehouseId)
             throws Exception {
         String sql = "UPDATE users "

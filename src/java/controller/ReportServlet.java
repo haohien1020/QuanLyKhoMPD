@@ -187,63 +187,9 @@ public class ReportServlet extends HttpServlet {
                 }
             }
 
-            // 3. Fetch Parts Summary
-            List<Map<String, Object>> partsData = new ArrayList<>();
-            
-            String partsSql;
-            if (selectedWarehouseId != null) {
-                partsSql = "SELECT part_name, part_code, quantity, min_quantity, unit, status FROM parts WHERE warehouse_id = ? AND is_deleted = 0";
-            } else {
-                if (currentUser.hasRole("ADMIN")) {
-                    partsSql = "SELECT part_name, part_code, quantity, min_quantity, unit, status FROM parts WHERE is_deleted = 0";
-                } else {
-                    partsSql = "SELECT part_name, part_code, quantity, min_quantity, unit, status FROM parts WHERE warehouse_id IN (SELECT warehouse_id FROM warehouses WHERE manager_id = ? AND is_deleted = 0) AND is_deleted = 0";
-                }
-            }
-            
-            int totalPartsQty = 0;
-            int lowStockPartsCount = 0;
-            try (Connection conn = util.DBUtil.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(partsSql)) {
-                if (selectedWarehouseId != null) {
-                    ps.setInt(1, selectedWarehouseId);
-                } else {
-                    if (!currentUser.hasRole("ADMIN")) {
-                        ps.setInt(1, currentUser.getUserId());
-                    }
-                }
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        Map<String, Object> map = new HashMap<>();
-                        String name = rs.getString("part_name");
-                        String code = rs.getString("part_code");
-                        int qty = rs.getInt("quantity");
-                        int minQty = rs.getInt("min_quantity");
-                        String unit = rs.getString("unit");
-                        String status = rs.getString("status");
-                        
-                        map.put("partName", name);
-                        map.put("partCode", code);
-                        map.put("quantity", qty);
-                        map.put("minQuantity", minQty);
-                        map.put("unit", unit);
-                        map.put("status", status);
-                        
-                        partsData.add(map);
-                        totalPartsQty += qty;
-                        if (qty < minQty) {
-                            lowStockPartsCount++;
-                        }
-                    }
-                }
-            }
-
             request.setAttribute("genStatusData", genStatusData);
             request.setAttribute("genSpecsData", genSpecsData);
-            request.setAttribute("partsData", partsData);
             request.setAttribute("totalGenerators", totalGenerators);
-            request.setAttribute("totalPartsQty", totalPartsQty);
-            request.setAttribute("lowStockPartsCount", lowStockPartsCount);
 
         } catch (Exception e) {
             e.printStackTrace();

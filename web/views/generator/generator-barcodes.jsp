@@ -17,6 +17,7 @@
     Integer filterGeneratorId = (Integer) request.getAttribute("filterGeneratorId");
     String filterStatus = (String) request.getAttribute("filterStatus");
     String filterKeyword = (String) request.getAttribute("filterKeyword");
+    Integer warehouseIdFilter = (Integer) request.getAttribute("warehouseIdFilter");
 
     int totalCount = barcodes != null ? barcodes.size() : 0;
 %>
@@ -184,7 +185,13 @@
                 <!-- Filter Card -->
                 <div class="filter-card">
                     <form method="get" action="${pageContext.request.contextPath}/generators/barcodes" class="row align-items-end" id="filterForm">
-                        <div class="form-group col-md-4 mb-2">
+                        <% 
+                           boolean showWarehouseFilter = currentUser != null && (currentUser.hasRole("MANAGER") || currentUser.hasRole("ADMIN"));
+                           String genCol = showWarehouseFilter ? "col-md-3" : "col-md-4";
+                           String statusCol = showWarehouseFilter ? "col-md-2" : "col-md-3";
+                           String searchCol = showWarehouseFilter ? "col-md-3" : "col-md-4";
+                        %>
+                        <div class="form-group <%= genCol %> mb-2">
                             <label class="font-weight-bold text-gray-700 mb-1" style="font-size:0.85rem;">
                                 <i class="fas fa-bolt mr-1 text-primary"></i> Mẫu máy phát điện
                             </label>
@@ -201,7 +208,24 @@
                                 <% } } %>
                             </select>
                         </div>
+                        <% if (showWarehouseFilter) { %>
                         <div class="form-group col-md-3 mb-2">
+                            <label class="font-weight-bold text-gray-700 mb-1" style="font-size:0.85rem;">
+                                <i class="fas fa-warehouse mr-1 text-primary"></i> Kho lưu trữ
+                            </label>
+                            <select name="warehouseId" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">-- Tất cả kho --</option>
+                                <% if (warehouses != null) {
+                                    for (Warehouse w : warehouses) { %>
+                                <option value="<%= w.getWarehouseId() %>"
+                                    <%= (warehouseIdFilter != null && warehouseIdFilter == w.getWarehouseId()) ? "selected" : "" %>>
+                                    <%= w.getWarehouseName() %>
+                                </option>
+                                <% } } %>
+                            </select>
+                        </div>
+                        <% } %>
+                        <div class="form-group <%= statusCol %> mb-2">
                             <label class="font-weight-bold text-gray-700 mb-1" style="font-size:0.85rem;">
                                 <i class="fas fa-tag mr-1 text-warning"></i> Trạng thái
                             </label>
@@ -211,7 +235,7 @@
                                 <option value="EXPORTED"   <%= "EXPORTED".equals(filterStatus)   ? "selected" : "" %>>Đã xuất kho</option>
                             </select>
                         </div>
-                        <div class="form-group col-md-4 mb-2">
+                        <div class="form-group <%= searchCol %> mb-2">
                             <label class="font-weight-bold text-gray-700 mb-1" style="font-size:0.85rem;">
                                 <i class="fas fa-search mr-1 text-info"></i> Tìm kiếm
                             </label>
@@ -230,7 +254,7 @@
                             </button>
                         </div>
                     </form>
-                    <% if ((filterGeneratorId != null && filterGeneratorId > 0) || (filterStatus != null && !filterStatus.isEmpty()) || (filterKeyword != null && !filterKeyword.isEmpty())) { %>
+                    <% if ((filterGeneratorId != null && filterGeneratorId > 0) || (filterStatus != null && !filterStatus.isEmpty()) || (filterKeyword != null && !filterKeyword.isEmpty()) || (warehouseIdFilter != null && warehouseIdFilter > 0)) { %>
                     <div class="mt-1">
                         <a href="${pageContext.request.contextPath}/generators/barcodes" class="btn btn-outline-secondary btn-xs py-0 px-2" style="font-size:0.8rem;">
                             <i class="fas fa-times-circle mr-1"></i> Xóa bộ lọc
@@ -260,6 +284,7 @@
                                         <th class="text-center">Mẫu máy phát điện</th>
                                         <th class="text-center">Số Serial</th>
                                         <th class="text-center" style="min-width:140px;">Mã vạch</th>
+                                        <th class="text-center">Kho lưu trữ</th>
                                         <th class="text-center">Trạng thái</th>
                                         <th class="text-center">Ngày tạo</th>
                                         <th class="text-center" style="width:110px;">Thao tác</th>
@@ -268,7 +293,7 @@
                                 <tbody>
                                 <% if (barcodes == null || barcodes.isEmpty()) { %>
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-5">
+                                    <td colspan="8" class="text-center text-muted py-5">
                                         <i class="fas fa-barcode fa-3x mb-3 text-gray-300 d-block"></i>
                                         Không tìm thấy mã vạch nào khớp với bộ lọc.
                                     </td>
@@ -331,9 +356,15 @@
                                     <td class="text-center">
                                         <code class="font-weight-bold text-gray-800"><%= gb.getSerialNumber() %></code>
                                     </td>
-                                    <td class="barcode-img-cell text-center" style="cursor:pointer;" onclick="openBarcodeDetail('<%= safeGenName %>', '<%= safeSerial %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= priceStr %>', '<%= rentalPriceStr %>', '<%= safeLocation %>', '<%= safeNote %>', '<%= gb.getStatus() != null ? gb.getStatus() : "" %>', '<%= unitStatusBadge %>', '<%= createdStr %>')" title="Click để xem phóng to mã vạch">
+                                    <td class="barcode-img-cell text-center" style="cursor:pointer;" onclick="openBarcodeDetail('<%= safeGenName %>', '<%= safeSerial %>', '<%= safeBrand %>', '<%= safePower %>', '<%= safeFuel %>', '<%= priceStr %>', '<%= rentalPriceStr %>', '<%= safeLocation %>', '<%= safeNote %>', '<%= gb.getStatus() != null ? gb.getStatus() : "" %>', '<%= unitStatusBadge %>', '<%= createdStr %>', '<%= gb.getWarehouseName() != null ? gb.getWarehouseName().replace("'", "\\'") : "Chưa rõ" %>')" title="Click để xem phóng to mã vạch">
                                         <img class="barcode-render" data-serial="<%= gb.getSerialNumber() %>" alt="<%= gb.getSerialNumber() %>">
                                         <div class="text-dark font-weight-bold mt-1" style="font-size:0.75rem; font-family: monospace; letter-spacing: 0.5px;"><%= gb.getSerialNumber() %></div>
+                                    </td>
+                                    <td class="text-center text-nowrap">
+                                        <span class="badge badge-light border">
+                                            <i class="fas fa-warehouse mr-1 text-gray-500"></i>
+                                            <%= gb.getWarehouseName() != null ? gb.getWarehouseName() : "Chưa rõ" %>
+                                        </span>
                                     </td>
                                     <td class="text-center"><%=statusBadge%></td>
                                     <td class="text-center text-muted" style="font-size:0.82rem;"><%= createdStr %></td>
@@ -352,7 +383,8 @@
                                                     '<%= safeNote %>',
                                                     '<%= gb.getStatus() != null ? gb.getStatus() : "" %>',
                                                     '<%= unitStatusBadge %>',
-                                                    '<%= createdStr %>'
+                                                    '<%= createdStr %>',
+                                                    '<%= gb.getWarehouseName() != null ? gb.getWarehouseName().replace("'", "\\'") : "Chưa rõ" %>'
                                                 )"
                                                 title="Xem chi tiết">
                                             <i class="fas fa-eye text-primary"></i>
@@ -420,6 +452,10 @@
                                 <tr>
                                     <td class="font-weight-bold text-muted">Nhiên liệu:</td>
                                     <td id="mdFuel"></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-weight-bold text-muted">Kho lưu trữ:</td>
+                                    <td id="mdWarehouse"></td>
                                 </tr>
                                 <tr>
                                     <td class="font-weight-bold text-muted">Vị trí:</td>
@@ -626,7 +662,8 @@ $(document).ready(function() {
             '<%= safeNote %>',
             '<%= uniqueGb.getStatus() != null ? uniqueGb.getStatus() : "" %>',
             '<%= unitStatusBadge %>',
-            '<%= createdStr %>'
+            '<%= createdStr %>',
+            '<%= uniqueGb.getWarehouseName() != null ? uniqueGb.getWarehouseName().replace("'", "\\'") : "Chưa rõ" %>'
         );
     <% } %>
 
@@ -664,12 +701,13 @@ function confirmDeleteBarcode(barcodeId, serial) {
     $('#deleteConfirmModal').modal('show');
 }
 
-function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPrice, location, note, status, badgeClass, createdAt) {
+function openBarcodeDetail(genName, serial, brand, power, fuel, price, rentalPrice, location, note, status, badgeClass, createdAt, warehouseName) {
     // Fill generator template info
     $('#mdGenName').text(genName || '-');
     $('#mdBrand').text(brand || '-');
     $('#mdPower').text(power || '-');
     $('#mdFuel').text(fuel || '-');
+    $('#mdWarehouse').text(warehouseName || '-');
     $('#mdLocation').text(location || '-');
     $('#mdPrice').text(price !== '-' ? price + ' VNĐ' : '-');
     $('#mdRentalPrice').text(rentalPrice !== '-' ? rentalPrice + ' VNĐ/ngày' : '-');

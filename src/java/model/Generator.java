@@ -211,4 +211,12 @@ public class Generator {
     public void setMinStock(int minStock) {
         this.minStock = minStock;
     }
+
+    private String warehouseName;
+    public String getWarehouseName() {
+        return warehouseName;
+    }
+    public void setWarehouseName(String warehouseName) {
+        this.warehouseName = warehouseName;
+    }
 }

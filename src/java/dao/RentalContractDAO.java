@@ -83,6 +83,9 @@ public class RentalContractDAO extends BaseDAO {
             int genId = rs.getInt("generator_id");
             item.setGeneratorId(rs.wasNull() ? null : genId);
         } catch (java.sql.SQLException e) {}
+        try {
+            item.setCreatedBy(rs.getInt("created_by"));
+        } catch (java.sql.SQLException e) {}
         
         return item;
     }
@@ -91,7 +94,7 @@ public class RentalContractDAO extends BaseDAO {
         String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name AS seller_name, "
                 + "MAX(g.generator_name) AS generator_name, "
                 + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
                 + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
@@ -113,7 +116,7 @@ public class RentalContractDAO extends BaseDAO {
                 + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone, c.email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name, "
                 + "rc.assigned_staff_id, u2.full_name "
                 + "ORDER BY rc.rental_contract_id DESC";
 
@@ -135,7 +138,7 @@ public class RentalContractDAO extends BaseDAO {
         String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name AS seller_name, "
                 + "MAX(g.generator_name) AS generator_name, "
                 + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
                 + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
@@ -157,7 +160,7 @@ public class RentalContractDAO extends BaseDAO {
                 + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone, c.email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name, "
                 + "rc.assigned_staff_id, u2.full_name";
 
         try (Connection conn = DBUtil.getConnection();
@@ -510,7 +513,7 @@ public class RentalContractDAO extends BaseDAO {
         String sql = "SELECT rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone AS customer_phone, c.email AS customer_email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name AS seller_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name AS seller_name, "
                 + "MAX(g.generator_name) AS generator_name, "
                 + "GROUP_CONCAT(COALESCE(rcd.serial_number, g.serial_number) ORDER BY rcd.detail_id SEPARATOR ', ') AS serial_number, "
                 + "MAX(g.brand) AS brand, MAX(g.power_value) AS power_value, MAX(g.fuel_type) AS fuel_type, "
@@ -532,7 +535,7 @@ public class RentalContractDAO extends BaseDAO {
                 + "GROUP BY rc.rental_contract_id, rc.customer_id, rc.warehouse_id, rc.contract_code, c.customer_name, "
                 + "c.phone, c.email, w.warehouse_name, "
                 + "rc.start_date, rc.expected_return_date, rc.actual_return_date, rc.status, "
-                + "rc.deposit_amount, rc.total_amount, rc.note, u.full_name, "
+                + "rc.deposit_amount, rc.total_amount, rc.note, rc.created_by, u.full_name, "
                 + "rc.assigned_staff_id, u2.full_name "
                 + "ORDER BY rc.rental_contract_id DESC";
 

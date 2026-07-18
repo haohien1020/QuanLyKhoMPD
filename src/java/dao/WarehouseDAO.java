@@ -255,8 +255,7 @@ public class WarehouseDAO extends BaseDAO {
                 + "u2.email AS warehouse_manager_email, "
                 + "u2.phone AS warehouse_manager_phone, "
                 + "(SELECT COUNT(*) FROM generators g WHERE g.warehouse_id = w.warehouse_id AND g.is_deleted = 0) AS total_generators, "
-                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id AND p.is_deleted = 0) AS total_parts, "
-                + "(SELECT COUNT(*) FROM parts p WHERE p.warehouse_id = w.warehouse_id AND p.quantity < p.min_quantity AND p.is_deleted = 0) AS low_stock_parts "
+                + "(SELECT COUNT(*) FROM generator_barcodes gb JOIN generators g ON gb.generator_id = g.generator_id WHERE g.warehouse_id = w.warehouse_id AND gb.status = 'IN_STOCK' AND gb.is_deleted = 0 AND g.is_deleted = 0) AS total_barcodes "
                 + "FROM warehouses w "
                 + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
                 + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
@@ -295,9 +294,29 @@ public class WarehouseDAO extends BaseDAO {
                     item.setWarehouseManagerEmail(rs.getString("warehouse_manager_email"));
                     item.setWarehouseManagerPhone(rs.getString("warehouse_manager_phone"));
                     item.setTotalGenerators(rs.getInt("total_generators"));
-                    item.setTotalParts(rs.getInt("total_parts"));
-                    item.setLowStockParts(rs.getInt("low_stock_parts"));
+                    item.setTotalBarcodes(rs.getInt("total_barcodes"));
                     list.add(item);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Warehouse> findWarehousesByWarehouseManager(int wmId) throws Exception {
+        String sql = "SELECT w.warehouse_id, w.warehouse_name, w.address, w.manager_id, w.warehouse_manager_id, w.status, w.created_at, "
+                + "u1.full_name AS manager_name, "
+                + "u2.full_name AS warehouse_manager_name "
+                + "FROM warehouses w "
+                + "LEFT JOIN users u1 ON w.manager_id = u1.user_id "
+                + "LEFT JOIN users u2 ON w.warehouse_manager_id = u2.user_id "
+                + "WHERE w.warehouse_manager_id = ? AND w.is_deleted = 0";
+        List<Warehouse> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, wmId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
                 }
             }
         }

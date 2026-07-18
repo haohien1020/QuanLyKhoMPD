@@ -240,8 +240,8 @@
                                                             <a href="${pageContext.request.contextPath}/generators?warehouseId=${w.warehouseId}" 
                                                                class="stat-box stat-box-primary d-flex flex-column align-items-center justify-content-center shadow-sm py-4">
                                                                 <i class="fas fa-bolt fa-3x mb-2"></i>
-                                                                <span class="h4 mb-0 font-weight-bold">${w.totalGenerators}</span>
-                                                                <span class="text-xs text-gray-800 font-weight-bold">Máy phát điện trong kho</span>
+                                                                <span class="h4 mb-0 font-weight-bold">${w.totalGenerators} mẫu máy</span>
+                                                                <span class="text-xs text-gray-800 font-weight-bold">Máy khả dụng: <strong>${w.totalBarcodes}</strong></span>
                                                             </a>
                                                         </div>
                                                     </div>

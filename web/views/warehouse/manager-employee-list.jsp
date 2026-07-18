@@ -2,12 +2,15 @@
 <%@ page import="java.util.List" %>
 <%@ page import="model.User" %>
 <%@ page import="model.Warehouse" %>
+<%@ page import="model.Permission" %>
 
 <%
     @SuppressWarnings("unchecked")
     List<User> employees = (List<User>) request.getAttribute("employees");
     @SuppressWarnings("unchecked")
     List<User> warehouseManagers = (List<User>) request.getAttribute("warehouseManagers");
+    @SuppressWarnings("unchecked")
+    List<Permission> staffPermissions = (List<Permission>) request.getAttribute("staffPermissions");
 
     String selectedRole = (String) request.getAttribute("selectedRole");
     String error = (String) request.getAttribute("error");
@@ -157,6 +160,7 @@
                                 <option value="ALL" <%= "ALL".equals(selectedRole) || selectedRole == null ? "selected" : "" %>>Tất cả vai trò</option>
                                 <option value="STAFF" <%= "STAFF".equals(selectedRole) ? "selected" : "" %>>Nhân viên Kỹ thuật (Kỹ thuật)</option>
                                 <option value="SELLER" <%= "SELLER".equals(selectedRole) ? "selected" : "" %>>Nhân viên Bán hàng (Bán hàng)</option>
+                                <option value="WAREHOUSE_MANAGER" <%= "WAREHOUSE_MANAGER".equals(selectedRole) ? "selected" : "" %>>Thủ kho (Warehouse Manager)</option>
                             </select>
                         </form>
                     </div>
@@ -182,9 +186,14 @@
                                     if (employees != null && !employees.isEmpty()) {
                                         for (User emp : employees) {
                                             boolean active = "ACTIVE".equalsIgnoreCase(emp.getStatus());
-                                            String roleBadge = "STAFF".equals(emp.getRoleName()) 
-                                                ? "<span class='badge badge-info'><i class='fas fa-user-cog mr-1'></i>Kỹ thuật</span>" 
-                                                : "<span class='badge badge-success'><i class='fas fa-store mr-1'></i>Bán hàng</span>";
+                                            String roleBadge = "";
+                                            if ("STAFF".equals(emp.getRoleName())) {
+                                                roleBadge = "<span class='badge badge-info'><i class='fas fa-user-cog mr-1'></i>Kỹ thuật</span>";
+                                            } else if ("SELLER".equals(emp.getRoleName())) {
+                                                roleBadge = "<span class='badge badge-success'><i class='fas fa-store mr-1'></i>Bán hàng</span>";
+                                            } else if ("WAREHOUSE_MANAGER".equals(emp.getRoleName())) {
+                                                roleBadge = "<span class='badge badge-primary'><i class='fas fa-user-shield mr-1'></i>Thủ kho</span>";
+                                            }
                                             
                                             String safeFullName = emp.getFullName().replace("\\", "\\\\").replace("'", "\\'");
                                             String safeEmail = emp.getEmail() != null ? emp.getEmail().replace("'", "\\'") : "";
@@ -202,7 +211,9 @@
                                         <% } %>
                                     </td>
                                     <td>
-                                        <% if (emp.getWarehouseManagerName() != null) { %>
+                                        <% if ("WAREHOUSE_MANAGER".equals(emp.getRoleName())) { %>
+                                        <span class="text-muted font-italic">N/A</span>
+                                        <% } else if (emp.getWarehouseManagerName() != null) { %>
                                         <span class="badge badge-light border text-gray-800">
                                             <i class="fas fa-user-tie text-info mr-1"></i> <%= emp.getWarehouseManagerName() %>
                                         </span>
@@ -227,14 +238,20 @@
                                         <% } %>
                                     </td>
                                     <td class="text-center text-nowrap">
+                                        <% if (!"WAREHOUSE_MANAGER".equals(emp.getRoleName())) { %>
                                         <button type="button" class="btn btn-sm btn-primary"
                                                 onclick="openAssignModal(<%= emp.getUserId() %>, '<%= safeFullName %>', <%= emp.getWarehouseId() != null ? emp.getWarehouseId() : 0 %>)"
                                                 title="Gán thủ kho">
                                             <i class="fas fa-link"></i>
                                         </button>
+                                        <% } else { %>
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled title="Không áp dụng">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                        <% } %>
 
                                         <button type="button" class="btn btn-sm btn-info"
-                                                onclick="openEditModal(<%= emp.getUserId() %>, '<%= safeFullName %>', '<%= safeEmail %>', '<%= safePhone %>', <%= emp.getWarehouseId() != null ? emp.getWarehouseId() : 0 %>)"
+                                                onclick="openEditModal(<%= emp.getUserId() %>, '<%= safeFullName %>', '<%= safeEmail %>', '<%= safePhone %>', <%= emp.getWarehouseId() != null ? emp.getWarehouseId() : 0 %>, '<%= emp.getRoleName() %>', '<%= String.join(",", emp.getPermissions()) %>')"
                                                 title="Sửa thông tin">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -295,7 +312,7 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="c_warehouseManagerGroup">
                         <label for="c_warehouseManagerId" class="font-weight-bold text-gray-800">Quản lý trực tiếp (Warehouse Manager)</label>
                         <select id="c_warehouseManagerId" name="warehouseManagerId" class="form-control">
                             <option value="">-- Chưa gán (Phân công sau) --</option>
@@ -306,6 +323,31 @@
                             <% } } %>
                         </select>
                         <small class="form-text text-muted">Không bắt buộc. Bạn có thể chọn Warehouse Manager phụ trách ngay hoặc gán sau.</small>
+                    </div>
+
+                    <div class="form-group" id="c_permissionsGroup" style="display: none;">
+                        <label class="font-weight-bold text-gray-800">Quyền hạn hệ thống trực tiếp (STAFF)</label>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="row">
+                                <%
+                                    if (staffPermissions != null) {
+                                        for (Permission p : staffPermissions) {
+                                            String pDesc = p.getDescription() != null ? p.getDescription() : p.getPermissionName();
+                                %>
+                                <div class="col-md-6 mb-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="c_perm_<%= p.getPermissionId() %>" name="permissions" value="<%= p.getPermissionName() %>">
+                                        <label class="custom-control-label font-weight-normal" for="c_perm_<%= p.getPermissionId() %>">
+                                            <strong><%= p.getPermissionName() %></strong> - <%= pDesc %>
+                                        </label>
+                                    </div>
+                                </div>
+                                <%
+                                        }
+                                    }
+                                %>
+                            </div>
+                        </div>
                     </div>
 
                     <hr>
@@ -373,7 +415,7 @@
                         <input type="text" id="e_phone" name="phone" class="form-control" maxlength="20">
                     </div>
 
-                    <div class="form-group mb-0">
+                    <div class="form-group mb-0" id="e_warehouseManagerGroup">
                         <label for="e_warehouseManagerId" class="font-weight-bold text-gray-800">Quản lý trực tiếp (Warehouse Manager)</label>
                         <select id="e_warehouseManagerId" name="warehouseManagerId" class="form-control">
                             <option value="">-- Chưa gán (Hủy phân công) --</option>
@@ -386,6 +428,31 @@
                             <% } } %>
                         </select>
                         <small class="form-text text-muted">Chọn Warehouse Manager phụ trách hoặc hủy phân công để chuyển về trạng thái chưa gán.</small>
+                    </div>
+
+                    <div class="form-group mb-0 mt-3" id="e_permissionsGroup" style="display: none;">
+                        <label class="font-weight-bold text-gray-800">Quyền hạn hệ thống trực tiếp (STAFF)</label>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="row">
+                                <%
+                                    if (staffPermissions != null) {
+                                        for (Permission p : staffPermissions) {
+                                            String pDesc = p.getDescription() != null ? p.getDescription() : p.getPermissionName();
+                                %>
+                                <div class="col-md-6 mb-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input e-perm-chk" id="e_perm_<%= p.getPermissionId() %>" name="permissions" value="<%= p.getPermissionName() %>">
+                                        <label class="custom-control-label font-weight-normal" for="e_perm_<%= p.getPermissionId() %>">
+                                            <strong><%= p.getPermissionName() %></strong> - <%= pDesc %>
+                                        </label>
+                                    </div>
+                                </div>
+                                <%
+                                        }
+                                    }
+                                %>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -497,6 +564,9 @@
 
     function openCreateModal() {
         $('#c_roleName').val('STAFF');
+        $('#c_warehouseManagerGroup').show();
+        $('#c_permissionsGroup').show();
+        $('#c_permissionsGroup input[type="checkbox"]').prop('checked', false);
         $('#c_warehouseManagerId').val('');
         $('#c_fullName').val('');
         $('#c_email').val('');
@@ -506,23 +576,59 @@
         $('#createEmployeeModal').modal('show');
     }
 
-    function openEditModal(userId, fullName, email, phone, currentWarehouseId) {
+    $('#c_roleName').change(function() {
+        if ($(this).val() === 'WAREHOUSE_MANAGER') {
+            $('#c_warehouseManagerGroup').hide();
+            $('#c_permissionsGroup').hide();
+        } else if ($(this).val() === 'STAFF') {
+            $('#c_warehouseManagerGroup').show();
+            $('#c_permissionsGroup').show();
+        } else {
+            $('#c_warehouseManagerGroup').show();
+            $('#c_permissionsGroup').hide();
+        }
+    });
+
+    function openEditModal(userId, fullName, email, phone, currentWarehouseId, roleName, permissionsCsv) {
         $('#e_userId').val(userId);
         $('#e_fullName').val(fullName);
         $('#e_email').val(email);
         $('#e_phone').val(phone);
 
-        // Find the warehouse manager corresponding to the current warehouse ID
-        let foundManagerId = '';
-        if (currentWarehouseId > 0) {
-            $('#e_warehouseManagerId option').each(function() {
-                let whId = parseInt($(this).data('whid'));
-                if (whId === currentWarehouseId) {
-                    foundManagerId = $(this).val();
-                }
-            });
+        if (roleName === 'WAREHOUSE_MANAGER') {
+            $('#e_warehouseManagerGroup').hide();
+            $('#e_permissionsGroup').hide();
+        } else if (roleName === 'STAFF') {
+            $('#e_warehouseManagerGroup').show();
+            $('#e_permissionsGroup').show();
+            
+            // Uncheck all edit permission checkboxes
+            $('.e-perm-chk').prop('checked', false);
+            // Check the ones user has
+            if (permissionsCsv) {
+                let perms = permissionsCsv.split(',');
+                perms.forEach(function(p) {
+                    $('.e-perm-chk[value="' + p.trim() + '"]').prop('checked', true);
+                });
+            }
+        } else {
+            $('#e_warehouseManagerGroup').show();
+            $('#e_permissionsGroup').hide();
         }
-        $('#e_warehouseManagerId').val(foundManagerId);
+
+        if (roleName !== 'WAREHOUSE_MANAGER') {
+            // Find the warehouse manager corresponding to the current warehouse ID
+            let foundManagerId = '';
+            if (currentWarehouseId > 0) {
+                $('#e_warehouseManagerId option').each(function() {
+                    let whId = parseInt($(this).data('whid'));
+                    if (whId === currentWarehouseId) {
+                        foundManagerId = $(this).val();
+                    }
+                });
+            }
+            $('#e_warehouseManagerId').val(foundManagerId);
+        }
 
         $('#editEmployeeModal').modal('show');
     }

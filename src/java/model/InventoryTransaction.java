@@ -11,7 +11,6 @@ public class InventoryTransaction {
     private String transactionType;
     private String itemType;
     private Integer generatorId;
-    private Integer partId;
     private int quantity;
     private Timestamp transactionDate;
     private String note;
@@ -21,7 +20,7 @@ public class InventoryTransaction {
     public InventoryTransaction() {
     }
 
-    public InventoryTransaction(int transactionId, int warehouseId, Integer supplierId, int createdBy, String transactionType, String itemType, Integer generatorId, Integer partId, int quantity, Timestamp transactionDate, String note, String status) {
+    public InventoryTransaction(int transactionId, int warehouseId, Integer supplierId, int createdBy, String transactionType, String itemType, Integer generatorId, int quantity, Timestamp transactionDate, String note, String status) {
         this.transactionId = transactionId;
         this.warehouseId = warehouseId;
         this.supplierId = supplierId;
@@ -29,7 +28,6 @@ public class InventoryTransaction {
         this.transactionType = transactionType;
         this.itemType = itemType;
         this.generatorId = generatorId;
-        this.partId = partId;
         this.quantity = quantity;
         this.transactionDate = transactionDate;
         this.note = note;
@@ -92,14 +90,6 @@ public class InventoryTransaction {
         this.generatorId = generatorId;
     }
 
-    public Integer getPartId() {
-        return partId;
-    }
-
-    public void setPartId(Integer partId) {
-        this.partId = partId;
-    }
-
     public int getQuantity() {
         return quantity;
     }
@@ -143,8 +133,6 @@ public class InventoryTransaction {
     // Helper fields for display
     private String generatorName;
     private String generatorSerial;
-    private String partName;
-    private String partCode;
     private String warehouseName;
     private String supplierName;
     private String creatorName;
@@ -163,22 +151,6 @@ public class InventoryTransaction {
 
     public void setGeneratorSerial(String generatorSerial) {
         this.generatorSerial = generatorSerial;
-    }
-
-    public String getPartName() {
-        return partName;
-    }
-
-    public void setPartName(String partName) {
-        this.partName = partName;
-    }
-
-    public String getPartCode() {
-        return partCode;
-    }
-
-    public void setPartCode(String partCode) {
-        this.partCode = partCode;
     }
 
     public String getWarehouseName() {

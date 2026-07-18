@@ -99,4 +99,12 @@ public class GeneratorBarcode {
     public void setTransferId(Integer transferId) {
         this.transferId = transferId;
     }
+
+    private String warehouseName;
+    public String getWarehouseName() {
+        return warehouseName;
+    }
+    public void setWarehouseName(String warehouseName) {
+        this.warehouseName = warehouseName;
+    }
 }

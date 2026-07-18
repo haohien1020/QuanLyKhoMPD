@@ -320,7 +320,7 @@
                         <div>
                             <div class="text-xs font-weight-bold text-uppercase mb-2" style="color: rgba(255,255,255,0.85); letter-spacing: 1px;">Không gian làm việc Nhân viên</div>
                             <h1 class="h3 text-white mb-2">Nhiệm vụ hàng ngày của bạn</h1>
-                            <p class="mb-0">Kiểm tra tồn kho máy phát điện, tra cứu phụ tùng, xem và xử lý các đơn giao máy phát điện cho khách hàng được phân công.</p>
+                            <p class="mb-0">Kiểm tra tồn kho máy phát điện, xem và xử lý các đơn giao máy phát điện cho khách hàng được phân công.</p>
                         </div>
                         <div class="text-sm-right mt-3 mt-sm-0 bg-white p-3 rounded shadow-sm" style="min-width: 180px; background: rgba(255,255,255,0.15) !important; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
                             <div class="small text-white-50">Xin chào</div>

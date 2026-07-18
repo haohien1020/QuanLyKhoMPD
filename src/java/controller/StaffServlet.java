@@ -1,6 +1,5 @@
 package controller;
 
-import dao.PartDAO;
 import dao.WarehouseDAO;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,7 +9,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.List;
-import model.Part;
 import model.Warehouse;
 import model.User;
 
@@ -19,7 +17,6 @@ import model.User;
 })
 public class StaffServlet extends HttpServlet {
 
-    private final PartDAO partDAO = new PartDAO();
     private final WarehouseDAO warehouseDAO = new WarehouseDAO();
 
     @Override

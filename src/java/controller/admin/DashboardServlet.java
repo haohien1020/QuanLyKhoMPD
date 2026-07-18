@@ -81,11 +81,10 @@ public class DashboardServlet extends HttpServlet {
             request.setAttribute("totalWarehouses", dashboardDAO.count("warehouses"));
             request.setAttribute("totalSuppliers", dashboardDAO.count("suppliers"));
             request.setAttribute("totalGenerators", dashboardDAO.count("generators"));
-            request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generators", "status = 'IN_STOCK'"));
-            request.setAttribute("damagedGenerators", dashboardDAO.countWhere("generators", "status = 'DAMAGED'"));
+            request.setAttribute("totalBarcodes", dashboardDAO.countWhere("generator_barcodes", "is_deleted = 0"));
+            request.setAttribute("inStockGenerators", dashboardDAO.countWhere("generator_barcodes", "status = 'IN_STOCK' AND is_deleted = 0"));
+            request.setAttribute("damagedGenerators", dashboardDAO.countWhere("generator_barcodes", "status = 'DAMAGED' AND is_deleted = 0"));
 
-            request.setAttribute("totalParts", dashboardDAO.count("parts"));
-            request.setAttribute("lowStockParts", dashboardDAO.countWhere("parts", "quantity <= min_quantity"));
             request.setAttribute("inventoryTransactions", dashboardDAO.count("inventory_transactions"));
             request.setAttribute("pendingTransfers", dashboardDAO.countWhere("stock_transfers", "status = 'PENDING'"));
 
